@@ -156,7 +156,26 @@ const cleanTemplate = (t) => ({
  */
 async function importHistory(userId, data) {
   if (data?.format !== 'forza-history-v1') throw Object.assign(new Error('Unknown file format (expected forza-history-v1)'), { status: 400 })
-  const result = { templates: 0, sessions: 0, sets: 0, weights: 0 }
+  const result = { templates: 0, sessions: 0, sets: 0, weights: 0, custom_exercises: 0 }
+
+  // Exercises that only exist in the source app become shared custom exercises (reused by name).
+  const customIds = new Map()
+  for (const c of data.custom_exercises ?? []) {
+    const found = check(await db.from('custom_exercises').select('id').is('owner_id', null).eq('name_en', c.name_en).maybeSingle())
+    const row = found ?? check(
+      await db
+        .from('custom_exercises')
+        .insert({ owner_id: null, name_en: c.name_en, name_it: c.name_it || c.name_en, kind: c.kind ?? 'reps', muscles: c.muscles ?? [], equipment: c.equipment ?? 'other', video_url: c.video_url ?? null })
+        .select('id')
+        .single(),
+    )
+    if (!found) result.custom_exercises++
+    customIds.set(c.key, row.id)
+  }
+  const resolve = (id) => (String(id).startsWith('custom:') ? customIds.get(String(id).slice(7)) : id)
+  for (const t of data.templates ?? []) for (const e of t.exercises ?? []) e.exercise_id = resolve(e.exercise_id)
+  for (const s of data.sessions ?? []) for (const x of s.sets ?? []) x.exercise_id = resolve(x.exercise_id)
+
   const templateIds = new Map()
   const existing = check(await db.from('workout_templates').select('id, name').eq('user_id', userId).eq('archived', false))
   for (const [i, t] of (data.templates ?? []).entries()) {

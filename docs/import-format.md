@@ -41,5 +41,13 @@ dashboard and the automatic weight suggestions work from day one.
 }
 ```
 
-`exercise_id` is an id from [`app/src/data/exercises.json`](../app/src/data/exercises.json) or a custom
+Exercises that do not exist in Forza! can be declared once and referenced as `custom:<key>`; they are
+created as shared custom exercises (or reused if one with the same English name exists):
+
+```jsonc
+"custom_exercises": [{ "key": "ground_sit", "name_en": "Ground sit", "name_it": "Ground sit", "kind": "time", "muscles": ["abs"] }]
+// … then in templates or sets: "exercise_id": "custom:ground_sit"
+```
+
+Otherwise `exercise_id` is an id from [`app/src/data/exercises.json`](../app/src/data/exercises.json) or a custom
 exercise id (`c_…`, see the admin dashboard → Exercises & videos).

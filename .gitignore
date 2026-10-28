@@ -25,3 +25,6 @@ android-helper/*.apk
 .DS_Store
 .idea/
 .vscode/
+
+# personal data and local-only notes (never published)
+private/

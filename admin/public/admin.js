@@ -497,7 +497,7 @@ app.addEventListener('submit', async (e) => {
       const body = JSON.parse(await file.text())
       toast('Importing…')
       const r = await api(`/api/users/${state.selected}/import`, { method: 'POST', body })
-      toast(`Imported ${r.sessions} workouts (${r.sets} sets), ${r.templates} plan workouts, ${r.weights} weigh-ins`)
+      toast(`Imported ${r.sessions} workouts (${r.sets} sets), ${r.templates} plan workouts, ${r.weights} weigh-ins${r.custom_exercises ? `, ${r.custom_exercises} new exercises` : ''}`)
       return selectUser(state.selected)
     }
     if (form.dataset.form === 'delete') {
