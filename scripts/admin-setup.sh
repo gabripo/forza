@@ -13,7 +13,7 @@ REF="${1:-}"
 
 if [[ -n "$REF" ]]; then
   url="https://$REF.supabase.co"
-  key=$(supabase projects api-keys --project-ref "$REF" -o json | python3 -c '
+  key=$(supabase projects api-keys --project-ref "$REF" --reveal -o json | python3 -c '
 import json, sys
 keys = json.load(sys.stdin)
 secret = [k for k in keys if k.get("type") == "secret"] or [k for k in keys if k.get("name") == "service_role"]
@@ -22,6 +22,11 @@ else
   read -r -p "Supabase project URL: " url
   read -r -s -p "Supabase secret (service_role) key: " key
   echo
+fi
+
+if [[ -z "$key" || "$key" == *[!\ -~]* ]]; then
+  echo "Could not read the full secret key (it looks masked). Copy it from the dashboard and run without arguments." >&2
+  exit 1
 fi
 
 if [[ ! "$url" =~ ^https://.+ ]]; then
