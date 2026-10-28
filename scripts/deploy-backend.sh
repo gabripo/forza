@@ -17,7 +17,7 @@ echo "→ Linking project $REF"
 supabase link --project-ref "$REF"
 
 echo "→ Applying the database schema"
-supabase db push
+supabase db push --linked
 
 echo "→ Deploying server functions"
 supabase functions deploy food-estimate --no-verify-jwt
@@ -32,7 +32,12 @@ fi
 
 # Sign-ups must be closed: only the administrator creates accounts.
 URL="https://$REF.supabase.co"
-read -r -p "Publishable (anon) key, to verify that public sign-ups are closed: " ANON
+# The publishable key is public by design (row-level security protects the data).
+ANON=$(supabase projects api-keys --project-ref "$REF" -o json | python3 -c '
+import json, sys
+keys = json.load(sys.stdin)
+pub = [k for k in keys if k.get("type") == "publishable"] or [k for k in keys if k.get("name") == "anon"]
+print(pub[0]["api_key"])')
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/auth/v1/signup" \
   -H "apikey: $ANON" -H 'content-type: application/json' \
   -d "{\"email\":\"signup-check-$RANDOM@example.com\",\"password\":\"Check-$RANDOM-$RANDOM\"}")
@@ -49,5 +54,5 @@ echo
 echo "Backend ready. Next:"
 echo "  1. GitHub → Settings → Secrets and variables → Actions → Variables:"
 echo "       VITE_SUPABASE_URL = $URL"
-echo "       VITE_SUPABASE_KEY = <publishable key>"
+echo "       VITE_SUPABASE_KEY = $ANON"
 echo "  2. ./scripts/admin-setup.sh   (stores the service key in your Keychain)"
