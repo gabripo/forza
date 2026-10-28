@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="intro">Invia i passi giornalieri e il peso da Connessione Salute a Forza!, qualche volta al giorno. Non legge nient\'altro.</string>
+    <string name="not_connected">Non ancora collegata</string>
+    <string name="needs_access">Collegata. Consenti l\'accesso a passi e peso.</string>
+    <string name="all_good">✓ Collegata e sincronizzata</string>
+    <string name="how_to_connect">Apri Forza! su questo telefono → Impostazioni → Collega Salute e bilancia → "Collega l\'app di supporto".</string>
+    <string name="allow_access">Consenti l\'accesso</string>
+    <string name="sync_now">Sincronizza ora</string>
+    <string name="syncing">Sincronizzazione…</string>
+    <string name="last_sync">Ultima sincronizzazione: %1$s</string>
+    <string name="synced">Inviati %1$d giorni di passi e %2$d pesate.</string>
+    <string name="bad_key">La chiave non è più valida. Collega di nuovo l\'app da Forza!.</string>
+    <string name="server_error">Errore del server (%1$d). Riprovo più tardi.</string>
+    <string name="offline">Nessuna connessione. Riprovo più tardi.</string>
+    <string name="hc_missing">Connessione Salute non è disponibile su questo telefono.</string>
+    <string name="confirm_title">Collegare a Forza!?</string>
+    <string name="confirm_text">Passi e peso verranno inviati a %1$s. Collega solo se hai aperto questo link dalla tua app Forza!.</string>
+    <string name="connect">Collega</string>
+    <string name="eufy_hint">Bilancia Eufy: nell\'app EufyLife attiva Connessione Salute (o Google Fit) per il peso. Così Forza! riceve ogni pesata in automatico.</string>
+    <string name="privacy">Forza! Health legge solo: passi giornalieri, peso corporeo e percentuale di grasso da Connessione Salute.\n\nI dati vengono inviati con una connessione cifrata al server Forza! configurato dall\'amministratore della tua famiglia, dove sono visibili solo a te e a lui. Servono solo a mostrare i tuoi progressi nell\'app Forza!. Niente viene venduto o condiviso.\n\nPuoi togliere l\'accesso in qualsiasi momento dalle impostazioni di Connessione Salute, o disinstallare l\'app.</string>
+</resources>

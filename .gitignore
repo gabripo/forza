@@ -1,0 +1,27 @@
+# dependencies and builds
+node_modules/
+dist/
+*.tsbuildinfo
+
+# secrets and local config — never commit keys
+.env
+.env.*
+*.local
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.env
+*.keystore
+*.jks
+
+# Android
+android-helper/.gradle/
+android-helper/build/
+android-helper/app/build/
+android-helper/local.properties
+android-helper/*.apk
+
+# tools
+.claude/
+.DS_Store
+.idea/
+.vscode/

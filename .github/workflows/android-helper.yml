@@ -1,0 +1,60 @@
+name: Android Health helper
+
+on:
+  push:
+    tags: ['helper-v*']
+    paths: ['android-helper/**']
+  pull_request:
+    paths: ['android-helper/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Decode signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.FORZA_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/forza.keystore"
+            echo "FORZA_KEYSTORE_PATH=$RUNNER_TEMP/forza.keystore" >> "$GITHUB_ENV"
+          fi
+      - name: Build APK
+        working-directory: android-helper
+        env:
+          FORZA_KEYSTORE_PASSWORD: ${{ secrets.FORZA_KEYSTORE_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: ${{ github.ref_type == 'tag' && github.ref_name || format('dev-{0}', github.run_number) }}
+        run: |
+          if [ -n "${FORZA_KEYSTORE_PATH:-}" ]; then
+            gradle assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk forza-health.apk
+          else
+            gradle assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk forza-health.apk
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forza-health-apk
+          path: android-helper/forza-health.apk
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" android-helper/forza-health.apk \
+            --title "Forza! Health helper ${{ github.ref_name }}" \
+            --notes "Android helper that syncs steps and weight from Health Connect to Forza!. Install it from your phone (allow installing from this source when asked)." \
+            || gh release upload "${{ github.ref_name }}" android-helper/forza-health.apk --clobber

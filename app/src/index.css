@@ -1,0 +1,175 @@
+@import 'tailwindcss';
+
+/*
+ * Forza! design tokens.
+ * Warm, calm surfaces; one terracotta accent for actions; a green for "healthy / done".
+ * Base text is 17px because many users are older adults.
+ * Chart colours follow the validated data-viz palette (blue / orange series).
+ */
+:root {
+  color-scheme: light;
+  --bg: #faf7f2;
+  --card: #ffffff;
+  --card-2: #f4efe7;
+  --ink: #1c1917;
+  --ink-2: #57534e;
+  --ink-3: #78716c;
+  --line: #e7e1d8;
+  --brand: #c2410c;
+  --brand-ink: #9a3412;
+  --brand-soft: #fff1e8;
+  --leaf: #15803d;
+  --leaf-soft: #eaf7ee;
+  --sky: #0369a1;
+  --sky-soft: #e8f3fa;
+  --sun: #a16207;
+  --sun-soft: #fdf6e3;
+  --danger: #b91c1c;
+  --danger-soft: #fdecec;
+  /* charts */
+  --chart-surface: #ffffff;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-muted: #b9b6ad;
+  --grid: #e1e0d9;
+  --axis: #898781;
+  --macro-protein: #2a78d6;
+  --macro-carbs: #eb6834;
+  --macro-fat: #eda100;
+  --macro-fiber: #1baf7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #141210;
+    --card: #1e1b18;
+    --card-2: #282420;
+    --ink: #f5f2ee;
+    --ink-2: #d6d0c8;
+    --ink-3: #a8a29e;
+    --line: #3a3530;
+    --brand: #c2410c;
+    --brand-ink: #fdba8c;
+    --brand-soft: #3a2116;
+    --leaf: #4ade80;
+    --leaf-soft: #16301f;
+    --sky: #7cc4f0;
+    --sky-soft: #142a38;
+    --sun: #facc15;
+    --sun-soft: #332a10;
+    --danger: #f87171;
+    --danger-soft: #3a1717;
+    --chart-surface: #1e1b18;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-muted: #5d5850;
+    --grid: #2c2c2a;
+    --axis: #898781;
+    --macro-protein: #3987e5;
+    --macro-carbs: #d95926;
+    --macro-fat: #c98500;
+    --macro-fiber: #199e70;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-leaf: var(--leaf);
+  --color-leaf-soft: var(--leaf-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-sun: var(--sun);
+  --color-sun-soft: var(--sun-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    font-size: 17px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.45;
+    overscroll-behavior-y: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--sky);
+    outline-offset: 2px;
+  }
+
+  /* Grid children may shrink below their content (charts measure their container). */
+  .grid > * {
+    min-width: 0;
+  }
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Infographics print on one A4 page each, in colour, without the app chrome. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  :root {
+    color-scheme: light;
+  }
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    max-width: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
