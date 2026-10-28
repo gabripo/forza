@@ -61,6 +61,16 @@ const check = ({ data, error }) => {
   return data
 }
 
+/** Supabase returns at most 1000 rows per request: fetch every page. */
+async function fetchAll(page) {
+  const out = []
+  for (let from = 0; ; from += 1000) {
+    const rows = check(await page(from, from + 999))
+    out.push(...rows)
+    if (rows.length < 1000) return { data: out, error: null }
+  }
+}
+
 async function listUsers() {
   const { data, error } = await db.auth.admin.listUsers({ perPage: 1000 })
   if (error) throw error
@@ -97,9 +107,9 @@ async function userData(id) {
   const month = new Date(Date.now() - 30 * 86_400_000).toISOString()
   const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons] = await Promise.all([
     db.from('profiles').select('*').eq('id', id).maybeSingle(),
-    db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at'),
+    fetchAll((from, to) => db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at').order('id').range(from, to)),
     db.from('workout_sessions').select('*').eq('user_id', id).gte('started_at', year).order('started_at', { ascending: false }),
-    db.from('set_logs').select('*').eq('user_id', id).gte('performed_at', year).order('performed_at').limit(20000),
+    fetchAll((from, to) => db.from('set_logs').select('*').eq('user_id', id).gte('performed_at', year).order('performed_at').order('id').range(from, to)),
     db.from('daily_steps').select('*').eq('user_id', id).gte('day', quarter).order('day'),
     db.from('food_logs').select('*').eq('user_id', id).gte('eaten_at', month).order('eaten_at', { ascending: false }),
     db.from('checkins').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(30),

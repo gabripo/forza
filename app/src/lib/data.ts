@@ -56,6 +56,17 @@ function check<T>(res: { data: T | null; error: { message: string } | null }): T
   return res.data as T
 }
 
+/** Supabase returns at most 1000 rows per request: fetch every page. */
+async function fetchAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const size = 1000
+  const out: T[] = []
+  for (let from = 0; ; from += size) {
+    const rows = check(await page(from, from + size - 1))
+    out.push(...rows)
+    if (rows.length < size) return out
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Profile
 // ---------------------------------------------------------------------------
@@ -155,12 +166,13 @@ export async function createCustomExercise(input: {
 // ---------------------------------------------------------------------------
 
 export async function getWeights(sinceDays = 365): Promise<BodyWeight[]> {
-  return check(
-    await supabase
+  return fetchAll<BodyWeight>((from, to) =>
+    supabase
       .from('body_weights')
       .select('id, measured_at, weight_kg, body_fat_pct, source')
       .gte('measured_at', daysAgo(sinceDays).toISOString())
-      .order('measured_at'),
+      .order('measured_at')
+      .range(from, to),
   )
 }
 
@@ -226,16 +238,21 @@ export interface SessionWithSets extends WorkoutSession {
 export async function getSessions(sinceDays = 365): Promise<SessionWithSets[]> {
   const since = daysAgo(sinceDays).toISOString()
   const [sessions, sets] = await Promise.all([
-    supabase.from('workout_sessions').select('*').gte('started_at', since).order('started_at', { ascending: false }),
-    supabase.from('set_logs').select('*').gte('performed_at', since).order('exercise_order').order('set_index').limit(10000),
+    fetchAll<WorkoutSession>((from, to) =>
+      supabase.from('workout_sessions').select('*').gte('started_at', since).order('started_at', { ascending: false }).range(from, to),
+    ),
+    fetchAll<SetLog & { id: number }>((from, to) =>
+      supabase.from('set_logs').select('*').gte('performed_at', since).order('id').range(from, to),
+    ),
   ])
+  sets.sort((a, b) => a.exercise_order - b.exercise_order || a.set_index - b.set_index)
   const bySession = new Map<string, SetLog[]>()
-  for (const s of check(sets) as SetLog[]) {
+  for (const s of sets) {
     const list = bySession.get(s.session_id) ?? []
     list.push(s)
     bySession.set(s.session_id, list)
   }
-  return (check(sessions) as WorkoutSession[]).map((s) => ({ ...s, sets: bySession.get(s.id) ?? [] }))
+  return sessions.map((s) => ({ ...s, sets: bySession.get(s.id) ?? [] }))
 }
 
 export async function getSession(id: string): Promise<SessionWithSets | null> {
