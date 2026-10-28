@@ -166,10 +166,14 @@ function overview(d) {
       <div class="tile"><div class="label">Workouts, last 4 weeks</div><div class="value">${recentSessions.length}</div><div class="small muted">goal ${p(d).workouts_per_week * 4}</div></div>
       <div class="tile"><div class="label">Avg steps (14 d)</div><div class="value">${fmtNum(avgSteps)}</div><div class="small muted">goal ${fmtNum(p(d).steps_goal)}</div></div>
       <div class="tile"><div class="label">Strength change</div><div class="value">${avgPct == null ? '—' : `${avgPct >= 0 ? '+' : ''}${fmtNum(avgPct)}%`}</div></div>
+      <div class="tile"><div class="label">Walks & activities (30 d)</div><div class="value">${fmtNum(d.activities.reduce((m, a) => m + (new Date(a.ended_at) - new Date(a.started_at)) / 60000, 0) / 60, 1)} h</div><div class="small muted">${d.activities.length} sessions</div></div>
+      <div class="tile"><div class="label">Lessons read</div><div class="value">${d.lessons.length} / 12</div></div>
+      <div class="tile"><div class="label">Calorie check-ins</div><div class="value" style="font-size:18px">${p(d).kcal_adjust ? `${p(d).kcal_adjust > 0 ? '+' : ''}${p(d).kcal_adjust} kcal` : 'no change'}</div><div class="small muted">${p(d).kcal_checkin_at ? 'last ' + fmtDate(p(d).kcal_checkin_at) : ''}</div></div>
       <div class="tile"><div class="label">Health sync</div><div class="value" style="font-size:15px">${d.sync?.last_used_at ? fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not connected'}</div></div>
     </div></div>
     <div class="card"><h2>Weight</h2><div class="chart">${lineChart(weights, (v) => `${fmtNum(v, 1)}`)}</div></div>
     <div class="card"><h2>Steps (90 days)</h2><div class="chart">${barChart(d.steps.map((s) => ({ label: s.day.slice(5), v: s.steps })), p(d).steps_goal)}</div></div>
+    ${d.photos.length ? `<div class="card"><h2>Progress photos (${d.photos.length})</h2><p class="muted small">Private photos: open them only if the person is happy to share them with you.</p><button class="btn secondary" data-action="show-photos">Show photos</button><div id="photo-grid" class="row" style="margin-top:10px"></div></div>` : ''}
     <div class="card"><h2>Strength by exercise</h2>
       <table><thead><tr><th>Exercise</th><th class="num">Sessions</th><th class="num">First est. max</th><th class="num">Latest</th><th class="num">Change</th></tr></thead>
       <tbody>${strengthRows.map((r) => `<tr><td>${esc(exerciseName(r.id))}</td><td class="num">${r.n}</td><td class="num">${fmtNum(r.first, 1)} kg</td><td class="num">${fmtNum(r.last, 1)} kg</td><td class="num"><span class="pill ${r.pct >= 0 ? 'good' : 'warn'}">${r.pct >= 0 ? '+' : ''}${fmtNum(r.pct)}%</span></td></tr>`).join('') || '<tr><td colspan="5" class="muted">Not enough workouts yet.</td></tr>'}</tbody></table>
@@ -232,9 +236,10 @@ function planView() {
     .map(
       (t, ti) => `<div class="card">
       <div class="row"><input data-plan="${ti}" data-field="name" value="${esc(t.name)}" style="font-weight:700;flex:1;min-width:200px">
+        <select data-plan="${ti}" data-field="weekday" title="Fixed day (optional)">${['', 0, 1, 2, 3, 4, 5, 6].map((d) => `<option value="${d}" ${String(t.weekday ?? '') === String(d) ? 'selected' : ''}>${d === '' ? 'any day (rotate)' : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][d]}</option>`).join('')}</select>
         <span class="pill ${t.managed_by_admin ? 'good' : 'info'}">${t.managed_by_admin ? 'by you' : 'made by them'}</span></div>
       <label class="field" style="margin-top:8px">Notes<input data-plan="${ti}" data-field="notes" value="${esc(t.notes ?? '')}"></label>
-      <table style="margin-top:8px"><thead><tr><th>Exercise</th><th class="num">Sets</th><th class="num">Reps min</th><th class="num">Reps max</th><th class="num">Rest s</th><th class="num">Start kg</th><th>Note</th><th></th></tr></thead><tbody>
+      <table style="margin-top:8px"><thead><tr><th>Exercise</th><th class="num">Sets</th><th class="num">Reps min</th><th class="num">Reps max</th><th class="num">Rest s</th><th class="num">Start kg</th><th class="num" title="Same number = superset">SS</th><th title="Warm-up sets">Warm-up</th><th>Note</th><th></th></tr></thead><tbody>
       ${t.exercises
         .map(
           (e, ei) => `<tr>
@@ -244,6 +249,8 @@ function planView() {
           <td class="num"><input class="n" data-plan="${ti}" data-ex="${ei}" data-field="rep_max" value="${esc(e.rep_max)}"></td>
           <td class="num"><input class="n" data-plan="${ti}" data-ex="${ei}" data-field="rest_s" value="${esc(e.rest_s)}"></td>
           <td class="num"><input class="n" data-plan="${ti}" data-ex="${ei}" data-field="target_kg" value="${esc(e.target_kg ?? '')}"></td>
+          <td class="num"><input class="n" style="width:44px" data-plan="${ti}" data-ex="${ei}" data-field="superset" value="${esc(e.superset ?? '')}"></td>
+          <td><select data-plan="${ti}" data-ex="${ei}" data-field="warmup">${[['', 'auto'], ['true', 'yes'], ['false', 'no']].map(([v, l]) => `<option value="${v}" ${String(e.warmup ?? '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
           <td><input data-plan="${ti}" data-ex="${ei}" data-field="note" value="${esc(e.note ?? '')}" placeholder="cue for them"></td>
           <td class="row" style="flex-wrap:nowrap"><button class="btn secondary small" data-action="ex-up" data-plan="${ti}" data-ex="${ei}">↑</button><button class="btn secondary small" data-action="ex-down" data-plan="${ti}" data-ex="${ei}">↓</button><button class="btn danger small" data-action="ex-del" data-plan="${ti}" data-ex="${ei}">✕</button></td>
         </tr>`,
@@ -253,9 +260,10 @@ function planView() {
       <div class="row" style="margin-top:10px">
         <button class="btn secondary" data-action="ex-add" data-plan="${ti}">+ Exercise</button>
         <span style="flex:1"></span>
-        ${t.id ? `<button class="btn danger" data-action="tpl-del" data-plan="${ti}">Remove workout</button>` : ''}
+        ${t.id ? `<button class="btn secondary" data-action="tpl-versions" data-plan="${ti}">Versions</button><button class="btn danger" data-action="tpl-del" data-plan="${ti}">Remove workout</button>` : ''}
         <button class="btn" data-action="tpl-save" data-plan="${ti}">Save</button>
-      </div></div>`,
+      </div>
+      ${state.versions?.[t.id] ? versionsList(t, ti) : ''}</div>`,
     )
     .join('')
   return `${templates || '<div class="card muted">No workouts in the plan yet.</div>'}
@@ -264,6 +272,18 @@ function planView() {
       ${others.length ? `<span class="muted">or copy the whole plan from</span><select id="copy-from">${others.map((u) => `<option value="${esc(u.id)}">${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select><button class="btn secondary" data-action="plan-copy">Copy</button>` : ''}
       <p class="muted small" style="flex-basis:100%;margin:0">Changes appear on their phone the next time they open the app. The app suggests weights automatically from their history; "Start kg" is only used the first time.</p>
     </div>`
+}
+
+function versionsList(t, ti) {
+  const list = state.versions[t.id]
+  if (!list.length) return '<p class="muted small" style="margin-top:10px">No earlier versions yet: every save keeps the previous one here.</p>'
+  return `<h3 style="margin-top:14px">Earlier versions</h3><table><tbody>${list
+    .map(
+      (v) => `<tr><td>${fmtDate(v.saved_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td><td>${esc(v.name)}</td>
+      <td class="muted small">${v.exercises.map((e) => esc(exerciseName(e.exercise_id))).join(', ')}</td>
+      <td><button class="btn secondary small" data-action="tpl-restore" data-plan="${ti}" data-version="${v.id}">Restore</button></td></tr>`,
+    )
+    .join('')}</tbody></table>`
 }
 
 function workoutsView(d) {
@@ -312,6 +332,9 @@ function accountView() {
   return `<div class="card"><h2>Reset password</h2>
       <form class="row" data-form="password"><input name="password" type="text" minlength="8" required placeholder="new password" autocomplete="off"><button class="btn">Set password</button></form>
       <p class="muted small">Last sign-in: ${fmtDate(user?.last_sign_in_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · created ${fmtDate(user?.created_at)}</p></div>
+    <div class="card"><h2>Import history</h2>
+      <p class="muted">Upload a <code>forza-history-v1</code> JSON file (workouts with every set, a plan and weigh-ins), for example converted from another app. Importing the same file again does not create duplicates.</p>
+      <form class="row" data-form="import"><input name="file" type="file" accept="application/json,.json" required><button class="btn">Import</button></form></div>
     <div class="card"><h2>Delete account</h2>
       <p class="muted">Permanently deletes the account and all of its data (weights, workouts, food, photos). This cannot be undone.</p>
       <form class="row" data-form="delete"><input name="confirm" placeholder="type the email to confirm" style="min-width:260px"><button class="btn danger">Delete forever</button></form></div>`
@@ -407,6 +430,31 @@ app.addEventListener('click', async (e) => {
       state.plan.splice(ti, 1)
       toast('Workout removed')
     }
+    if (action === 'tpl-versions') {
+      const t = state.plan[ti]
+      state.versions = state.versions ?? {}
+      state.versions[t.id] = state.versions[t.id] ? null : await api(`/api/templates/${t.id}/versions`)
+    }
+    if (action === 'tpl-restore') {
+      const t = state.plan[ti]
+      if (!confirm('Restore this version? The current version is kept in the list, so you can undo.')) return
+      state.plan[ti] = await api(`/api/templates/${t.id}/restore/${btn.dataset.version}`, { method: 'POST' })
+      state.versions[t.id] = await api(`/api/templates/${t.id}/versions`)
+      toast('Version restored')
+    }
+    if (action === 'show-photos') {
+      const grid = document.getElementById('photo-grid')
+      grid.innerHTML = ''
+      for (const ph of state.data.photos.slice(0, 24)) {
+        const { url } = await api(`/api/progress-photo?path=${encodeURIComponent(ph.path)}`)
+        if (!url) continue
+        const fig = document.createElement('figure')
+        fig.style.margin = '0'
+        fig.innerHTML = `<img src="${esc(url)}" alt="" style="width:120px;height:160px;object-fit:cover;border-radius:10px"><figcaption class="small muted">${fmtDate(ph.taken_at)}${ph.weight_kg ? ' · ' + fmtNum(ph.weight_kg, 1) + ' kg' : ''}</figcaption>`
+        grid.append(fig)
+      }
+      return
+    }
     if (action === 'plan-copy') {
       const from = document.getElementById('copy-from').value
       if (!confirm('Add a copy of that person’s whole plan to this person?')) return
@@ -443,6 +491,14 @@ app.addEventListener('submit', async (e) => {
       await api(`/api/users/${state.selected}/password`, { method: 'POST', body: data })
       toast('Password updated')
       form.reset()
+    }
+    if (form.dataset.form === 'import') {
+      const file = form.querySelector('input[type=file]').files[0]
+      const body = JSON.parse(await file.text())
+      toast('Importing…')
+      const r = await api(`/api/users/${state.selected}/import`, { method: 'POST', body })
+      toast(`Imported ${r.sessions} workouts (${r.sets} sets), ${r.templates} plan workouts, ${r.weights} weigh-ins`)
+      return selectUser(state.selected)
     }
     if (form.dataset.form === 'delete') {
       const user = state.users.find((u) => u.id === state.selected)

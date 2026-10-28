@@ -33,24 +33,33 @@ strength gains per exercise, workouts this week, steps, today's food, and a dail
 - Weights are **pre-filled and progression is automatic**: *"Last time you did all your reps: try 18 kg today."*
 - One tap per set, an "how hard was it?" scale (Easy · Good · Hard · Max), and a **rest timer** with sound and vibration.
 - The screen stays on, and workouts are saved on the phone first, so a weak gym signal never loses a set.
+- **Supersets** (alternate two exercises, one rest), automatic **warm-up sets** for big lifts, and a
+  **weekday schedule** (e.g. Thursday A, Saturday B) with this week's plan, done workouts and synced walks.
+- Every exercise has a **history** of past sets and personal records (heaviest lift, best set).
 - Create your own workouts, or let the family coach prepare the plan remotely.
+
+**✅ Daily checklist.** Today's workout (or rest day), weigh-in, meals and steps, with "3 of 4 done".
 
 **📈 Progress check.** Weight speed vs. goal, strength change, consistency, steps and nutrition, each as a
 clear verdict (*Good / OK / Needs attention*) with one concrete suggestion. Weekly check-ins for energy,
-sleep, mood and waist. A **"Share with family"** progress card.
+sleep, mood and waist. Week **streak**, all-time workouts, recent **personal records**, private **progress photos**
+(first vs latest), and a **"Share with family"** progress card.
 
 **📸 Calories from a photo.** Snap the plate; Google Gemini estimates every item and its macros. The portions
 can be corrected, and the plate is **scored for fat loss and for muscle gain** against the person's own energy
 needs (TDEE). The TDEE starts from profile and activity level, then adapts to logged steps, workouts and, after
-two weeks of food logging, to what the scale actually did. Manual entry with 60+ common foods is always available.
+two weeks of food logging, to what the scale actually did. A **weekly check-in** compares the weight trend with
+the goal pace and suggests a small calorie change (±100–150 kcal). Manual entry with 60+ common foods is always available.
 
-**📚 Learn.** Twelve beginner infographics, printable on A4 or saved as images, in Italian or English:
+**📚 Learn.** A short **guided course** (with a "Next lesson" card on Home) of twelve beginner infographics,
+printable on A4 or saved as images, in Italian or English:
 why strength matters with age · macronutrients · the balanced plate (and hand portions) · protein ·
 where to find each nutrient · fibre · insulin sensitivity · what to eat before/after training · meal ideas ·
 more movement with little effort · sleep · 10 small habits.
 
 **🔄 Automatic steps and weight.** iPhone via an Apple Shortcut, Android via a tiny Health Connect helper app.
-A **Eufy** (or any) smart scale works through Apple Health / Health Connect, and old weigh-ins can be imported from CSV.
+Walks and other workouts show up as activities. A **Eufy** (or any) smart scale works through Apple Health /
+Health Connect, and old weigh-ins can be imported from CSV.
 
 **🔒 Private by design.**
 - Accounts are created **only by you** (public sign-up is closed).

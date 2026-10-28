@@ -1,4 +1,4 @@
-import { Check, CircleHelp, Minus, Plus, Timer, Trash2, X } from 'lucide-react'
+import { Check, CircleHelp, Link2, Minus, Plus, Timer, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ExerciseMedia, VideoButton } from '../../components/ExerciseMedia'
@@ -129,10 +129,18 @@ export function ActiveWorkout() {
     const kind = exercises.get(ex.exercise_id)?.kind
     const timed = kind === 'time' || kind === 'cardio'
     if (s.done) return updateSet(ei, si, { done: false, doneAt: null })
-    const target = ex.suggestion?.reps ?? ex.rep_min
+    const target = s.warmup ? (s.reps ?? ex.rep_min) : (ex.suggestion?.reps ?? ex.rep_min)
+    // Supersets: no rest until every exercise of the round has done this set.
+    let restS = s.warmup ? Math.min(60, ex.rest_s) : ex.rest_s
+    if (!s.warmup && ex.superset != null) {
+      const group = w.exercises.map((e, i) => ({ e, i })).filter((g) => g.e.superset === ex.superset)
+      const round = ex.sets.filter((x) => !x.warmup).indexOf(s)
+      const waiting = group.some(({ e, i }) => i !== ei && e.sets.filter((x) => !x.warmup)[round] && !e.sets.filter((x) => !x.warmup)[round].done)
+      restS = waiting ? 0 : Math.max(...group.map((g) => g.e.rest_s))
+    }
     setW((x) => ({
       ...x,
-      rest: ex.rest_s > 0 ? { endsAt: Date.now() + ex.rest_s * 1000, total: ex.rest_s } : x.rest,
+      rest: restS > 0 ? { endsAt: Date.now() + restS * 1000, total: restS } : null,
       exercises: x.exercises.map((e, i) =>
         i === ei
           ? {
@@ -211,19 +219,39 @@ export function ActiveWorkout() {
       </header>
 
       <div className="grid gap-4">
-        {w.exercises.map((ex, ei) => (
-          <ExerciseBlock
-            key={`${ex.exercise_id}-${ei}`}
-            ex={ex}
-            exercise={exercises.get(ex.exercise_id)}
-            onHowTo={() => setHowTo(exercises.get(ex.exercise_id) ?? null)}
-            onChange={(si, patch) => updateSet(ei, si, patch)}
-            onToggle={(si) => toggleDone(ei, si)}
-            onAddSet={() => addSet(ei)}
-            onRemoveSet={() => removeSet(ei)}
-            onRemove={() => removeExercise(ei)}
-          />
-        ))}
+        {groups(w.exercises).map((idx) => {
+          const blocks = idx.map((ei) => {
+            const ex = w.exercises[ei]
+            return (
+              <ExerciseBlock
+                key={`${ex.exercise_id}-${ei}`}
+                ex={ex}
+                exercise={exercises.get(ex.exercise_id)}
+                onHowTo={() => setHowTo(exercises.get(ex.exercise_id) ?? null)}
+                onChange={(si, patch) => updateSet(ei, si, patch)}
+                onToggle={(si) => toggleDone(ei, si)}
+                onAddSet={() => addSet(ei)}
+                onRemoveSet={() => removeSet(ei)}
+                onRemove={() => removeExercise(ei)}
+              />
+            )
+          })
+          if (idx.length === 1) return blocks[0]
+          const next = supersetNext(idx.map((i) => w.exercises[i]))
+          return (
+            <div key={`ss-${idx[0]}`} className="grid gap-2 rounded-[1.75rem] border-2 border-sky bg-sky-soft p-2">
+              <div className="flex flex-wrap items-center gap-x-2 px-2 pt-1 text-sm font-bold text-sky">
+                <Link2 className="size-4" aria-hidden /> {t('active.superset')}
+                {next ? (
+                  <span className="font-semibold text-ink-2">
+                    · {t('active.nextUp', { name: l(exercises.get(next.exercise_id)?.name) || next.exercise_id, n: next.round + 1 })}
+                  </span>
+                ) : null}
+              </div>
+              {blocks}
+            </div>
+          )
+        })}
         <Button variant="secondary" size="lg" onClick={() => setPicking(true)}>
           <Plus className="size-5" aria-hidden /> {t('editor.addExercise')}
         </Button>
@@ -290,6 +318,29 @@ export function ActiveWorkout() {
       />
     </div>
   )
+}
+
+/** Consecutive exercises with the same superset number form one group. */
+function groups(list: ActiveExercise[]): number[][] {
+  const out: number[][] = []
+  list.forEach((ex, i) => {
+    const prev = out[out.length - 1]
+    if (prev && ex.superset != null && list[prev[0]].superset === ex.superset) prev.push(i)
+    else out.push([i])
+  })
+  return out
+}
+
+/** In a superset, the next set to do goes round-robin: A1, B1, A2, B2… */
+function supersetNext(list: ActiveExercise[]): { exercise_id: string; round: number } | null {
+  const rounds = Math.max(...list.map((e) => e.sets.filter((s) => !s.warmup).length))
+  for (let r = 0; r < rounds; r++) {
+    for (const e of list) {
+      const set = e.sets.filter((s) => !s.warmup)[r]
+      if (set && !set.done) return { exercise_id: e.exercise_id, round: r }
+    }
+  }
+  return null
 }
 
 export function HowTo({ exercise }: { exercise: Exercise }) {
@@ -379,6 +430,7 @@ function ExerciseBlock({
       </div>
       {ex.note ? <p className="mb-2 rounded-2xl bg-card-2 p-2 text-sm">📝 {ex.note}</p> : null}
       {hint ? <p className="mb-2 rounded-2xl bg-sky-soft p-2 text-sm text-sky">💡 {hint}</p> : null}
+      {ex.sets.some((x) => x.warmup) ? <p className="mb-2 px-1 text-sm text-ink-3">{t('active.warmupHelp')}</p> : null}
 
       <div className="grid grid-cols-[2rem_1fr_1fr_3.25rem] items-center gap-2 px-1 text-xs font-semibold text-ink-3">
         <span>#</span>
@@ -388,11 +440,15 @@ function ExerciseBlock({
       </div>
       <div className="grid gap-2">
         {ex.sets.map((set, si) => {
-          const last = ex.last[si]
+          const warmCount = ex.sets.filter((x) => x.warmup).length
+          const wi = si - warmCount
+          const last = set.warmup ? undefined : ex.last[wi]
           return (
             <div key={si}>
-              <div className={cx('grid grid-cols-[2rem_1fr_1fr_3.25rem] items-center gap-2 rounded-2xl p-1', set.done && 'bg-leaf-soft')}>
-                <span className="text-center font-bold text-ink-2">{si + 1}</span>
+              <div className={cx('grid grid-cols-[2rem_1fr_1fr_3.25rem] items-center gap-2 rounded-2xl p-1', set.done && 'bg-leaf-soft', set.warmup && !set.done && 'opacity-80')}>
+                <span className={cx('text-center font-bold', set.warmup ? 'text-sun' : 'text-ink-2')} title={set.warmup ? t('active.warmup') : undefined}>
+                  {set.warmup ? 'W' : wi + 1}
+                </span>
                 <NumberInput
                   value={set.weight}
                   onChange={(v) => onChange(si, { weight: v })}
@@ -434,7 +490,7 @@ function ExerciseBlock({
                   {timed ? `${last.duration ?? 0}s` : (last.reps ?? '—')}
                 </p>
               ) : null}
-              {set.done && !timed ? (
+              {set.done && !timed && !set.warmup ? (
                 <div className="mt-1 grid grid-cols-4 gap-1 pl-9" role="group" aria-label={t('effort.question')}>
                   {EFFORT.map((e) => (
                     <button

@@ -1,10 +1,10 @@
-import { Camera, ChevronLeft, ChevronRight, Info, PenLine, Trash2 } from 'lucide-react'
+import { CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, PenLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
-import { daysAgo, localDay, scoreBand } from '../../lib/calc'
+import { calorieCheckin, daysAgo, localDay, scoreBand } from '../../lib/calc'
 import { deleteFood } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { Meal } from '../../lib/types'
@@ -14,9 +14,10 @@ const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
 
 export function FoodHome() {
   const { t, num, date } = useI18n()
-  const { profile } = useApp()
+  const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
-  const { energy, food, loading, reload } = useEnergy()
+  const { energy, food, weights, loading, reload } = useEnergy()
+  const [savingCheckin, setSavingCheckin] = useState(false)
   const [offset, setOffset] = useState(0)
   const [explain, setExplain] = useState(false)
 
@@ -37,6 +38,21 @@ export function FoodHome() {
   )
   const tg = energy.targets
   const goal = profile.goal ?? 'maintain'
+  const checkin = calorieCheckin(profile, weights)
+
+  async function closeCheckin(apply: boolean) {
+    if (!profile) return
+    setSavingCheckin(true)
+    try {
+      await saveProfile({
+        kcal_adjust: (profile.kcal_adjust ?? 0) + (apply ? checkin.change : 0),
+        kcal_checkin_at: new Date().toISOString(),
+      })
+      void reload()
+    } finally {
+      setSavingCheckin(false)
+    }
+  }
 
   async function remove(id: string) {
     if (!window.confirm(t('food.confirmDelete'))) return
@@ -56,6 +72,49 @@ export function FoodHome() {
           <PenLine className="size-6 text-brand" aria-hidden /> {t('food.manual')}
         </Button>
       </div>
+
+      {checkin.due ? (
+        <Card tone="sky">
+          <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-sky">
+            <CalendarCheck className="size-5" aria-hidden /> {t('kcalCheckin.title')}
+          </p>
+          {checkin.verdict === 'not_enough_data' ? (
+            <p className="mt-1">{t('kcalCheckin.notEnough')}</p>
+          ) : (
+            <>
+              <p className="mt-1 text-lg">
+                {t('kcalCheckin.pace', {
+                  actual: `${(checkin.actualKgPerWeek ?? 0) > 0 ? '+' : '−'}${num(Math.abs(checkin.actualKgPerWeek ?? 0), 2)}`,
+                  goal: `${checkin.goalKgPerWeek > 0 ? '+' : checkin.goalKgPerWeek < 0 ? '−' : ''}${num(Math.abs(checkin.goalKgPerWeek), 2)}`,
+                })}
+              </p>
+              <p className="mt-1 text-ink-2">{t(`kcalCheckin.${checkin.verdict}`)}</p>
+              {checkin.change ? (
+                <p className="mt-2 font-bold">
+                  {t('kcalCheckin.proposal', { change: `${checkin.change > 0 ? '+' : '−'}${Math.abs(checkin.change)}`, target: num(tg.kcal + checkin.change) })}
+                </p>
+              ) : null}
+            </>
+          )}
+          <p className="mt-1 text-sm text-ink-3">{t('kcalCheckin.confidence', { level: t(`kcalCheckin.conf_${checkin.confidence}`) })}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {checkin.change ? (
+              <>
+                <Button onClick={() => closeCheckin(true)} loading={savingCheckin}>
+                  {t('kcalCheckin.apply')}
+                </Button>
+                <Button variant="secondary" onClick={() => closeCheckin(false)} disabled={savingCheckin}>
+                  {t('kcalCheckin.keep')}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => closeCheckin(false)} loading={savingCheckin}>
+                {t('kcalCheckin.ok')}
+              </Button>
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       <Card>
         <div className="mb-3 flex items-center justify-between">
@@ -175,6 +234,15 @@ export function FoodHome() {
               <li className="flex justify-between">
                 <span>{t('food.explain.adaptive', { days: energy.loggedFoodDays })}</span>
                 <b>{num(energy.tdee.adaptive)} kcal</b>
+              </li>
+            ) : null}
+            {profile.kcal_adjust ? (
+              <li className="flex justify-between">
+                <span>{t('food.explain.checkins')}</span>
+                <b>
+                  {profile.kcal_adjust > 0 ? '+' : '−'}
+                  {num(Math.abs(profile.kcal_adjust))} kcal
+                </b>
               </li>
             ) : null}
             <li className="flex justify-between border-t border-line pt-2">

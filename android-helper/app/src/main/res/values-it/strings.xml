@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="intro">Invia i passi giornalieri e il peso da Connessione Salute a Forza!, qualche volta al giorno. Non legge nient\'altro.</string>
+    <string name="intro">Invia passi giornalieri, peso e camminate da Connessione Salute a Forza!, qualche volta al giorno. Non legge nient\'altro.</string>
     <string name="not_connected">Non ancora collegata</string>
     <string name="needs_access">Collegata. Consenti l\'accesso a passi e peso.</string>
     <string name="all_good">✓ Collegata e sincronizzata</string>
@@ -18,5 +18,5 @@
     <string name="confirm_text">Passi e peso verranno inviati a %1$s. Collega solo se hai aperto questo link dalla tua app Forza!.</string>
     <string name="connect">Collega</string>
     <string name="eufy_hint">Bilancia Eufy: nell\'app EufyLife attiva Connessione Salute (o Google Fit) per il peso. Così Forza! riceve ogni pesata in automatico.</string>
-    <string name="privacy">Forza! Health legge solo: passi giornalieri, peso corporeo e percentuale di grasso da Connessione Salute.\n\nI dati vengono inviati con una connessione cifrata al server Forza! configurato dall\'amministratore della tua famiglia, dove sono visibili solo a te e a lui. Servono solo a mostrare i tuoi progressi nell\'app Forza!. Niente viene venduto o condiviso.\n\nPuoi togliere l\'accesso in qualsiasi momento dalle impostazioni di Connessione Salute, o disinstallare l\'app.</string>
+    <string name="privacy">Forza! Health legge solo: passi giornalieri, peso corporeo, percentuale di grasso e sessioni di attività (come le camminate) da Connessione Salute.\n\nI dati vengono inviati con una connessione cifrata al server Forza! configurato dall\'amministratore della tua famiglia, dove sono visibili solo a te e a lui. Servono solo a mostrare i tuoi progressi nell\'app Forza!. Niente viene venduto o condiviso.\n\nPuoi togliere l\'accesso in qualsiasi momento dalle impostazioni di Connessione Salute, o disinstallare l\'app.</string>
 </resources>

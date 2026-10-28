@@ -33,19 +33,26 @@ forza guadagnata per esercizio, allenamenti della settimana, passi, cibo di oggi
 - I pesi sono **già compilati e la progressione è automatica**: *"L'ultima volta hai fatto tutte le ripetizioni: prova 18 kg oggi."*
 - Un tocco per serie, la scala "quanto è stata dura?" (Facile · Giusta · Dura · Al limite) e il **timer di recupero** con suono e vibrazione.
 - Lo schermo resta acceso e l'allenamento viene salvato prima sul telefono: anche senza campo in palestra non si perde nulla.
+- **Superset** (due esercizi alternati, un solo recupero), **serie di riscaldamento** automatiche per gli esercizi
+  pesanti e una **settimana programmata** (es. giovedì A, sabato B) con allenamenti fatti e camminate sincronizzate.
+- Ogni esercizio ha lo **storico** delle serie e i record personali (peso massimo, serie migliore).
 - Puoi creare i tuoi allenamenti, oppure il coach di famiglia prepara la scheda a distanza.
+
+**✅ Checklist del giorno.** Allenamento (o riposo), pesata, pasti e passi, con "3 su 4 fatti".
 
 **📈 Progressi.** Velocità di dimagrimento rispetto all'obiettivo, forza, costanza, passi e alimentazione,
 ognuno con un giudizio chiaro (*Bene / OK / Da migliorare*) e un consiglio concreto. Check-in settimanali per
-energia, sonno, umore e girovita. Una scheda **"Condividi con la famiglia"**.
+energia, sonno, umore e girovita. **Settimane di fila** di allenamento, totale allenamenti, **record personali**
+recenti, **foto dei progressi** private (prima e ultima) e una scheda **"Condividi con la famiglia"**.
 
 **📸 Calorie da una foto.** Fotografi il piatto e Google Gemini stima ogni alimento con i suoi macronutrienti.
 Le porzioni si possono correggere, e il piatto riceve un **punteggio per perdere grasso e per aumentare i
 muscoli** rispetto al fabbisogno personale (TDEE). Il TDEE parte da profilo e livello di attività, poi si adatta
 a passi e allenamenti registrati e, dopo due settimane di diario alimentare, a quello che ha fatto davvero la
-bilancia. È sempre disponibile l'inserimento manuale con oltre 60 cibi comuni.
+bilancia. Un **check-in settimanale** confronta la tendenza del peso con il ritmo obiettivo e suggerisce un piccolo
+aggiustamento delle calorie (±100–150 kcal). È sempre disponibile l'inserimento manuale con oltre 60 cibi comuni.
 
-**📚 Impara.** Dodici infografiche per principianti, da stampare in A4 o salvare come immagine, in italiano o
+**📚 Impara.** Un breve **percorso guidato** (con la "Prossima lezione" in Home) di dodici infografiche per principianti, da stampare in A4 o salvare come immagine, in italiano o
 inglese: perché la forza conta con l'età · i macronutrienti · il piatto equilibrato (e le porzioni con la mano) ·
 le proteine · dove trovare i nutrienti · le fibre · la sensibilità all'insulina · cosa mangiare prima e dopo
 l'allenamento · idee per i pasti · più movimento con poco sforzo · il sonno · 10 piccole abitudini.

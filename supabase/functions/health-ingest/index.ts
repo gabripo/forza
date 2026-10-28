@@ -9,10 +9,24 @@
 //   weights      [{ at: "2026-10-27T07:12:00Z", kg: 72.4, fat_pct: 21.5 }]
 //   steps_text   one "yyyy-MM-dd<sep>value" per line (easy to build in Shortcuts)
 //   weights_text one "yyyy-MM-dd[THH:mm]<sep>value" per line
+//   activities   [{ start: ISO, end: ISO, kind: "walking", title?: "Morning walk" }]
+//   activities_text one "start ISO<sep>end ISO<sep>kind" per line (from the Shortcut)
 import { adminClient, corsHeaders, json, sha256Hex } from '../_shared/util.ts'
 
 const MAX_ROWS = 400
 const SOURCES = new Set(['apple_health', 'health_connect'])
+const KINDS = ['walking', 'running', 'cycling', 'swimming', 'hiking', 'other']
+
+/** Maps free-form workout names from Apple Health / Health Connect to our activity kinds. */
+function activityKind(raw: unknown): string {
+  const k = String(raw ?? '').toLowerCase()
+  if (/walk|camminat/.test(k)) return 'walking'
+  if (/run|jog|corsa/.test(k)) return 'running'
+  if (/cycl|bik|ciclis|bici/.test(k)) return 'cycling'
+  if (/swim|nuot/.test(k)) return 'swimming'
+  if (/hik|escurs/.test(k)) return 'hiking'
+  return KINDS.includes(k) ? k : 'other'
+}
 
 type StepRow = { day: string; steps: number }
 type WeightRow = { measured_at: string; weight_kg: number; body_fat_pct: number | null }
@@ -114,6 +128,29 @@ Deno.serve(async (req) => {
     if (error) return json({ error: 'weights_failed', detail: error.message }, 500)
   }
 
+  const activities: { started_at: string; ended_at: string; kind: string; title: string | null }[] = []
+  const pushActivity = (start: unknown, end: unknown, kind: unknown, title: unknown) => {
+    const a = new Date(String(start))
+    const b = new Date(String(end))
+    const minutes = (b.getTime() - a.getTime()) / 60_000
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || minutes < 3 || minutes > 24 * 60) return
+    activities.push({ started_at: a.toISOString(), ended_at: b.toISOString(), kind: activityKind(kind), title: title ? String(title).slice(0, 80) : null })
+  }
+  if (Array.isArray(body.activities)) {
+    for (const a of body.activities as Record<string, unknown>[]) pushActivity(a?.start, a?.end, a?.kind, a?.title)
+  }
+  if (typeof body.activities_text === 'string') {
+    for (const line of body.activities_text.split(/\n+/)) {
+      const [start, end, kind] = line.split(/[,;|\t]/).map((x) => x.trim())
+      if (start && end) pushActivity(start, end, kind, null)
+    }
+  }
+  if (activities.length) {
+    const rows = activities.slice(-MAX_ROWS).map((a) => ({ ...a, user_id: userId, source }))
+    const { error } = await admin.from('activities').upsert(rows, { onConflict: 'user_id,started_at,source' })
+    if (error) return json({ error: 'activities_failed', detail: error.message }, 500)
+  }
+
   await admin.from('sync_tokens').update({ last_used_at: new Date().toISOString() }).eq('user_id', userId)
-  return json({ ok: true, steps: perDay.size, weights: validWeights.length })
+  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: activities.length })
 })

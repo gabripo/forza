@@ -102,8 +102,9 @@ function proteinWeight(p: Profile, weightKg: number): number {
 export function dailyTargets(p: Profile, weightKg: number, tdee: number): Targets {
   const goal: Goal = p.goal ?? 'maintain'
   const floor = p.sex === 'female' ? 1200 : 1500
-  const kcal =
-    goal === 'fat_loss' ? Math.max(floor, Math.round(tdee * 0.8)) : goal === 'muscle_gain' ? tdee + 250 : tdee
+  const base = goal === 'fat_loss' ? Math.round(tdee * 0.8) : goal === 'muscle_gain' ? tdee + 250 : tdee
+  // Weekly check-ins nudge the target up or down based on what the scale really does.
+  const kcal = Math.max(floor, base + (p.kcal_adjust ?? 0))
   const perKg = goal === 'maintain' ? 1.4 : goal === 'fat_loss' ? 1.8 : 1.6
   const protein = Math.round(proteinWeight(p, weightKg) * (ageFrom(p.birth_year) >= 60 ? Math.max(perKg, 1.4) : perKg))
   const fat = Math.round((kcal * 0.3) / 9)
@@ -366,4 +367,95 @@ export function weekStart(d: Date): Date {
   x.setHours(0, 0, 0, 0)
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7)) // Monday = 0
   return x
+}
+
+// ---------------------------------------------------------------------------
+// Streaks and records
+// ---------------------------------------------------------------------------
+
+/** Consecutive weeks (Monday-Sunday) with at least one workout. The current week counts once it has one. */
+export function weekStreak(sessionStarts: string[], now = new Date()): number {
+  const weeks = new Set(sessionStarts.map((s) => localDay(weekStart(new Date(s)))))
+  const cursor = weekStart(now)
+  if (!weeks.has(localDay(cursor))) cursor.setDate(cursor.getDate() - 7)
+  let n = 0
+  while (weeks.has(localDay(cursor))) {
+    n++
+    cursor.setDate(cursor.getDate() - 7)
+  }
+  return n
+}
+
+export interface RecordEvent {
+  exerciseId: string
+  day: string
+  value: number
+  previous: number
+}
+
+/** Every time an exercise's best estimated max beat all earlier sessions, newest first. */
+export function recordEvents(sets: SetLog[]): RecordEvent[] {
+  const out: RecordEvent[] = []
+  for (const [exerciseId, points] of strengthHistory(sets)) {
+    let best = 0
+    for (const p of points) {
+      if (p.best > best && best > 0) out.push({ exerciseId, day: p.day, value: p.best, previous: best })
+      best = Math.max(best, p.best)
+    }
+  }
+  return out.sort((a, b) => b.day.localeCompare(a.day))
+}
+
+// ---------------------------------------------------------------------------
+// Weekly calorie check-in
+// ---------------------------------------------------------------------------
+
+/** Goal pace as % of body weight per week. */
+export const GOAL_PACE: Record<Goal, number> = { fat_loss: -0.5, muscle_gain: 0.25, maintain: 0 }
+
+export interface CalorieCheckin {
+  due: boolean
+  confidence: 'low' | 'medium' | 'high'
+  /** Weight change per week over the last 3 weeks (kg), from the smoothed trend. */
+  actualKgPerWeek: number | null
+  goalKgPerWeek: number
+  /** Suggested change to the daily target (kcal). */
+  change: number
+  verdict: 'on_track' | 'too_slow' | 'too_fast' | 'wrong_way' | 'not_enough_data'
+}
+
+/**
+ * Once a week, compare the weight trend with the goal pace and suggest a small calorie change
+ * (about 100-150 kcal a day). Small, regular nudges work better than big jumps.
+ */
+export function calorieCheckin(p: Profile, weights: BodyWeight[], now = new Date()): CalorieCheckin {
+  const goal: Goal = p.goal ?? 'maintain'
+  const last = p.kcal_checkin_at ? new Date(p.kcal_checkin_at) : p.onboarded_at ? new Date(p.onboarded_at) : now
+  const due = now.getTime() - last.getTime() >= 7 * DAY
+  const since = localDay(daysAgo(21))
+  const trend = weightTrend(dailyWeights(weights)).filter((x) => x.day >= since)
+  const recent = trend.filter((x) => x.day >= localDay(daysAgo(14)))
+  const span = trend.length ? (new Date(trend.at(-1)!.day).getTime() - new Date(trend[0].day).getTime()) / DAY : 0
+  const confidence = recent.length >= 8 && span >= 14 ? 'high' : recent.length >= 4 && span >= 7 ? 'medium' : 'low'
+  const weight = trend.at(-1)?.trend ?? Number(p.start_weight_kg ?? 70)
+  const goalKgPerWeek = (GOAL_PACE[goal] / 100) * weight
+  const slope = slopePerWeek(trend.map((x) => ({ day: x.day, kg: x.trend })))
+  if (confidence === 'low' || slope === null) {
+    return { due, confidence, actualKgPerWeek: slope, goalKgPerWeek, change: 0, verdict: 'not_enough_data' }
+  }
+  const tolerance = Math.max(0.1, weight * 0.0015)
+  const diff = slope - goalKgPerWeek // positive = heavier than planned
+  let verdict: CalorieCheckin['verdict'] = 'on_track'
+  let change = 0
+  if (Math.abs(diff) > tolerance) {
+    const step = Math.abs(diff) > tolerance * 3 ? 150 : 100
+    change = diff > 0 ? -step : step
+    if (goal === 'fat_loss') verdict = slope > 0 ? 'wrong_way' : diff > 0 ? 'too_slow' : 'too_fast'
+    else if (goal === 'muscle_gain') verdict = slope < 0 ? 'wrong_way' : diff < 0 ? 'too_slow' : 'too_fast'
+    else verdict = diff > 0 ? 'too_slow' : 'too_fast'
+  }
+  // Keep the total correction within ±600 kcal of the estimate.
+  const current = p.kcal_adjust ?? 0
+  change = Math.max(-600, Math.min(600, current + change)) - current
+  return { due, confidence, actualKgPerWeek: slope, goalKgPerWeek, change, verdict }
 }

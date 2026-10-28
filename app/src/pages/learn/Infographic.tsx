@@ -1,9 +1,10 @@
-import { Download, Printer } from 'lucide-react'
-import { useRef, useState } from 'react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Check, ChevronRight, Download, Printer } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
 import { Button, PageHeader, Segmented } from '../../components/ui'
 import { translate, useI18n } from '../../lib/i18n'
+import { getReadLessons, markLessonRead } from '../../lib/data'
 import { saveNodeAsImage } from '../../lib/share'
 import type { L10n, Locale } from '../../lib/types'
 import { TOPICS, type Block, type Tone } from './content'
@@ -26,8 +27,19 @@ export function Infographic() {
   const [lang, setLang] = useState<Locale>(locale)
   const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const [read, setRead] = useState(false)
+  useEffect(() => {
+    if (id) void getReadLessons().then((s) => setRead(s.has(id))).catch(() => {})
+  }, [id])
   const topic = TOPICS.find((x) => x.id === id)
   if (!topic) return <Navigate to="/learn" replace />
+  const next = TOPICS[TOPICS.indexOf(topic) + 1]
+
+  async function toggleRead() {
+    const value = !read
+    setRead(value)
+    await markLessonRead(topic!.id, value).catch(() => setRead(!value))
+  }
   const L = (x: L10n) => x[lang]
   const tone = TONES[topic.tone]
 
@@ -95,6 +107,30 @@ export function Infographic() {
           <span>· {translate(lang, 'learn.disclaimer')}</span>
         </footer>
       </article>
+
+      <div className="no-print grid gap-2">
+        <Button size="lg" variant={read ? 'secondary' : 'leaf'} onClick={toggleRead}>
+          <Check className="size-5" aria-hidden /> {read ? t('learn.markedRead') : t('learn.markRead')}
+        </Button>
+        {next ? (
+          <Link
+            to={`/learn/${next.id}`}
+            onClick={() => {
+              if (!read) void markLessonRead(topic.id).catch(() => {})
+            }}
+            className="flex items-center gap-3 rounded-3xl border border-line bg-card p-3"
+          >
+            <span className="text-3xl" aria-hidden>
+              {next.emoji}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm text-ink-3">{t('learn.nextLesson')}</span>
+              <span className="block font-bold">{next.title[locale]}</span>
+            </span>
+            <ChevronRight className="size-5 text-ink-3" aria-hidden />
+          </Link>
+        ) : null}
+      </div>
     </div>
   )
 }

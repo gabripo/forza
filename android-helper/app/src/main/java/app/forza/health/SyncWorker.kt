@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
@@ -85,7 +86,22 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             }
         }
 
-        val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights)
+        // Walks, runs, rides… shown as activities on the Forza! schedule.
+        val activities = JSONArray()
+        if (HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted) {
+            val range = TimeRangeFilter.after(Instant.now().minus(Duration.ofDays(14)))
+            for (s in client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class, range, pageSize = 500)).records) {
+                activities.put(
+                    JSONObject()
+                        .put("start", s.startTime.toString())
+                        .put("end", s.endTime.toString())
+                        .put("kind", kindOf(s.exerciseType))
+                        .put("title", s.title ?: JSONObject.NULL),
+                )
+            }
+        }
+
+        val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights).put("activities", activities)
         return withContext(Dispatchers.IO) {
             try {
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -119,6 +135,15 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 Result.retry()
             }
         }
+    }
+
+    private fun kindOf(type: Int): String = when (type) {
+        ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "walking"
+        ExerciseSessionRecord.EXERCISE_TYPE_RUNNING, ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL -> "running"
+        ExerciseSessionRecord.EXERCISE_TYPE_BIKING, ExerciseSessionRecord.EXERCISE_TYPE_BIKING_STATIONARY -> "cycling"
+        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL, ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_OPEN_WATER -> "swimming"
+        ExerciseSessionRecord.EXERCISE_TYPE_HIKING -> "hiking"
+        else -> "other"
     }
 
     companion object {

@@ -1,10 +1,11 @@
-import { Activity, Dumbbell, Footprints, Heart, Scale, Share2, Utensils } from 'lucide-react'
+import { Activity, Camera, ChevronRight, Dumbbell, Flame, Footprints, Heart, Scale, Share2, Trophy, Utensils } from 'lucide-react'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { LineChart } from '../components/charts'
 import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, Sheet, StatusPill, type Status } from '../components/ui'
 import { useApp } from '../lib/auth'
-import { dailyWeights, daysAgo, localDay, slopePerWeek, strengthChangePct, strengthHistory, weightTrend } from '../lib/calc'
+import { dailyWeights, daysAgo, localDay, recordEvents, slopePerWeek, strengthChangePct, strengthHistory, weekStreak, weightTrend } from '../lib/calc'
 import { addCheckin, getCheckins, getFood, getSessions, getSteps, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
@@ -157,7 +158,10 @@ export function Check() {
     }
 
     const recentCheckins = checkins.slice(0, 12).reverse()
-    return { verdicts, recentCheckins, latest: checkins[0] ?? null, trendNow: trend.at(-1)?.trend ?? null, change, inPeriod }
+    const allSets = sessions.flatMap((s) => s.sets.filter((x) => !x.is_warmup))
+    const streak = weekStreak(sessions.map((s) => s.started_at))
+    const records = recordEvents(allSets).slice(0, 5)
+    return { streak, records, totalWorkouts: sessions.length, verdicts, recentCheckins, latest: checkins[0] ?? null, trendNow: trend.at(-1)?.trend ?? null, change, inPeriod }
   }, [data, profile, period, t, l, num, exercises])
 
   if (loading && !data) return <Loading />
@@ -201,6 +205,52 @@ export function Check() {
       <Button variant="secondary" onClick={() => shareRef.current && saveNodeAsImage(shareRef.current, 'forza-progress.png')}>
         <Share2 className="size-5" aria-hidden /> {t('check.share')}
       </Button>
+
+      <Card title={t('check.training')}>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-brand-soft p-3">
+            <p className="flex items-center gap-1 text-sm font-semibold text-brand-ink">
+              <Flame className="size-4" aria-hidden /> {t('check.streak')}
+            </p>
+            <p className="text-3xl font-extrabold">{view.streak}</p>
+            <p className="text-sm text-ink-2">{t('check.weeksInARow')}</p>
+          </div>
+          <div className="rounded-2xl bg-sky-soft p-3">
+            <p className="flex items-center gap-1 text-sm font-semibold text-sky">
+              <Dumbbell className="size-4" aria-hidden /> {t('check.allTime')}
+            </p>
+            <p className="text-3xl font-extrabold">{view.totalWorkouts}</p>
+            <p className="text-sm text-ink-2">{t('check.workoutsTotal')}</p>
+          </div>
+        </div>
+        {view.records.length ? (
+          <>
+            <p className="mt-4 mb-1 font-bold">{t('check.recentRecords')}</p>
+            <ul className="grid gap-1">
+              {view.records.map((r) => (
+                <li key={`${r.exerciseId}-${r.day}`}>
+                  <Link to={`/exercise/${r.exerciseId}`} className="flex items-center gap-2 rounded-xl py-1.5 active:bg-card-2">
+                    <Trophy className="size-5 shrink-0 text-sun" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{l(exercises.get(r.exerciseId)?.name) || r.exerciseId}</span>
+                    <span className="text-sm text-ink-2">{date(r.day)}</span>
+                    <b className="tabular">+{num(((r.value - r.previous) / r.previous) * 100, 0)}%</b>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-sm text-ink-3">{t('check.recordsExplain')}</p>
+          </>
+        ) : null}
+      </Card>
+
+      <Link to="/check/photos" className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4">
+        <Camera className="size-6 text-brand" aria-hidden />
+        <span className="flex-1">
+          <span className="block font-bold">{t('photos.title')}</span>
+          <span className="block text-sm text-ink-2">{t('photos.subtitle')}</span>
+        </span>
+        <ChevronRight className="size-5 text-ink-3" aria-hidden />
+      </Link>
 
       {view.verdicts.map((v) => (
         <Card key={v.id}>

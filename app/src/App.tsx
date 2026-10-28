@@ -15,6 +15,7 @@ import { Infographic } from './pages/learn/Infographic'
 import { LearnHome } from './pages/learn/LearnHome'
 import { Login } from './pages/Login'
 import { Onboarding } from './pages/Onboarding'
+import { Photos } from './pages/Photos'
 import { Settings } from './pages/Settings'
 import { ActiveWorkout } from './pages/train/ActiveWorkout'
 import { ExerciseDetail } from './pages/train/ExerciseDetail'
@@ -50,6 +51,7 @@ function Gate() {
         <Route path="train/session/:id" element={<SessionDetail />} />
         <Route path="exercise/:id" element={<ExerciseDetail />} />
         <Route path="check" element={<Check />} />
+        <Route path="check/photos" element={<Photos />} />
         <Route path="food" element={<FoodHome />} />
         <Route path="food/snap" element={<FoodSnap />} />
         <Route path="food/add" element={<FoodManual />} />

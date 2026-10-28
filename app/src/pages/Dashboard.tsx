@@ -1,18 +1,18 @@
-import { Camera, ChevronRight, Footprints, Lightbulb, Play, Plus, Scale, Settings as SettingsIcon } from 'lucide-react'
+import { BookOpen, Camera, Check, ChevronRight, Footprints, Lightbulb, Play, Plus, Scale, Settings as SettingsIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { StrengthChart } from '../components/StrengthChart'
-import { Button, Card, Loading, Progress } from '../components/ui'
+import { Button, Card, Loading, Progress, cx } from '../components/ui'
 import { WeightChart } from '../components/WeightChart'
 import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
-import { getFood, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { getActivities, getFood, getReadLessons, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
-import { nextTemplate } from '../lib/plan'
+import { activityMinutes, nextTemplate } from '../lib/plan'
 import { TOPICS } from './learn/content'
 
 export function Dashboard() {
@@ -21,13 +21,13 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [logOpen, setLogOpen] = useState(false)
   const { data, loading, reload } = useAsync(
-    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates()]),
+    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getReadLessons()]),
     [],
   )
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food, templates] = data
+    const [weights, sessions, steps, food, templates, activities, readLessons] = data
     const energy = computeEnergy(profile, weights, steps, sessions, food)
     const trend = weightTrend(dailyWeights(weights))
     const today = localDay(new Date())
@@ -53,6 +53,9 @@ export function Dashboard() {
     const trainedToday = lastSession && localDay(new Date(lastSession.started_at)) === today
     const stepsToday = steps.find((s) => s.day === today)?.steps ?? null
     const next = nextTemplate(templates, sessions)
+    const weighedToday = weights.some((w) => localDay(new Date(w.measured_at)) === today)
+    const activeMinutes = activities.filter((a) => localDay(new Date(a.started_at)) === today).reduce((m, a) => m + activityMinutes(a), 0)
+    const nextLesson = TOPICS.find((x) => !readLessons.has(x.id)) ?? null
     const startKg = Number(profile.start_weight_kg ?? trend[0]?.kg ?? 0)
     const nowKg = trend.at(-1)?.trend ?? null
     return {
@@ -66,6 +69,11 @@ export function Dashboard() {
       trainedToday,
       stepsToday,
       next,
+      weighedToday,
+      todayFoodCount: todayFood.length,
+      activeMinutes,
+      nextLesson,
+      lessonsRead: readLessons.size,
       startKg,
       nowKg,
       allSets: sessions.flatMap((s) => s.sets),
@@ -104,16 +112,43 @@ export function Dashboard() {
         </Link>
       </header>
 
+      {/* Daily checklist */}
+      <Checklist
+        items={[
+          {
+            key: 'workout',
+            done: Boolean(view.trainedToday) || (view.next?.daysAway ?? 0) > 0,
+            label: view.trainedToday ? t('check.list.workoutDone') : (view.next?.daysAway ?? 0) > 0 ? t('check.list.restDay') : t('check.list.workout', { name: view.next?.template.name ?? '' }),
+            to: view.next && !view.trainedToday && (view.next.daysAway ?? 0) === 0 ? `/train?start=${view.next.template.id}` : '/train',
+          },
+          { key: 'weight', done: view.weighedToday, label: view.weighedToday ? t('check.list.weighed') : t('check.list.weigh'), onClick: () => setLogOpen(true) },
+          { key: 'food', done: view.todayFoodCount > 0, label: view.todayFoodCount ? t('check.list.foodDone', { n: view.todayFoodCount }) : t('check.list.food'), to: '/food' },
+          {
+            key: 'steps',
+            done: (view.stepsToday ?? 0) >= profile.steps_goal,
+            label: t('check.list.steps', { n: num(view.stepsToday ?? 0), goal: num(profile.steps_goal) }),
+            to: '/settings/health',
+          },
+        ]}
+      />
+
       {/* Next workout */}
       <Card tone="brand">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-ink">{t('dash.nextUp')}</p>
-            <p className="text-xl leading-tight font-bold">{view.next ? view.next.name : t('dash.noPlan')}</p>
-            {view.next ? <p className="text-sm text-ink-2">{t('train.nExercises', { n: view.next.exercises.length })}</p> : null}
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand-ink">
+              {!view.next ? t('dash.nextUp') : view.next.daysAway === 0 ? t('train.today') : view.next.daysAway ? t('train.onDay', { day: date(addDays(view.next.daysAway), { weekday: 'long' }) }) : t('dash.nextUp')}
+            </p>
+            <p className="text-xl leading-tight font-bold">{view.next ? view.next.template.name : t('dash.noPlan')}</p>
+            {view.next ? <p className="text-sm text-ink-2">{t('train.nExercises', { n: view.next.template.exercises.length })}</p> : null}
+            {view.activeMinutes ? (
+              <p className="mt-1 flex items-center gap-1 text-sm text-ink-2">
+                <Footprints className="size-4" aria-hidden /> {t('dash.activeToday', { n: view.activeMinutes })}
+              </p>
+            ) : null}
           </div>
           {view.next ? (
-            <Button size="lg" onClick={() => navigate(`/train?start=${view.next!.id}`)}>
+            <Button size="lg" variant={view.next.daysAway ? 'secondary' : 'primary'} onClick={() => navigate(`/train?start=${view.next!.template.id}`)}>
               <Play className="size-5" aria-hidden /> {t('train.start')}
             </Button>
           ) : (
@@ -212,6 +247,22 @@ export function Dashboard() {
         </div>
       </Card>
 
+      {/* Next lesson */}
+      {view.nextLesson ? (
+        <Link to={`/learn/${view.nextLesson.id}`} className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4">
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sky-soft text-3xl" aria-hidden>
+            {view.nextLesson.emoji}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-sky">
+              <BookOpen className="size-4" aria-hidden /> {t('learn.nextLesson')} · {view.lessonsRead + 1}/{TOPICS.length}
+            </span>
+            <span className="block leading-tight font-bold">{l(view.nextLesson.title)}</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
+        </Link>
+      ) : null}
+
       {/* Tip */}
       <Card tone="sun">
         <div className="flex gap-3">
@@ -230,5 +281,61 @@ export function Dashboard() {
 
       <LogWeightSheet open={logOpen} onClose={() => setLogOpen(false)} onSaved={reload} last={view.nowKg ? Math.round(view.nowKg * 10) / 10 : null} />
     </div>
+  )
+}
+
+function addDays(n: number): Date {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return d
+}
+
+interface ChecklistItem {
+  key: string
+  done: boolean
+  label: string
+  to?: string
+  onClick?: () => void
+}
+
+function Checklist({ items }: { items: ChecklistItem[] }) {
+  const { t } = useI18n()
+  const done = items.filter((i) => i.done).length
+  return (
+    <Card title={t('check.list.title')} action={<span className="text-sm font-bold text-ink-2">{t('check.list.count', { n: done, total: items.length })}</span>}>
+      <ul className="grid gap-1">
+        {items.map((i) => {
+          const body = (
+            <>
+              <span
+                className={cx(
+                  'grid size-7 shrink-0 place-items-center rounded-full border-2',
+                  i.done ? 'border-leaf bg-leaf text-white dark:text-black' : 'border-line text-transparent',
+                )}
+                aria-hidden
+              >
+                <Check className="size-4" strokeWidth={3} />
+              </span>
+              <span className={cx('flex-1 text-left', i.done && 'text-ink-2')}>{i.label}</span>
+              {!i.done ? <ChevronRight className="size-4 text-ink-3" aria-hidden /> : null}
+            </>
+          )
+          const cls = 'flex w-full items-center gap-3 rounded-2xl px-1 py-2 active:bg-card-2'
+          return (
+            <li key={i.key} aria-label={`${i.label}${i.done ? ' ✓' : ''}`}>
+              {i.to ? (
+                <Link to={i.to} className={cls}>
+                  {body}
+                </Link>
+              ) : (
+                <button onClick={i.onClick} className={cls}>
+                  {body}
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </Card>
   )
 }

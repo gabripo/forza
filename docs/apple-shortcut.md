@@ -44,6 +44,11 @@ Open the **Shortcuts** app [*Comandi*] → **+** → name it exactly **`Forza Sy
      - `weights_text` = `Weights`
 9. **Show Notification** [*Mostra notifica*] → `Forza! ✓`
 
+**Optional: walks and other workouts.** Before step 8, add **Find Health Samples** (or **Find Workouts**,
+depending on your iOS version) for *Workouts* in the last 7 days, and build lines like
+`start date, end date, type` (dates formatted `yyyy-MM-dd'T'HH:mm:ssZ`) joined with new lines.
+Send them as a fourth JSON field, `activities_text`. They appear as activities on the Forza! weekly schedule.
+
 Run it once with ▶︎ and allow access to **Steps** and **Weight** when asked.
 In Forza! the *Last sync* time appears under your sync key.
 

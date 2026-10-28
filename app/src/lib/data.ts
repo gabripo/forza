@@ -4,6 +4,7 @@ import catalogue from '../data/exercises.json'
 import { daysAgo, localDay } from './calc'
 import { supabase } from './supabase'
 import type {
+  Activity,
   BodyWeight,
   Checkin,
   DailySteps,
@@ -11,6 +12,7 @@ import type {
   ExerciseKind,
   FoodLog,
   Profile,
+  ProgressPhoto,
   SetLog,
   WorkoutSession,
   WorkoutTemplate,
@@ -206,6 +208,7 @@ export async function saveTemplate(t: Partial<WorkoutTemplate> & { name: string 
     name: t.name,
     notes: t.notes ?? null,
     position: t.position ?? 0,
+    weekday: t.weekday ?? null,
     exercises: t.exercises ?? [],
   }
   if (t.id) return check(await supabase.from('workout_templates').update(row).eq('id', t.id).select().single())
@@ -372,4 +375,67 @@ export function savedSyncKey(): string | null {
   } catch {
     return null
   }
+}
+
+// ---------------------------------------------------------------------------
+// Activities (walks etc. synced from the phone's health app, or added by hand)
+// ---------------------------------------------------------------------------
+
+export async function getActivities(sinceDays = 14): Promise<Activity[]> {
+  return check(
+    await supabase.from('activities').select('*').gte('started_at', daysAgo(sinceDays).toISOString()).order('started_at', { ascending: false }),
+  )
+}
+
+export async function addActivity(a: { kind: string; minutes: number; title?: string; at?: Date }): Promise<void> {
+  const end = a.at ?? new Date()
+  const start = new Date(end.getTime() - a.minutes * 60_000)
+  check(
+    await supabase
+      .from('activities')
+      .insert({ kind: a.kind, title: a.title ?? null, started_at: start.toISOString(), ended_at: end.toISOString(), source: 'manual' }),
+  )
+}
+
+export async function deleteActivity(id: number): Promise<void> {
+  check(await supabase.from('activities').delete().eq('id', id))
+}
+
+// ---------------------------------------------------------------------------
+// Progress photos
+// ---------------------------------------------------------------------------
+
+export async function getPhotos(): Promise<ProgressPhoto[]> {
+  return check(await supabase.from('progress_photos').select('*').order('taken_at', { ascending: false }))
+}
+
+export async function addPhoto(userId: string, blob: Blob, weightKg: number | null, note: string | null): Promise<void> {
+  const path = `${userId}/${crypto.randomUUID()}.jpg`
+  check(await supabase.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg' }))
+  check(await supabase.from('progress_photos').insert({ path, weight_kg: weightKg, note }))
+}
+
+export async function deletePhoto(photo: ProgressPhoto): Promise<void> {
+  await supabase.storage.from('progress-photos').remove([photo.path])
+  check(await supabase.from('progress_photos').delete().eq('id', photo.id))
+}
+
+export async function photoUrls(paths: string[]): Promise<Map<string, string>> {
+  if (!paths.length) return new Map()
+  const { data } = await supabase.storage.from('progress-photos').createSignedUrls(paths, 3600)
+  return new Map((data ?? []).filter((d) => d.signedUrl).map((d) => [d.path ?? '', d.signedUrl as string]))
+}
+
+// ---------------------------------------------------------------------------
+// Guided lessons
+// ---------------------------------------------------------------------------
+
+export async function getReadLessons(): Promise<Set<string>> {
+  const rows = check(await supabase.from('lesson_progress').select('lesson_id')) as { lesson_id: string }[]
+  return new Set(rows.map((r) => r.lesson_id))
+}
+
+export async function markLessonRead(lessonId: string, read = true): Promise<void> {
+  if (read) check(await supabase.from('lesson_progress').upsert({ lesson_id: lessonId }, { onConflict: 'user_id,lesson_id' }))
+  else check(await supabase.from('lesson_progress').delete().eq('lesson_id', lessonId))
 }

@@ -12,5 +12,5 @@ export function useEnergy() {
     const [weights, steps, sessions, food] = q.data
     return computeEnergy(profile, weights, steps, sessions, food)
   }, [q.data, profile])
-  return { energy, food: q.data?.[3] ?? [], loading: q.loading, reload: q.reload }
+  return { energy, food: q.data?.[3] ?? [], weights: q.data?.[0] ?? [], loading: q.loading, reload: q.reload }
 }

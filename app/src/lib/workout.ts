@@ -10,6 +10,8 @@ export interface ActiveSet {
   rir: number | null
   done: boolean
   doneAt: string | null
+  /** Warm-up set: lighter, not counted in progress. */
+  warmup?: boolean
 }
 
 export interface Suggestion {
@@ -24,6 +26,7 @@ export interface ActiveExercise {
   rep_max: number
   rest_s: number
   note?: string | null
+  superset?: number | null
   sets: ActiveSet[]
   last: { weight: number | null; reps: number | null; duration: number | null }[]
   suggestion: Suggestion | null
@@ -110,6 +113,36 @@ function round(n: number): number {
   return Math.round(n * 4) / 4
 }
 
+/** Lifts where a short warm-up ramp really helps (heavier, multi-joint). */
+const BIG_LIFTS = new Set([
+  'back_squat',
+  'deadlift',
+  'romanian_deadlift',
+  'bench_press',
+  'incline_bench_press',
+  'overhead_press',
+  'barbell_row',
+  'hip_thrust',
+  'leg_press',
+  'hack_squat',
+  'db_bench_press',
+  'incline_db_press',
+])
+
+export function wantsWarmup(te: Pick<TemplateExercise, 'warmup'>, ex: Exercise | undefined): boolean {
+  if (te.warmup !== undefined && te.warmup !== null) return te.warmup
+  return Boolean(ex && (BIG_LIFTS.has(ex.id) || ex.equipment === 'barbell'))
+}
+
+/** Warm-up ramp towards the working weight, e.g. 100 kg → 50×8, 70×4, 85×2. */
+export function warmupSets(workingKg: number, ex: Exercise | undefined): { weight: number; reps: number }[] {
+  if (workingKg < 20) return []
+  const step = ex?.equipment === 'dumbbell' ? 2 : 2.5
+  const r = (w: number) => Math.max(step, Math.round(w / step) * step)
+  const ramp: [number, number][] = workingKg >= 60 ? [[0.5, 8], [0.7, 4], [0.85, 2]] : [[0.5, 8], [0.75, 4]]
+  return ramp.map(([p, reps]) => ({ weight: r(workingKg * p), reps }))
+}
+
 export function startFromTemplate(
   t: Pick<WorkoutTemplate, 'id' | 'name' | 'exercises'> | null,
   exercises: Map<string, Exercise>,
@@ -130,22 +163,30 @@ export function startFromTemplate(
 export function buildExercise(te: TemplateExercise, ex: Exercise | undefined, last: SetLog[]): ActiveExercise {
   const s = suggest(ex, te, last)
   const isTime = ex?.kind === 'time' || ex?.kind === 'cardio'
+  const working = s.weight ?? (last.length ? Math.max(...last.map((l) => Number(l.weight_kg ?? 0))) : 0)
+  const warm: ActiveSet[] = wantsWarmup(te, ex)
+    ? warmupSets(working, ex).map((w) => ({ weight: w.weight, reps: w.reps, duration: null, rir: null, done: false, doneAt: null, warmup: true }))
+    : []
   return {
     exercise_id: te.exercise_id,
     rep_min: te.rep_min,
     rep_max: te.rep_max,
     rest_s: te.rest_s,
     note: te.note ?? null,
+    superset: te.superset ?? null,
     suggestion: s,
     last: last.map((l) => ({ weight: l.weight_kg, reps: l.reps, duration: l.duration_s })),
-    sets: Array.from({ length: Math.max(1, te.sets) }, (_, i) => ({
-      weight: s.weight ?? last[i]?.weight_kg ?? null,
-      reps: null,
-      duration: isTime ? (last[i]?.duration_s ?? null) : null,
-      rir: null,
-      done: false,
-      doneAt: null,
-    })),
+    sets: [
+      ...warm,
+      ...Array.from({ length: Math.max(1, te.sets) }, (_, i) => ({
+        weight: s.weight ?? last[i]?.weight_kg ?? null,
+        reps: null,
+        duration: isTime ? (last[i]?.duration_s ?? null) : null,
+        rir: null,
+        done: false,
+        doneAt: null,
+      })),
+    ],
   }
 }
 
@@ -172,6 +213,7 @@ export function toPayload(w: ActiveWorkout, effort: number | null, notes: string
           reps: s.reps,
           duration_s: s.duration,
           rir: s.rir,
+          is_warmup: Boolean(s.warmup),
           performed_at: s.doneAt,
         })
       })

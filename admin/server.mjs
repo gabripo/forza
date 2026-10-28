@@ -95,7 +95,7 @@ async function userData(id) {
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
   const quarter = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10)
   const month = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync] = await Promise.all([
+  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons] = await Promise.all([
     db.from('profiles').select('*').eq('id', id).maybeSingle(),
     db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at'),
     db.from('workout_sessions').select('*').eq('user_id', id).gte('started_at', year).order('started_at', { ascending: false }),
@@ -105,6 +105,9 @@ async function userData(id) {
     db.from('checkins').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(30),
     db.from('workout_templates').select('*').eq('user_id', id).eq('archived', false).order('position'),
     db.from('sync_tokens').select('last_used_at, created_at').eq('user_id', id).maybeSingle(),
+    db.from('activities').select('*').eq('user_id', id).gte('started_at', month).order('started_at', { ascending: false }),
+    db.from('progress_photos').select('*').eq('user_id', id).order('taken_at', { ascending: false }),
+    db.from('lesson_progress').select('*').eq('user_id', id),
   ])
   return {
     profile: check(profile),
@@ -116,6 +119,9 @@ async function userData(id) {
     checkins: check(checkins),
     templates: check(templates),
     sync: sync.data ?? null,
+    activities: check(activities),
+    photos: check(photos),
+    lessons: check(lessons),
   }
 }
 
@@ -129,6 +135,7 @@ const cleanTemplate = (t) => ({
   name: String(t.name ?? '').trim() || 'Workout',
   notes: t.notes || null,
   position: Number(t.position ?? 0),
+  weekday: t.weekday === '' || t.weekday == null ? null : Number(t.weekday),
   exercises: (t.exercises ?? []).map((e) => ({
     exercise_id: String(e.exercise_id),
     sets: Number(e.sets) || 3,
@@ -137,9 +144,75 @@ const cleanTemplate = (t) => ({
     rest_s: Number(e.rest_s) || 0,
     target_kg: e.target_kg === '' || e.target_kg == null ? null : Number(e.target_kg),
     note: e.note || null,
+    superset: e.superset === '' || e.superset == null ? null : Number(e.superset),
+    warmup: e.warmup === '' || e.warmup == null ? null : e.warmup === true || e.warmup === 'true',
   })),
   managed_by_admin: true,
 })
+
+/**
+ * Imports workout history, a plan and weigh-ins into one account (format: docs/import-format.md).
+ * Idempotent: sessions keep their ids, so importing the same file twice changes nothing.
+ */
+async function importHistory(userId, data) {
+  if (data?.format !== 'forza-history-v1') throw Object.assign(new Error('Unknown file format (expected forza-history-v1)'), { status: 400 })
+  const result = { templates: 0, sessions: 0, sets: 0, weights: 0 }
+  const templateIds = new Map()
+  const existing = check(await db.from('workout_templates').select('id, name').eq('user_id', userId).eq('archived', false))
+  for (const [i, t] of (data.templates ?? []).entries()) {
+    const row = { ...cleanTemplate({ ...t, position: t.position ?? i }), user_id: userId }
+    const same = existing.find((e) => e.name === row.name)
+    const saved = same
+      ? check(await db.from('workout_templates').update(row).eq('id', same.id).select('id, name').single())
+      : check(await db.from('workout_templates').insert(row).select('id, name').single())
+    templateIds.set(saved.name, saved.id)
+    result.templates++
+  }
+  for (const e of existing) if (!templateIds.has(e.name)) templateIds.set(e.name, e.id)
+
+  const sessions = data.sessions ?? []
+  for (let i = 0; i < sessions.length; i += 200) {
+    const chunk = sessions.slice(i, i + 200)
+    const rows = chunk.map((s) => ({
+      id: s.id,
+      user_id: userId,
+      template_id: templateIds.get(s.name) ?? null,
+      name: s.name,
+      started_at: s.started_at,
+      finished_at: s.finished_at ?? null,
+      effort: s.effort ?? null,
+      notes: s.notes ?? null,
+      source: 'import',
+    }))
+    check(await db.from('workout_sessions').upsert(rows, { onConflict: 'id' }))
+    check(await db.from('set_logs').delete().in('session_id', rows.map((r) => r.id)))
+    const sets = chunk.flatMap((s) =>
+      (s.sets ?? []).map((x) => ({
+        session_id: s.id,
+        user_id: userId,
+        exercise_id: x.exercise_id,
+        exercise_order: x.exercise_order,
+        set_index: x.set_index,
+        weight_kg: x.weight_kg ?? null,
+        reps: x.reps ?? null,
+        duration_s: x.duration_s ?? null,
+        rir: x.rir ?? null,
+        is_warmup: Boolean(x.is_warmup),
+        performed_at: x.performed_at ?? s.started_at,
+      })),
+    )
+    for (let j = 0; j < sets.length; j += 1000) check(await db.from('set_logs').insert(sets.slice(j, j + 1000)))
+    result.sessions += rows.length
+    result.sets += sets.length
+  }
+
+  const weights = (data.weights ?? []).map((w) => ({ user_id: userId, measured_at: w.measured_at, weight_kg: w.weight_kg, body_fat_pct: w.body_fat_pct ?? null, source: 'import' }))
+  for (let i = 0; i < weights.length; i += 500) {
+    check(await db.from('body_weights').upsert(weights.slice(i, i + 500), { onConflict: 'user_id,measured_at,source', ignoreDuplicates: true }))
+  }
+  result.weights = weights.length
+  return result
+}
 
 const routes = [
   ['GET', /^\/api\/users$/, () => listUsers()],
@@ -189,7 +262,30 @@ const routes = [
       return { copied: rows.length }
     },
   ],
+  ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(m[1], body)],
   ['GET', /^\/api\/catalogue$/, () => catalogue()],
+  [
+    'GET',
+    /^\/api\/templates\/([\w-]+)\/versions$/,
+    async (m) => check(await db.from('workout_template_versions').select('*').eq('template_id', m[1]).order('saved_at', { ascending: false }).limit(30)),
+  ],
+  [
+    'POST',
+    /^\/api\/templates\/([\w-]+)\/restore\/(\d+)$/,
+    async (m) => {
+      const v = check(await db.from('workout_template_versions').select('*').eq('id', m[2]).eq('template_id', m[1]).single())
+      // The update itself keeps the current version, so a restore can be undone.
+      return check(await db.from('workout_templates').update({ name: v.name, notes: v.notes, weekday: v.weekday, exercises: v.exercises }).eq('id', m[1]).select().single())
+    },
+  ],
+  [
+    'GET',
+    /^\/api\/progress-photo$/,
+    async (_m, _b, q) => {
+      const { data } = await db.storage.from('progress-photos').createSignedUrl(q.get('path') ?? '', 600)
+      return { url: data?.signedUrl ?? null }
+    },
+  ],
   [
     'PUT',
     /^\/api\/overrides\/([\w-]+)$/,

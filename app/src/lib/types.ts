@@ -23,6 +23,9 @@ export interface Profile {
   workouts_per_week: number
   steps_goal: number
   onboarded_at: string | null
+  /** Weekly check-in correction on top of the estimated energy needs (kcal). */
+  kcal_adjust: number
+  kcal_checkin_at: string | null
 }
 
 export interface BodyWeight {
@@ -47,6 +50,10 @@ export interface TemplateExercise {
   rest_s: number
   target_kg?: number | null
   note?: string | null
+  /** Exercises sharing a number are done as a superset (alternate sets, rest after the round). */
+  superset?: number | null
+  /** Suggest warm-up sets. Undefined = automatic for big lifts. */
+  warmup?: boolean | null
 }
 
 export interface WorkoutTemplate {
@@ -55,6 +62,8 @@ export interface WorkoutTemplate {
   name: string
   notes: string | null
   position: number
+  /** 0 = Monday … 6 = Sunday; null = no fixed day. */
+  weekday: number | null
   exercises: TemplateExercise[]
   managed_by_admin: boolean
   archived: boolean
@@ -137,4 +146,21 @@ export interface Exercise {
   tip?: L10n
   video_url?: string | null
   custom?: boolean
+}
+
+export interface Activity {
+  id?: number
+  started_at: string
+  ended_at: string
+  kind: string
+  title: string | null
+  source: string
+}
+
+export interface ProgressPhoto {
+  id: string
+  taken_at: string
+  path: string
+  weight_kg: number | null
+  note: string | null
 }
