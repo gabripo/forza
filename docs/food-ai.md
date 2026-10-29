@@ -33,6 +33,20 @@ What we learned:
   `gemini-3.5-flash-lite` (configurable with `GEMINI_FALLBACK_MODELS`); with that change all photos
   succeeded, one of them through the fallback model.
 
+## Model use order (30 October 2026)
+
+Busy hours showed that one retry is not enough, and that a model can also hang instead of answering 503:
+one request waited more than two minutes. The function now follows a **model use order** set in Coach
+(`FOOD_AI_ORDER`, any mix of providers), and gives each model **30 seconds**
+(`FOOD_AI_STEP_TIMEOUT_MS`). Out of quota (429), overloaded (503), out of credit (402) or silent: the photo
+moves on to the next model. Only the last one gets a second try.
+
+Live test of the default order from Coach (*Test the whole order*, the banana photo):
+`gemini-3.6-flash` answered in 22.4 s, **105 kcal**. Testing `gemini-3.5-flash-lite` on its own at the same
+time gave 503 and then a timeout: it was the busy one that hour. A family with only one Gemini key is
+therefore best served by adding a free OpenRouter key and one of its vision models at the bottom of the
+order.
+
 ## Free tier limits to keep in mind
 
 Google no longer publishes one table of free limits: they depend on the model and the project, and are
@@ -48,17 +62,18 @@ costs a fraction of a cent) or use another provider.
 ## Alternatives
 
 The function speaks two dialects: Gemini's, and the OpenAI chat-completions format that most providers
-accept. Switching needs only function secrets (`FOOD_AI_PROVIDER=openai`, `FOOD_AI_BASE_URL`,
-`FOOD_AI_API_KEY`, `FOOD_AI_MODEL`); the app does not change.
+accept. In Coach (**Setup → Food photo AI**), paste a key for the service and add its model to the order; the
+app does not change. Gemini, OpenRouter, Groq, Mistral and OpenAI are built in; anything else
+OpenAI-compatible goes in the "Other" row with its address ([secrets](advanced-setup.md#food-photo-ai)).
 
 | Service | Free allowance (Oct 2026) | How to use it with Forza! | Notes |
 |---|---|---|---|
 | **Google Gemini** (default) | free tier, per-model daily limits ([AI Studio](https://aistudio.google.com/rate-limit)) | `GEMINI_API_KEY` | best balance of quality, speed and structured output; free-tier data may be used by Google |
-| **OpenRouter** free models (`…:free`, pick one with image input) | 20 requests/min, **50/day**; 1,000/day after buying 10 credits once ([limits](https://openrouter.ai/docs/api-reference/limits)) | `FOOD_AI_BASE_URL=https://openrouter.ai/api/v1` | one key, many models; free models change often |
-| **Cloudflare Workers AI** | **10,000 neurons/day** free, then $0.011 per 1,000 ([pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/)); vision model `@cf/meta/llama-3.2-11b-vision-instruct` | OpenAI-compatible endpoint `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | generous, but a smaller model: expect rougher portions |
-| **Groq** | free plan with per-model limits (shown in the Groq console) | `FOOD_AI_BASE_URL=https://api.groq.com/openai/v1` | very fast; check which vision models are currently offered |
-| **Mistral** | free "Experiment" plan with rate limits | `FOOD_AI_BASE_URL=https://api.mistral.ai/v1`, a vision model | free-plan data may be used for training |
-| **OpenAI**, **Anthropic Claude** | no free tier; small models cost well under 1 cent per photo | OpenAI: `https://api.openai.com/v1`; Claude through Anthropic's OpenAI-compatible endpoint | paid, predictable, data not used for training by default |
+| **OpenRouter** free models (`…:free`, pick one with image input) | 20 requests/min, **50/day**; 1,000/day after buying 10 credits once ([limits](https://openrouter.ai/docs/api-reference/limits)) | built in (`OPENROUTER_API_KEY`); Coach lists its vision models live | one key, many models; free models change often |
+| **Cloudflare Workers AI** | **10,000 neurons/day** free, then $0.011 per 1,000 ([pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/)); vision model `@cf/meta/llama-3.2-11b-vision-instruct` | "Other", address `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | generous, but a smaller model: expect rougher portions |
+| **Groq** | free plan with per-model limits (shown in the Groq console) | built in (`GROQ_API_KEY`) | very fast; check which vision models are currently offered |
+| **Mistral** | free "Experiment" plan with rate limits | built in (`MISTRAL_API_KEY`), a vision model | free-plan data may be used for training |
+| **OpenAI**, **Anthropic Claude** | no free tier; small models cost well under 1 cent per photo | OpenAI built in (`OPENAI_API_KEY`); Claude as "Other" through Anthropic's OpenAI-compatible endpoint | paid, predictable, data not used for training by default |
 | **Self-hosted** (Ollama with a vision model) | free, private | needs a public HTTPS address the Edge Function can reach | only for technically minded families with an always-on computer |
 | **GitHub Models** | retired on 30 July 2026 | – | no longer an option |
 | Specialised food APIs (LogMeal, Passio, Calorie Mama, …) | trials or small freemium quotas; prices on request or from about $49/month | would need a dedicated adapter | built for apps at scale; not worth it for a family |
@@ -67,6 +82,6 @@ Only Gemini was measured above; the other rows come from the providers' document
 checked before switching. Coach's **Test** button works with any provider, so a new set-up can be tried with
 the same photos in a minute.
 
-**Recommendation**: keep Gemini with the Flash-Lite fallback (free, accurate enough, already set up). If the
-free quota runs out, the cheapest robust step is enabling billing on the same Google project; OpenRouter is
-the easiest free second option.
+**Recommendation**: keep Gemini first (free, accurate enough, already set up), Flash-Lite second, and a free
+OpenRouter vision model last, so a busy hour at Google never leaves a photo unanswered. If the free quotas
+are not enough, the cheapest robust step is enabling billing on the same Google project.

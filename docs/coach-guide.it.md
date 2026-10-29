@@ -70,6 +70,15 @@ Il piano gratuito basta per una famiglia.
 Puoi saltare questo passo e aggiungere la chiave più tardi da **Setup**. Senza chiave si possono comunque
 registrare i pasti a mano o con il codice a barre.
 
+**Più chiavi, e cosa succede quando una è occupata.** I piani gratuiti hanno limiti giornalieri. In
+**Setup → Food photo AI: keys** puoi aggiungere chiavi di altri servizi (OpenRouter ha molti modelli gratuiti,
+Groq e Mistral hanno piani gratuiti, OpenAI è a pagamento); ogni riga ha un link **Get a key ↗** e mostra se
+la chiave c'è. Poi, in **Food photo AI: model use order**, metti i modelli in ordine, dalla prima scelta
+all'ultima: se uno è occupato, ha finito la quota o è lento (30 secondi), la foto passa al successivo. I
+modelli di un servizio senza chiave vengono saltati. Clicca **Save order**, scegli una foto di prova e clicca
+**Test the whole order**: Coach mostra quale modello ha risposto, in quanto tempo e quali sono stati saltati e
+perché. Ogni riga ha anche il suo **Test**.
+
 ### Passo 4: installazione
 
 Clicca **Install Forza!**. In circa un minuto Coach prepara il database, le funzioni del server e le
@@ -111,6 +120,10 @@ Sul suo telefono, in Forza!: **Impostazioni → Collega Salute e bilancia**, poi
 - **Eufy (o qualsiasi bilancia smart)**: nell'app EufyLife attiva **Connessione Salute** (Android) o
   **Apple Salute** (iPhone) per il peso. Forza! prende le pesate da lì.
 
+Quando le pesate arrivano dalla bilancia, il pulsante **Registra peso** sparisce dalla Home (una cosa in
+meno da fare). Per pesarsi a mano, l'app ricorda la regola che rende i pesi confrontabili: appena svegli,
+dopo il bagno, prima di bere o mangiare.
+
 ## 5. Arriva da Build With Science?
 
 Se usava l'app **Build With Science** su un telefono **Android**, Coach può portare lo storico in Forza!:
@@ -135,6 +148,12 @@ Salute (punto 4): Build With Science vi scrive ogni voce del diario alimentare.
 inutilizzato per 3 minuti, Coach importa da solo i nuovi allenamenti (ogni 1–24 ore, come preferisci), mostra un
 avviso sul telefono mentre lavora e poi torna alla schermata Home. Se si tocca il telefono si ferma e riprova
 più tardi.
+
+**Sync now.** Nella stessa scheda, **Sync now** avvia un'importazione entro un minuto, senza aspettare
+l'intervallo né che il telefono resti inutilizzato (deve comunque essere collegato e sbloccato). Si può
+chiedere anche dal telefono: Forza! → **Impostazioni → Collega Salute e bilancia → Sincronizza gli
+allenamenti di Build With Science**. La stessa pagina ha un pulsante **Sincronizza ora** per passi, peso e
+pasti, che non ha bisogno del tuo computer.
 
 - Il telefono può restare in un'altra stanza: usa il **debug wireless** invece del cavo (Opzioni sviluppatore →
   **Debug wireless**, abbinalo una volta a questo computer; devono essere sulla stessa rete Wi-Fi).
@@ -163,6 +182,14 @@ Apri Forza! Coach quando vuoi:
 - **Workouts**, **Food**, **Check-ins**: quello che ha registrato.
 - **Exercises & videos**: aggiungi un link video o un tuo consiglio a qualsiasi esercizio, o nuovi esercizi
   per tutti.
+- **Profile → Training section**: scegli **Hidden** per chi non registrerà mai gli allenamenti nell'app (per
+  esempio vuole solo mangiare meglio). La scheda Allenati e le voci sugli allenamenti in Home spariscono; si
+  può riattivarla in Impostazioni.
+
+**Cosa ha bisogno del tuo computer?** Niente di quello che si usa ogni giorno. L'app, i dati, le foto del
+cibo, passi, peso e pasti sono online, quindi il tuo computer può restare spento. Solo l'importazione automatica
+degli **allenamenti di Build With Science** ha bisogno di Coach acceso e del telefono a portata (stessa Wi-Fi o
+cavo). Docker non serve.
 
 ## 7. Aggiornare Forza!
 
@@ -177,6 +204,7 @@ Coach e clicca **Setup → Update the server**. Non si perde nulla: i dati sono 
 | "Questo codice è scaduto o è già stato usato" | Crea un nuovo codice in Coach (valgono 24 ore e funzionano una volta). |
 | La fotocamera non apre il codice | In Forza! sul telefono tocca **Inquadra il mio codice**; oppure manda il link (Coach → *Link*) in un messaggio privato. |
 | Le foto del cibo dicono "non configurato" | Aggiungi la chiave Gemini in Coach → **Setup** → *Food photo AI* e provala con **Test**. |
+| Le foto del cibo dicono spesso "La stima non ha funzionato" | Probabilmente tutti i modelli dell'ordine erano occupati o senza quota (prova **Test the whole order** per vedere perché). Aggiungi un secondo servizio (OpenRouter è gratuito) in **Setup → Food photo AI: keys** e metti un suo modello nell'ordine. |
 | L'importazione da Build With Science si ferma | Tieni il telefono sbloccato con Build With Science in primo piano e riavvia: riprende da dove si era fermata. |
 | "No phone found" | Controlla il cavo (alcuni servono solo a caricare), il debug USB, e tocca **Consenti** sul telefono. |
 

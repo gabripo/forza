@@ -116,16 +116,22 @@ The shared app works for everyone. To publish your own copy (your domain, your c
 
 ## Food photo AI
 
-Function secrets (Supabase → Edge Functions → Secrets, `supabase secrets set`, or Coach for the Gemini key):
+The easiest way is Forza! Coach → **Setup → Food photo AI**: paste one key per provider and put the models
+in the order to try. Underneath, these are Edge Function secrets (Supabase → Edge Functions → Secrets, or
+`supabase secrets set`):
 
 | Secret | Default | Meaning |
 |---|---|---|
-| `GEMINI_API_KEY` | – | Google AI Studio key |
-| `GEMINI_MODEL` | `gemini-3.6-flash` | any Gemini model with image input |
-| `GEMINI_FALLBACK_MODELS` | `gemini-3.5-flash-lite` | tried when the main model is busy (503) or out of quota (429); comma-separated |
+| `FOOD_AI_ORDER` | – | JSON list of `"provider:model"`, tried top to bottom, e.g. `["gemini:gemini-3.6-flash","openrouter:google/gemma-3-27b-it:free"]`. A model that is busy (429, 503, 402) or silent for 30 s hands the photo to the next one |
+| `GEMINI_API_KEY` | – | Google AI Studio key (provider `gemini`) |
+| `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY` | – | keys for the providers `openrouter`, `groq`, `mistral`, `openai`; a model whose provider has no key is skipped |
+| `FOOD_AI_BASE_URL`, `FOOD_AI_API_KEY` | – | provider `custom`: any other OpenAI-compatible API (Cloudflare Workers AI, a self-hosted Ollama, …) |
+| `FOOD_AI_STEP_TIMEOUT_MS` | `30000` | how long one model may take before the next one is tried |
 | `FOOD_AI_DAILY_LIMIT` | `25` | photos per person per day |
-| `FOOD_AI_PROVIDER` | `gemini` | `openai` for any OpenAI-compatible API |
-| `FOOD_AI_BASE_URL`, `FOOD_AI_API_KEY`, `FOOD_AI_MODEL` | – | with `FOOD_AI_PROVIDER=openai` |
+
+Without `FOOD_AI_ORDER` the function uses Gemini: `GEMINI_MODEL` (default `gemini-3.6-flash`), then
+`GEMINI_FALLBACK_MODELS` (comma-separated, default `gemini-3.5-flash-lite`). The older single-provider
+set-up (`FOOD_AI_PROVIDER=openai` with `FOOD_AI_BASE_URL`, `FOOD_AI_API_KEY`, `FOOD_AI_MODEL`) still works.
 
 Test results and free alternatives: [food-ai.md](food-ai.md).
 
@@ -147,7 +153,9 @@ cannot update the installed one.
 
 ## Local development
 
-Requirements: Node 20+, Docker, the Supabase CLI.
+Requirements: Node 20+, Docker, the Supabase CLI. Docker is only for this local copy of Supabase: using
+Forza! (the hosted app, the cloud Supabase project, the phone helper, Forza! Coach) needs no Docker.
+When you are done, `supabase stop` shuts the containers down.
 
 ```bash
 supabase start                            # local Postgres/Auth/Storage

@@ -134,7 +134,7 @@ export const it: Dict = {
     learnMore: 'Approfondisci',
   },
   weight: {
-    conditions: 'Pesati sempre nelle stesse condizioni: appena svegli, dopo aver fatto pipì, prima di bere acqua o caffè e prima di mangiare.',
+    conditions: 'Pesati sempre nelle stesse condizioni: al risveglio, dopo aver fatto pipì, prima di bere acqua o caffè e prima di mangiare.',
     log: 'Registra peso',
     today: 'Peso oggi (kg)',
     howTo: 'Sempre nelle stesse condizioni: mattina, dopo il bagno, prima di mangiare.',
@@ -622,7 +622,7 @@ export const it: Dict = {
     activeDays: '{n} giorni attivi',
     workouts: '{n} allenamenti',
     lessons: '{n} lezioni',
-    alone: 'Sei il primo nome in classifica: chiedi alla tua famiglia di partecipare dal loro Forza! (Progressi → Sfida di famiglia).',
+    alone: 'Per ora in classifica ci sei solo tu: chiedi alla tua famiglia di partecipare dal loro Forza! (Progressi → Sfida di famiglia).',
     howTitle: 'Come guadagnare punti',
     how: {
       workout: 'Un allenamento',

@@ -28,22 +28,24 @@ and adjust their plan from your own computer.
 
 | | |
 |---|---|
-| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **A clear plan for every day.** A short checklist (workout or rest, weigh-in, meals, steps), today's workout from the weekly schedule, the weight trend and the next lesson. |
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **A clear plan for every day.** Photo and barcode buttons right at the top, the tip of the day, a short checklist (workout or rest, weigh-in, meals, steps), today's workout, the weight trend and the next lesson. Not training in the app? Hide the Train section in Settings. |
 | <img src="docs/screenshots/workout.jpg" width="200" alt="Workout"> | **Workouts for beginners.** Every exercise has photos, three simple steps and a video. Weights are **pre-filled and go up automatically** when they get stronger. Warm-up sets, supersets, a rest timer with sound, and "how hard was it?" for each set. Works without signal in the gym. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progress"> | **Progress anyone can understand.** Weight trend (smoothed, so daily ups and downs don't discourage), strength gained, consistency, steps, each with a verdict in words and one concrete tip. Streaks, records, private progress photos and a "share with family" card. |
-| <img src="docs/screenshots/barcode.jpg" width="200" alt="Barcode"> | **Food in three ways.** Snap a photo of the plate (AI estimates every item), **scan a barcode** (Open Food Facts, millions of products), or add it by hand. Every plate gets a score for losing fat and for building muscle. |
+| <img src="docs/screenshots/barcode.jpg" width="200" alt="Barcode"> | **Food in three ways.** Snap a photo of the plate (AI estimates every item), **scan a barcode** (Open Food Facts, millions of products), or add it by hand. After a photo, Forza! first says **what to do** ("Add some protein!"), then shows the numbers; one tap retakes the photo or fixes it by hand. Every plate gets a score for losing fat and for building muscle. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Calorie target"> | **A calorie target that explains itself.** Five steps with their own numbers: energy at rest, walking and training (from the phone's steps), a reality check with the scale, the goal, and how calories split into protein, fat and carbs. |
-| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lessons"> | **Learn the basics.** Twelve short infographics (why strength matters with age, protein, balanced plates, sleep, …) to read, print or share, in English or Italian. |
+| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lessons"> | **Learn the basics, then more.** A beginners' course of 14 short infographics (protein, balanced plates, meal tricks for steady energy, sleep, …) and expert lessons (glycogen, meal timing, creatine, …), each with a two-question quiz, points and badges. Print them on A4 paper, in English or Italian. |
 
 Steps and weight arrive by themselves from **Health Connect** (Android, every hour) or **Apple Health** (iPhone),
 so smart scales like **Eufy** just work. Coming from **Build With Science**? The whole workout history comes
 along, and it **stays in sync**: meals through Health Connect, new workouts through Forza! Coach.
+A friendly, opt-in **family challenge** gives points for showing up (workouts, lessons, steps, meals logged),
+never for weight, so a beginner can beat the family athlete.
 
 ## For you, the family coach
 
 | | |
 |---|---|
-| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** runs on your computer (Mac, Windows or Linux). It sets everything up for you, creates the accounts, and shows each person's weight, strength, workouts, meals and check-ins. Edit their workout plan from home: it appears on their phone at the next opening. |
+| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** runs on your computer (Mac, Windows or Linux). It sets everything up for you, creates the accounts, and shows each person's weight, strength, workouts, meals and check-ins. Edit their workout plan from home: it appears on their phone at the next opening. Add AI keys from several services (Gemini, OpenRouter, …) and choose the order in which food photos try them. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Sign in with a QR code"> | **No passwords for them.** Make a QR code, they point the phone camera at it, and Forza! opens already signed in. Print it on a welcome card with simple instructions. |
 | <img src="docs/screenshots/coach-import.jpg" width="420" alt="Import from Build With Science"> | **Bring their history, and keep it in sync.** Connect their Android phone (cable or Wi-Fi) and Coach imports every workout, set and effort, the weekly plan and the goal from Build With Science. Turn on automatic sync and new workouts follow by themselves. |
 

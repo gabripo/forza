@@ -29,23 +29,24 @@ L'app è anche in italiano: la lingua si cambia in qualsiasi momento.*
 
 | | |
 |---|---|
-| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **Un piano chiaro per ogni giorno.** Una breve checklist (allenamento o riposo, pesata, pasti, passi), l'allenamento di oggi dalla settimana programmata, la tendenza del peso e la prossima lezione. |
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **Un piano chiaro per ogni giorno.** I pulsanti foto e codice a barre in cima, il consiglio del giorno, una breve checklist (allenamento o riposo, pesata, pasti, passi), l'allenamento di oggi, la tendenza del peso e la prossima lezione. Non ti alleni con l'app? Nascondi la sezione Allenati nelle Impostazioni. |
 | <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento"> | **Allenamenti per principianti.** Ogni esercizio ha foto, tre passi semplici e un video. I pesi sono **già compilati e salgono da soli** quando si diventa più forti. Serie di riscaldamento, superset, timer di recupero con suono e "quanto è stata dura?" per ogni serie. Funziona anche senza campo in palestra. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progressi"> | **Progressi che tutti capiscono.** Tendenza del peso (smussata, così gli alti e bassi di ogni giorno non scoraggiano), forza guadagnata, costanza, passi, ognuno con un giudizio in parole e un consiglio concreto. Settimane di fila, record, foto dei progressi private e una scheda "condividi con la famiglia". |
-| <img src="docs/screenshots/barcode.jpg" width="200" alt="Codice a barre"> | **Il cibo in tre modi.** Una foto del piatto (l'AI stima ogni alimento), il **codice a barre** (Open Food Facts, milioni di prodotti) o a mano. Ogni piatto riceve un punteggio per perdere grasso e per aumentare i muscoli. |
+| <img src="docs/screenshots/barcode.jpg" width="200" alt="Codice a barre"> | **Il cibo in tre modi.** Una foto del piatto (l'AI stima ogni alimento), il **codice a barre** (Open Food Facts, milioni di prodotti) o a mano. Dopo una foto, Forza! dice prima **cosa fare** ("Aggiungi proteine!"), poi mostra i numeri; con un tocco rifai la foto o correggi a mano. Ogni piatto riceve un punteggio per perdere grasso e per aumentare i muscoli. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Obiettivo di calorie"> | **Un obiettivo di calorie che si spiega da solo.** Cinque passaggi con i propri numeri: energia a riposo, camminata e allenamento (dai passi del telefono), la verifica con la bilancia, l'obiettivo e come si dividono le calorie tra proteine, grassi e carboidrati. |
-| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lezioni"> | **Impara le basi.** Dodici brevi infografiche (perché la forza conta con l'età, le proteine, il piatto equilibrato, il sonno, …) da leggere, stampare o condividere. |
+| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lezioni"> | **Impara le basi, poi di più.** Un corso base di 14 brevi infografiche (proteine, piatto equilibrato, trucchi per avere energia costante, sonno, …) e lezioni per esperti (glicogeno, distribuzione dei pasti, creatina, …), ognuna con un quiz di due domande, punti e medaglie. Si stampano su fogli A4, in italiano o inglese. |
 
 Passi e peso arrivano da soli da **Connessione Salute** (Android, ogni ora) o **Apple Salute** (iPhone), quindi
 le bilance smart come **Eufy** funzionano subito. Arrivi da **Build With Science**? Lo storico degli
 allenamenti viene con te e **resta sincronizzato**: i pasti tramite Connessione Salute, i nuovi allenamenti
-tramite Forza! Coach.
+tramite Forza! Coach. Una **sfida di famiglia** amichevole e facoltativa dà punti per l'impegno (allenamenti,
+lezioni, passi, pasti registrati), mai per il peso: anche chi comincia può superare chi si allena da anni.
 
 ## Per te, il coach di famiglia
 
 | | |
 |---|---|
-| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** funziona sul tuo computer (Mac, Windows o Linux). Configura tutto per te, crea gli account e mostra di ognuno peso, forza, allenamenti, pasti e check-in. Modifichi la scheda da casa: compare sul telefono alla prossima apertura. |
+| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** funziona sul tuo computer (Mac, Windows o Linux). Configura tutto per te, crea gli account e mostra di ognuno peso, forza, allenamenti, pasti e check-in. Modifichi la scheda da casa: compare sul telefono alla prossima apertura. Aggiungi chiavi AI di più servizi (Gemini, OpenRouter, …) e scegli in che ordine le foto del cibo le provano. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Accesso con codice QR"> | **Nessuna password da ricordare.** Crei un codice QR, la persona lo inquadra con la fotocamera e Forza! si apre già con l'accesso fatto. Puoi stamparlo su un biglietto di benvenuto con le istruzioni. |
 | <img src="docs/screenshots/coach-import.jpg" width="420" alt="Importazione da Build With Science"> | **Porta con te lo storico e tienilo aggiornato.** Collega il telefono Android (cavo o Wi-Fi) e Coach importa da Build With Science ogni allenamento con serie e sforzo, la scheda settimanale e l'obiettivo. Con la sincronizzazione automatica i nuovi allenamenti arrivano da soli. |
 

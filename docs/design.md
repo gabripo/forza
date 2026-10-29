@@ -87,6 +87,7 @@ imports, plan editing) happens in **Forza! Coach**, on the coach's computer.
 | The master (secret) key | only in Coach, in the OS password store; never in the app, never in git |
 | Other websites calling Coach | Coach binds to 127.0.0.1, rejects other `Host` headers (DNS rebinding), needs a random per-launch token, sends a strict Content-Security-Policy |
 | Draining the shared AI key | per-person daily limit (`FOOD_AI_DAILY_LIMIT`), counted server-side |
+| The family challenge | opt-in; `family_board()` returns only names and points, and only to people who joined |
 | Phone helpers sending data | a personal sync key; only its SHA-256 hash is stored; the helper's setup link asks for confirmation |
 | Untrusted values in Coach's UI | every database value is HTML-escaped |
 | AI answers | validated and clamped (numbers, ranges, lengths) before reaching the app |
@@ -99,9 +100,23 @@ On macOS, Coach uses Apple's `security` tool rather than a Node keyring library:
 
 ### Home
 
-A greeting, a **daily checklist** (workout or rest day, weigh-in, meals, steps: "3 of 4 done"), the next
-workout from the weekly schedule, the weight trend, steps, today's food and the next lesson. A checklist is
-easier to act on than a page of statistics.
+Built so that the most frequent action takes one glance and one tap:
+
+1. **Photo** and **barcode** buttons at the very top: logging a meal never needs a menu.
+2. **The tip of the day**, highlighted in a coloured card with a link to the lesson that explains it.
+3. A **daily checklist** (workout or rest day, weigh-in, meals, steps: "3 of 4 done"). A checklist is
+   easier to act on than a page of statistics.
+4. The next workout, the weight trend, the next lesson (with a teaser quiz question and the points it is
+   worth), today's food, this week's points and the family challenge.
+
+The **Log weight** button disappears when a scale already sends weigh-ins (any weigh-in from Health Connect
+or Apple Health in the last 30 days): one less thing to do, and no duplicate entries. The checklist item
+then says "from your scale". Every weigh-in form reminds people to weigh in the same conditions: just woken
+up, after the toilet, before drinking or eating.
+
+Home sits in the middle of the bottom bar, raised, so it is always under the thumb. People who never log
+workouts can hide **Train** (Settings → Training section, or from Coach): the tab becomes Settings, and
+workout items leave the Home page.
 
 ### Training
 
@@ -167,11 +182,59 @@ Ways to log a meal:
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
 against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out.
 
+**Advice before numbers.** After a photo, the first thing shown is at most three things to do ("Add some
+protein!", "Add vegetables", "A smaller portion"), or a compliment if the plate is good; calories and protein
+follow in one line, and the item list with grams is behind a **Details** toggle. Tapping a piece of advice
+explains it and offers two ways forward: **retake the photo** (after changing the plate) or **adjust it by
+hand** (the manual form opens pre-filled with the items). Beginners act on a sentence; a number like
+"38% of calories from fat" means nothing to them.
+
+The food page shows the last seven days as dots: a day is **balanced** when it has at least two meals,
+calories within ±15% of the target and at least 80% of the protein target.
+
 ### Learn
 
-Twelve beginner infographics, printable on A4 or saved as images, in a short guided course: why strength
-matters with age, macronutrients, the balanced plate and hand portions, protein, where nutrients are,
-fibre, insulin sensitivity, eating around training, meal ideas, moving more, sleep, ten small habits.
+Two tracks of infographics, in English and Italian:
+
+- **Beginners' course** (14 lessons): why strength matters with age, macronutrients, the balanced plate and
+  hand portions, protein, where nutrients are, fibre, insulin sensitivity, eating around training, meal
+  ideas, **steady energy** (carbs spread over the day instead of one big pasta lunch) and **meal tricks**
+  (protein at breakfast, vegetables first, the "carbs as a side" plate, a protein snack instead of a sweet
+  one), moving more, sleep, ten small habits.
+- **Expert lessons** (6): glycogen, meal timing, creatine, progressive overload, protein timing, recovery.
+
+Every lesson ends with a **two-question quiz**; each answer explains itself, right or wrong.
+
+**Printing on A4.** Lessons are real text and SVG, not images, so they print sharp: one lesson, the whole
+course, the expert track or everything, laid out on ISO A4 sheets (210 × 297 mm, `@page size A4`, a page
+break between lessons and none inside a card). The print page (`#/learn/print/course?lang=it`) works
+without signing in, so a coach can print the lessons for someone who does not use a phone; "Save as PDF"
+in the print dialog gives a file.
+
+### Motivation
+
+Older beginners do not open a nutrition lesson because it is good for them; they open it because it is
+short, it promises something and it pays back at once. The app uses a few well-known levers, gently:
+
+| Lever | In Forza! |
+|---|---|
+| Immediate reward | points and confetti when a quiz is passed; a trophy on the lesson |
+| Curiosity gap | the Home page shows the next lesson's quiz question without the answer |
+| Goal gradient | the Learn page shows the next badge and how close it is ("2 of 5 lessons") |
+| Small wins | lessons take two minutes; quizzes have two questions; a failed quiz just says "try again" |
+| Collection | eight badges: first lesson, 5 lessons, 5 quizzes, the course, 3 expert lessons, a balanced week, protein three days in a row, a week of food logging |
+| Social proof, friendly | the opt-in family challenge (below) |
+
+Points: workout 20, lesson read 10, quiz passed 20, a day with two or more meals logged 10, step goal
+reached 10, weigh-in 5. **Nothing is ever scored on weight or calories**: a person who does not yet know what
+a calorie is can beat a gym regular by showing up, reading and logging. No streak is ever "lost" with a red
+message; the app only counts what was done.
+
+**Family challenge.** A weekly or monthly leaderboard of the people in the same Forza! project, with
+medals and a gentle "12 points to catch up with Anna". It is **opt-in**: people who have not joined do not
+appear and cannot see it. The board comes from one database function, `family_board()`, that runs with
+elevated rights but returns only display names and point totals (plus workouts, lessons and active days
+counts), and only to callers who joined; nobody can read anyone else's weight, meals or photos through it.
 
 ### Steps, weight and scales
 
@@ -183,10 +246,18 @@ fibre, insulin sensitivity, eating around training, meal ideas, moving more, sle
 - **iPhone**: an Apple Shortcut reads Apple Health and posts the same data; it can run daily as an automation.
 - **Smart scales** (Eufy and others) write to Health Connect / Apple Health, so they need no integration
   of their own; past weigh-ins can also be imported from a CSV export.
+- **Sync now**: Settings → Connect Health & scale has a button that wakes the Android helper at once
+  (`forzahealth://sync`), and, for Build With Science, one that asks Coach to import new workouts at its next
+  check (a timestamp in the profile, which Coach reads every minute).
 
 ### Importing from Build With Science
 
-Build With Science keeps its data in its own cloud and has no export. Three paths cover it:
+Build With Science keeps its data in its own cloud and has no export. Reading the copy it keeps on the
+phone is not possible either: Android stores each app's database in a private folder (`/data/data/…`) that
+only that app can open. A computer over ADB can reach it only if the app is "debuggable" or allows backups,
+and Build With Science is neither (checked on a Pixel 7: `run-as` refused, backups disabled, nothing in the
+shared folders). Rooting the phone would work but voids its security, which is not acceptable for a family
+member's phone. Three paths cover it instead:
 
 | Data | How it reaches Forza! | Automatic? |
 |---|---|---|
@@ -235,7 +306,13 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
 - **Plans**: edit exercises, sets, reps, rest, weekdays, supersets, warm-ups and starting weights; copy a
   plan between people; every save keeps the previous version, restorable in one click.
 - **Exercises**: video links and coach notes for any exercise; shared custom exercises.
-- **Food AI test**: send a photo with the project's secret key to check the key, the model and the speed.
+- **Food photo AI**: one key per provider (Gemini, OpenRouter, Groq, Mistral, OpenAI or any
+  OpenAI-compatible service), an overview of which keys are set, and the **model use order**: a list of
+  models tried top to bottom. Models whose provider has no key are greyed out and skipped. For OpenRouter the
+  model list comes live from its catalogue (vision models only, free ones first). **Test** sends a photo
+  through one model or the whole order and reports which model answered, how long it took and why the others
+  were skipped.
+- **Per-person settings**: everything in the profile, including hiding the Train section.
 - **Imports**: Build With Science (cable or Wi-Fi, once or automatically) and history files.
 - **Background mode**: optional start at login, so automatic syncs need no one at the computer.
 - **Runs everywhere**: double-click launchers for macOS (`.command`), Windows (`.bat`) and Linux (`.sh`)
@@ -245,10 +322,28 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
 ## Food photo AI: choices
 
 Gemini is the default because its free tier needs no credit card and handles food photos well, with a
-response schema that guarantees valid JSON. The function also speaks the OpenAI chat format, so any
-OpenAI-compatible vision API (free tiers of OpenRouter, Groq or Mistral, Cloudflare Workers AI, or a paid
-model) can replace it with three settings. Measurements and the comparison of free alternatives are in
-[food-ai.md](food-ai.md).
+response schema that guarantees valid JSON. Free tiers have daily limits and busy hours, so the function
+works through a **model use order** (`FOOD_AI_ORDER`): each model gets 30 seconds; if it is out of quota
+(429), overloaded (503), out of credit (402) or silent, the photo goes to the next one, and the person only
+notices a slightly longer wait. Besides Gemini, the function speaks the OpenAI chat format, so OpenRouter,
+Groq, Mistral, OpenAI or any compatible service (Cloudflare Workers AI, a self-hosted model) can be added with
+a key. Measurements and the comparison of free alternatives are in [food-ai.md](food-ai.md).
+
+## What runs where
+
+Everything a person uses daily runs in the cloud, so **the coach's computer can be off or offline**:
+
+| Part | Runs on | Needs the coach's computer? |
+|---|---|---|
+| The app | GitHub Pages (static files), cached on the phone as a PWA | no |
+| Data, sign-in, photos | the family's Supabase project | no |
+| Food photo AI | Supabase Edge Function → AI provider | no |
+| Steps, weight, scale, meals from other apps | the phone (Android helper, hourly; Apple Shortcut) → Supabase | no |
+| Build With Science **workouts** | Forza! Coach reading the phone over ADB | **yes**: Coach must be running and the phone on the same Wi-Fi (or cable) |
+| Following progress, editing plans | Forza! Coach (or nothing: the person's own app works without it) | only when the coach wants to look |
+
+Docker is **not** needed to use Forza!: it is only used by developers to run a local copy of Supabase
+([advanced set-up](advanced-setup.md#local-development)). Coach talks to the cloud project directly.
 
 ## Languages
 

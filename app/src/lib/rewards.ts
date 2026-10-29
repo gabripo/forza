@@ -98,7 +98,7 @@ export function badges(x: RewardInput): Badge[] {
   return [
     B('first_step', '🌱', { en: 'First step', it: 'Primo passo' }, { en: 'Read your first lesson', it: 'Leggi la prima lezione' }, read.size, 1),
     B('curious', '🔎', { en: 'Curious mind', it: 'Mente curiosa' }, { en: 'Read 5 lessons', it: 'Leggi 5 lezioni' }, read.size, 5),
-    B('quiz', '🧠', { en: 'Quiz champion', it: 'Campione dei quiz' }, { en: 'Pass 5 quizzes', it: 'Supera 5 quiz' }, quizzes, 5),
+    B('quiz', '🧠', { en: 'Quiz champion', it: 'Asso dei quiz' }, { en: 'Pass 5 quizzes', it: 'Supera 5 quiz' }, quizzes, 5),
     B('graduate', '🎓', { en: 'Course complete', it: 'Corso completato' }, { en: 'Finish the beginners’ course', it: 'Completa il corso base' }, x.baseIds.filter((id) => read.has(id)).length, x.baseIds.length),
     B('expert', '🏅', { en: 'Expert level', it: 'Livello esperto' }, { en: 'Read 3 expert lessons', it: 'Leggi 3 lezioni esperte' }, x.expertIds.filter((id) => read.has(id)).length, 3),
     B('balanced', '⚖️', { en: 'Balanced week', it: 'Settimana equilibrata' }, { en: '3 balanced days in a week', it: '3 giorni equilibrati in una settimana' }, last7.filter((d) => balanced.get(d)).length, 3),

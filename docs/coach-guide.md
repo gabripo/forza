@@ -70,6 +70,14 @@ for a family.
 You can skip this and add it later from **Setup**. Without it, people can still log meals by hand or
 scan barcodes.
 
+**More keys, and what happens when one is busy.** Free AI plans have daily limits. In **Setup → Food photo
+AI: keys** you can add keys for other services too (OpenRouter has many free models, Groq and Mistral have
+free plans, OpenAI is paid); each row has a **Get a key ↗** link and shows whether a key is set. Then, in
+**Food photo AI: model use order**, list the models from first choice to last resort: if one is busy, out of
+quota or slow (30 seconds), the photo goes to the next one. Models of a service without a key are skipped.
+Click **Save order**, choose a test photo and click **Test the whole order**: Coach shows which model
+answered, how long it took and which ones were skipped and why. Each row also has its own **Test**.
+
 ### Step 4: install
 
 Click **Install Forza!**. In about a minute Coach prepares the database, the server functions and the
@@ -110,6 +118,10 @@ On their phone, in Forza!: **Settings → Connect Health & scale**, then:
 - **Eufy (or any smart scale)**: in the EufyLife app, turn on **Health Connect** (Android) or **Apple Health**
   (iPhone) for weight. Forza! picks the weigh-ins up from there.
 
+Once weigh-ins arrive from a scale, the **Log weight** button leaves their Home page (one less thing to do).
+To weigh in by hand, the app reminds them of the rule that makes weights comparable: just woken up, after
+the toilet, before drinking or eating.
+
 ## 5. Coming from Build With Science?
 
 If they used the **Build With Science** app on an **Android** phone, Coach can bring over their history:
@@ -133,6 +145,11 @@ Their weigh-ins and the meals logged in Build With Science come by themselves th
 whenever that phone is connected to this computer and has been left unlocked and untouched for 3 minutes,
 Coach imports the new workouts by itself (every 1–24 hours, as you choose), shows a notice on the phone while
 it works and goes back to the home screen. Touching the phone stops it; it tries again later.
+
+**Sync now.** In the same tab, **Sync now** starts an import within a minute, without waiting for the
+interval or for the phone to be idle (it still has to be connected and unlocked). They can ask for it from
+their phone too: Forza! → **Settings → Connect Health & scale → Sync Build With Science workouts**. The same
+page has a **Sync now** button for steps, weight and meals, which does not need your computer at all.
 
 - The phone can stay in another room: use **Wi-Fi debugging** instead of the cable (Developer options →
   **Wireless debugging**, pair it once with this computer; both must be on the same Wi-Fi).
@@ -158,6 +175,13 @@ Open Forza! Coach whenever you like:
   the new plan the next time they open the app. Every save keeps the previous version (**Versions** → **Restore**).
 - **Workouts**, **Food**, **Check-ins**: what they logged.
 - **Exercises & videos**: add a video link or your own tip to any exercise, or add new exercises for everyone.
+- **Profile → Training section**: choose **Hidden** for someone who will never log workouts in the app (for
+  example, they only want to eat better). The Train tab and the workout items on Home disappear; they can
+  change it back in Settings.
+
+**What needs your computer?** Nothing they use every day. The app, their data, food photos, steps, weight and
+meals all live online, so your computer can be off. Only the automatic import of **Build With Science
+workouts** needs Coach running and their phone within reach (same Wi-Fi or cable). You don't need Docker.
 
 ## 7. Keeping Forza! up to date
 
@@ -172,6 +196,7 @@ Coach and click **Setup → Update the server**. Nothing is lost: the data lives
 | "This code has expired or was already used" | Make a new sign-in code in Coach (codes last 24 hours and work once). |
 | The phone camera does not open the code | In Forza! on the phone, tap **Scan my code**; or send them the link (Coach → *Link*) in a private message. |
 | Food photos say "not set up" | Add the Gemini key in Coach → **Setup** → *Food photo AI*, then **Test** it with a photo. |
+| Food photos often say "The estimate did not work" | Probably every model in the order was busy or out of quota (try **Test the whole order** to see why). Add a second service (OpenRouter is free) in **Setup → Food photo AI: keys** and put one of its models in the order. |
 | Build With Science import stops | Keep the phone unlocked and Build With Science in front, then start again: it continues where it stopped. |
 | "No phone found" | Check the cable (some only charge), USB debugging, and tap **Allow** on the phone. |
 
