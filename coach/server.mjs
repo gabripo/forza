@@ -22,6 +22,7 @@ import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mj
 import { autostartEnabled, setAutostart } from './lib/autostart.mjs'
 import { Stop } from './lib/bws-extract.mjs'
 import { DEFAULT_APP_URL, loadConnection } from './lib/connection.mjs'
+import { DEFAULT_ORDER, modelSuggestions, orderSecret, PROVIDERS } from './lib/food-ai.mjs'
 import { historyFile, runBwsImport } from './lib/bws-job.mjs'
 import { install, Management, regionForTimeZone } from './lib/project.mjs'
 import { configDir, getConfig, getSecret, setConfig, setSecret, store } from './lib/secrets.mjs'
@@ -175,13 +176,14 @@ async function catalogue() {
   return { builtIn, custom: check(custom), overrides: check(overrides) }
 }
 
-const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal']
+const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training']
 
 /** A coach can fill in the profile, so the person skips the questions on their phone. */
 async function saveProfile(id, body) {
   const patch = {}
   for (const k of PROFILE_EDITABLE) if (k in body) patch[k] = body[k] === '' ? null : body[k]
   for (const k of ['birth_year', 'height_cm', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal']) if (patch[k] != null) patch[k] = Number(patch[k])
+  if ('hide_training' in patch) patch.hide_training = patch.hide_training === true || patch.hide_training === 'true'
   if (body.finish_setup) patch.onboarded_at = new Date().toISOString()
   return check(await need().from('profiles').update(patch).eq('id', id).select().single())
 }
@@ -251,6 +253,7 @@ async function autoSyncView(userId) {
 async function setAutoSync(userId, body) {
   if (!body.enabled) {
     await saveAutoSync(userId, { enabled: false })
+    await need().from('profiles').update({ bws_auto_sync: false }).eq('id', userId)
     return autoSyncView(userId)
   }
   const adb = await findAdb()
@@ -259,6 +262,8 @@ async function setAutoSync(userId, body) {
   if (!phone) throw Object.assign(new Error('Connect the phone first'), { status: 409 })
   const serial = await new Device(adb, phone.serial).hardwareSerial()
   await saveAutoSync(userId, { enabled: true, serial, model: phone.model, everyHours: Number(body.everyHours) || 3, plan: body.plan !== false, lastError: null })
+  // The app then offers "Sync Build With Science now".
+  await need().from('profiles').update({ bws_auto_sync: true }).eq('id', userId)
   return autoSyncView(userId)
 }
 
@@ -311,12 +316,61 @@ function installJob({ ref, geminiKey, appUrl }) {
 }
 
 /** Sends a photo to the food AI with the project's secret key: checks the key and the model. */
+// ---------------------------------------------------------------------------
+// Food photo AI: keys per provider and the model use order
+// ---------------------------------------------------------------------------
+
+async function aiOverview() {
+  const m = await management()
+  const ref = ctx?.ref ?? (await getConfig()).ref
+  const names = new Set(await m.secretNames(ref))
+  const config = await getConfig()
+  return {
+    providers: PROVIDERS.map((p) => ({ ...p, set: names.has(p.secret) && (!p.base || names.has(p.base)) })),
+    order: config.aiOrder ?? DEFAULT_ORDER,
+    customOrder: Boolean(config.aiOrder),
+  }
+}
+
+async function saveAiKey(body) {
+  const p = PROVIDERS.find((x) => x.id === body.provider)
+  if (!p) throw Object.assign(new Error('Unknown provider'), { status: 400 })
+  const key = String(body.key ?? '').trim()
+  if (key.length < 8) throw Object.assign(new Error('That does not look like a key'), { status: 400 })
+  const values = { [p.secret]: key }
+  if (p.base) {
+    const base = String(body.base ?? '').trim()
+    if (!/^https:\/\//.test(base)) throw Object.assign(new Error('The address must start with https://'), { status: 400 })
+    values[p.base] = base
+  }
+  await (await management()).setSecrets(ctx?.ref ?? (await getConfig()).ref, values)
+  return aiOverview()
+}
+
+async function removeAiKey(provider) {
+  const p = PROVIDERS.find((x) => x.id === provider)
+  if (!p) throw Object.assign(new Error('Unknown provider'), { status: 400 })
+  await (await management()).deleteSecrets(ctx?.ref ?? (await getConfig()).ref, [p.secret, ...(p.base ? [p.base] : [])])
+  return aiOverview()
+}
+
+async function saveAiOrder(body) {
+  const order = (Array.isArray(body.order) ? body.order : [])
+    .map((s) => ({ provider: String(s.provider), model: String(s.model ?? '').trim() }))
+    .filter((s) => PROVIDERS.some((p) => p.id === s.provider) && s.model)
+    .slice(0, 12)
+  if (!order.length) throw Object.assign(new Error('Add at least one model'), { status: 400 })
+  await (await management()).setSecrets(ctx?.ref ?? (await getConfig()).ref, { FOOD_AI_ORDER: orderSecret(order) })
+  await setConfig({ aiOrder: order })
+  return aiOverview()
+}
+
 async function testFoodAi(body) {
   need()
   const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.key}`, apikey: ctx.key },
-    body: JSON.stringify({ image: body.image, mime: body.mime ?? 'image/jpeg', mode: body.mode ?? 'plate', locale: body.locale ?? 'en', goal: 'maintain', meal: 'a meal', note: body.note ?? '' }),
+    body: JSON.stringify({ image: body.image, mime: body.mime ?? 'image/jpeg', mode: body.mode ?? 'plate', locale: body.locale ?? 'en', goal: 'maintain', meal: 'a meal', note: body.note ?? '', ...(Number.isInteger(body.only) ? { only: body.only } : {}) }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error(data.detail ?? data.error ?? `HTTP ${res.status}`), { status: 502 })
@@ -337,15 +391,11 @@ const routes = [
     async (_m, body) => (await management()).createProject({ name: body.name || 'forza', organization: body.organization, region: body.region || regionForTimeZone() }),
   ],
   ['POST', /^\/api\/setup\/install$/, (_m, body) => installJob(body)],
-  [
-    'POST',
-    /^\/api\/setup\/ai-key$/,
-    async (_m, body) => {
-      const m = await management()
-      await m.setSecrets(ctx?.ref ?? body.ref, { GEMINI_API_KEY: String(body.key).trim() })
-      return { ok: true }
-    },
-  ],
+  ['GET', /^\/api\/setup\/ai$/, () => aiOverview()],
+  ['POST', /^\/api\/setup\/ai-key$/, (_m, body) => saveAiKey(body)],
+  ['DELETE', /^\/api\/setup\/ai-key\/(\w+)$/, (m) => removeAiKey(m[1])],
+  ['POST', /^\/api\/setup\/ai-order$/, (_m, body) => saveAiOrder(body)],
+  ['GET', /^\/api\/setup\/ai-models$/, (_m, _b, q) => modelSuggestions(q.get('provider') ?? '')],
   ['POST', /^\/api\/setup\/test-ai$/, (_m, body) => testFoodAi(body)],
   [
     'POST',
@@ -409,6 +459,15 @@ const routes = [
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
   ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],
   ['POST', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m, body) => setAutoSync(m[1], body)],
+  [
+    'POST',
+    /^\/api\/users\/([\w-]+)\/sync-now$/,
+    async (m) => {
+      // Same path as the app's "Sync now": the next check (within a minute) runs it.
+      check(await need().from('profiles').update({ bws_sync_requested_at: new Date().toISOString() }).eq('id', m[1]))
+      return { ok: true }
+    },
+  ],
   ['GET', /^\/api\/setup\/autostart$/, () => ({ enabled: autostartEnabled() })],
   ['POST', /^\/api\/setup\/autostart$/, async (_m, body) => ({ enabled: await setAutostart(Boolean(body.enabled)) })],
   ['POST', /^\/api\/bws\/download-adb$/, () => startJob('adb', (log) => downloadAdb(log).then((adb) => ({ adb })))],

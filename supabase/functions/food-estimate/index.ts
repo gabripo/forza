@@ -2,19 +2,57 @@
 // The AI key never leaves the server. Each person has a daily limit (FOOD_AI_DAILY_LIMIT, default 25)
 // so a shared key cannot be drained.
 //
-// Providers (see docs/food-ai.md):
-//   Google Gemini (default)        GEMINI_API_KEY, optional GEMINI_MODEL and GEMINI_FALLBACK_MODELS
-//   any OpenAI-compatible API      FOOD_AI_PROVIDER=openai, FOOD_AI_BASE_URL, FOOD_AI_API_KEY, FOOD_AI_MODEL
-//                                  (OpenAI, Groq, Mistral, OpenRouter, GitHub Models, a local Ollama…)
+// Providers and their order ("model use order") are set in Forza! Coach → Setup → Food photo AI:
+//   FOOD_AI_ORDER   JSON list of "provider:model", tried top to bottom, e.g.
+//                   ["gemini:gemini-3.6-flash", "gemini:gemini-3.5-flash-lite", "openrouter:google/gemma-3-27b-it:free"]
+//   one key per provider: GEMINI_API_KEY, OPENROUTER_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, OPENAI_API_KEY,
+//   and for any other OpenAI-compatible service FOOD_AI_BASE_URL + FOOD_AI_API_KEY ("custom").
+// When one is busy, out of quota or fails, the next one answers. Entries without a key are skipped.
+// Without FOOD_AI_ORDER: Gemini (GEMINI_MODEL, then GEMINI_FALLBACK_MODELS), or the older
+// FOOD_AI_PROVIDER=openai + FOOD_AI_MODEL set-up.
 //
 // Forza! Coach can call it with the project's secret key to test the set-up: no person, no limit.
 import { adminClient, corsHeaders, isServiceKey, json, userIdFromRequest } from '../_shared/util.ts'
 
-const PROVIDER = Deno.env.get('FOOD_AI_PROVIDER') ?? 'gemini'
 const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.6-flash'
-// Tried in turn when the main model is overloaded (503) or out of free quota (429): each model has
-// its own free quota, and Flash-Lite's is much larger.
 const GEMINI_FALLBACKS = (Deno.env.get('GEMINI_FALLBACK_MODELS') ?? 'gemini-3.5-flash-lite').split(',').map((m) => m.trim()).filter(Boolean)
+
+/** Where each provider lives and which secret holds its key. */
+const PROVIDERS: Record<string, { key: string; base?: string; baseEnv?: string }> = {
+  gemini: { key: 'GEMINI_API_KEY' },
+  openrouter: { key: 'OPENROUTER_API_KEY', base: 'https://openrouter.ai/api/v1' },
+  groq: { key: 'GROQ_API_KEY', base: 'https://api.groq.com/openai/v1' },
+  mistral: { key: 'MISTRAL_API_KEY', base: 'https://api.mistral.ai/v1' },
+  openai: { key: 'OPENAI_API_KEY', base: 'https://api.openai.com/v1' },
+  custom: { key: 'FOOD_AI_API_KEY', baseEnv: 'FOOD_AI_BASE_URL' },
+}
+
+interface Step {
+  provider: string
+  model: string
+}
+
+/** The model use order, keeping only entries whose provider has a key. */
+function chain(): Step[] {
+  let steps: Step[] = []
+  try {
+    const order = JSON.parse(Deno.env.get('FOOD_AI_ORDER') ?? '[]') as string[]
+    steps = order.map((s) => {
+      const i = String(s).indexOf(':')
+      return { provider: String(s).slice(0, i), model: String(s).slice(i + 1) }
+    })
+  } catch {
+    steps = []
+  }
+  if (!steps.length) {
+    steps = Deno.env.get('FOOD_AI_PROVIDER') === 'openai'
+      ? [{ provider: 'custom', model: Deno.env.get('FOOD_AI_MODEL') ?? '' }]
+      : [GEMINI_MODEL, ...GEMINI_FALLBACKS].map((model) => ({ provider: 'gemini', model }))
+  }
+  return steps.filter((s) => PROVIDERS[s.provider] && s.model && Deno.env.get(PROVIDERS[s.provider].key) &&
+    (PROVIDERS[s.provider].base || Deno.env.get(PROVIDERS[s.provider].baseEnv ?? '')))
+}
+
 const DAILY_LIMIT = Number(Deno.env.get('FOOD_AI_DAILY_LIMIT') ?? 25)
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
@@ -103,19 +141,10 @@ interface Ask {
   mime: string
 }
 
-function configured(): boolean {
-  return PROVIDER === 'openai'
-    ? Boolean(Deno.env.get('FOOD_AI_BASE_URL') && Deno.env.get('FOOD_AI_MODEL'))
-    : Boolean(Deno.env.get('GEMINI_API_KEY'))
-}
-
-function modelName(): string {
-  return PROVIDER === 'openai' ? `${Deno.env.get('FOOD_AI_MODEL')} @ ${new URL(Deno.env.get('FOOD_AI_BASE_URL')!).host}` : GEMINI_MODEL
-}
-
+/** Busy, rate-limited or out of quota: worth trying the next model. */
 class Busy extends Error {}
 
-async function askGeminiModel(model: string, { prompt, schema, image, mime }: Ask): Promise<unknown> {
+async function askGemini(model: string, { prompt, schema, image, mime }: Ask): Promise<unknown> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': Deno.env.get('GEMINI_API_KEY')! },
@@ -124,27 +153,11 @@ async function askGeminiModel(model: string, { prompt, schema, image, mime }: As
       generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.2 },
     }),
   })
-  if (res.status === 503 || res.status === 429) throw new Busy(`${model} ${res.status}`)
-  if (!res.ok) throw new Error(`gemini ${model} ${res.status}: ${(await res.text()).slice(0, 500)}`)
+  if (res.status === 503 || res.status === 429) throw new Busy(`gemini ${model} ${res.status}`)
+  if (!res.ok) throw new Error(`gemini ${model} ${res.status}: ${(await res.text()).slice(0, 300)}`)
   const data = await res.json()
   const text: string | undefined = data?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text
   return JSON.parse(text ?? '')
-}
-
-/** The main model, one retry if it is busy, then the fallback models. Returns the answer and the model used. */
-async function askGemini(ask: Ask): Promise<{ answer: unknown; model: string }> {
-  const attempts = [GEMINI_MODEL, GEMINI_MODEL, ...GEMINI_FALLBACKS]
-  let last: Error | null = null
-  for (const [i, model] of attempts.entries()) {
-    try {
-      return { answer: await askGeminiModel(model, ask), model }
-    } catch (e) {
-      if (!(e instanceof Busy)) throw e
-      last = e
-      if (i === 0) await new Promise((r) => setTimeout(r, 1500))
-    }
-  }
-  throw new Error(`all Gemini models busy (${last?.message})`)
 }
 
 /** Gemini's schema dialect (upper-case types) → standard JSON Schema, for the prompt of other providers. */
@@ -159,27 +172,57 @@ function jsonSchema(s: Schema): Schema {
   return out
 }
 
-async function askOpenAiCompatible({ prompt, schema, image, mime }: Ask): Promise<{ answer: unknown; model: string }> {
-  const base = Deno.env.get('FOOD_AI_BASE_URL')!.replace(/\/$/, '')
-  const key = Deno.env.get('FOOD_AI_API_KEY')
-  const res = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: `Bearer ${key}` } : {}) },
-    body: JSON.stringify({
-      model: Deno.env.get('FOOD_AI_MODEL'),
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: `${prompt}\nAnswer with one JSON object only, matching this JSON Schema:\n${JSON.stringify(jsonSchema(schema))}` },
-        { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] },
-      ],
-    }),
-  })
-  if (!res.ok) throw new Error(`openai-compatible ${res.status}: ${(await res.text()).slice(0, 500)}`)
+async function askOpenAiCompatible(step: Step, { prompt, schema, image, mime }: Ask): Promise<unknown> {
+  const p = PROVIDERS[step.provider]
+  const base = (p.base ?? Deno.env.get(p.baseEnv!)!).replace(/\/$/, '')
+  const messages = [
+    { role: 'system', content: `${prompt}\nAnswer with one JSON object only, matching this JSON Schema:\n${JSON.stringify(jsonSchema(schema))}` },
+    { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] },
+  ]
+  const post = (jsonMode: boolean) =>
+    fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get(p.key)}`,
+        // OpenRouter shows these in its dashboard; other providers ignore them.
+        'HTTP-Referer': 'https://github.com/gabripo/forza',
+        'X-Title': 'Forza!',
+      },
+      body: JSON.stringify({ model: step.model, temperature: 0.2, messages, ...(jsonMode ? { response_format: { type: 'json_object' } } : {}) }),
+    })
+  let res = await post(true)
+  // Some models refuse JSON mode: ask again without it (the prompt still asks for JSON).
+  if (res.status === 400) res = await post(false)
+  if (res.status === 503 || res.status === 429 || res.status === 402) throw new Busy(`${step.provider} ${step.model} ${res.status}`)
+  if (!res.ok) throw new Error(`${step.provider} ${step.model} ${res.status}: ${(await res.text()).slice(0, 300)}`)
   const data = await res.json()
   const text: string = data?.choices?.[0]?.message?.content ?? ''
   // Some models wrap JSON in a code fence even in JSON mode.
-  return { answer: JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')), model: modelName() }
+  return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim())
+}
+
+/**
+ * Tries the model use order top to bottom. A busy model gets one more try before moving on; any other
+ * failure (wrong model name, unreadable answer) moves on at once.
+ */
+async function ask(ask: Ask, steps: Step[]): Promise<{ answer: unknown; model: string; tried: string[] }> {
+  const tried: string[] = []
+  for (const [i, step] of steps.entries()) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const answer = step.provider === 'gemini' ? await askGemini(step.model, ask) : await askOpenAiCompatible(step, ask)
+        return { answer, model: `${step.provider}:${step.model}`, tried }
+      } catch (e) {
+        tried.push(`${step.provider}:${step.model} → ${(e as Error).message.slice(0, 160)}`)
+        console.error('food ai step failed', (e as Error).message)
+        // Retry a busy model once, only when nothing else is left to try soon.
+        if (!(e instanceof Busy) || attempt === 1 || i < steps.length - 1) break
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    }
+  }
+  throw Object.assign(new Error('all models failed'), { tried })
 }
 
 // ---------------------------------------------------------------------------
@@ -221,14 +264,15 @@ function cleanLabel(a: Record<string, unknown>) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
-  if (!configured()) return json({ error: 'not_configured' }, 503)
+  const steps = chain()
+  if (!steps.length) return json({ error: 'not_configured' }, 503)
 
   const admin = adminClient()
   const coachTest = isServiceKey((req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, ''))
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; mime?: string; note?: string; locale?: string; goal?: string; meal?: string; mode?: string }
+  let body: { image?: string; mime?: string; note?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
   try {
     body = await req.json()
   } catch {
@@ -254,13 +298,14 @@ Deno.serve(async (req) => {
     ? labelPrompt(language)
     : platePrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', (body.note ?? '').slice(0, 300))
   const started = Date.now()
+  // Coach can test one entry of the order on its own.
+  const use = coachTest && Number.isInteger(body.only) ? steps.slice(Number(body.only), Number(body.only) + 1) : steps
   try {
-    const ask = { prompt, schema: SCHEMAS[mode], image, mime }
-    const { answer, model } = PROVIDER === 'openai' ? await askOpenAiCompatible(ask) : await askGemini(ask)
+    const { answer, model, tried } = await ask({ prompt, schema: SCHEMAS[mode], image, mime }, use)
     const result = mode === 'label' ? cleanLabel(answer as Record<string, unknown>) : cleanPlate(answer as Record<string, unknown>)
-    return json(coachTest ? { ...result, model, ms: Date.now() - started } : result)
+    return json(coachTest ? { ...result, model, ms: Date.now() - started, tried } : result)
   } catch (e) {
-    console.error('food ai failed', (e as Error).message)
-    return json(coachTest ? { error: 'ai_failed', detail: (e as Error).message } : { error: 'ai_failed' }, 502)
+    const tried = (e as { tried?: string[] }).tried ?? []
+    return json(coachTest ? { error: 'ai_failed', detail: tried.join('\n') || (e as Error).message } : { error: 'ai_failed' }, 502)
   }
 })

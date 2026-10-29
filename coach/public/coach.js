@@ -15,6 +15,9 @@ const state = {
   bws: { devices: null, job: null },
   auto: null,
   autostart: null,
+  ai: null,
+  aiModels: {},
+  aiPhoto: null,
   signin: null,
   view: 'people',
   users: [],
@@ -462,12 +465,7 @@ function serverView() {
           <form class="row" data-form="setup-token"><input name="token" type="password" placeholder="sbp_…" required autocomplete="off" style="min-width:280px"><button class="btn">Save token</button></form>`}
       ${jobLog(state.setup.job)}
     </div>
-    <div class="card"><h2>Food photo AI</h2>
-      <form class="row" data-form="ai-key"><input name="key" type="password" placeholder="new Gemini API key (AIza…)" required autocomplete="off" style="min-width:280px"><button class="btn secondary" ${st.accessToken ? '' : 'disabled'}>Save key</button></form>
-      <p class="muted small">Test it with a photo of a meal or of a nutrition label: the answer shows the model and how long it took.</p>
-      <form class="row" data-form="ai-test"><input name="photo" type="file" accept="image/*" required><select name="mode"><option value="plate">Plate</option><option value="label">Nutrition label</option></select><button class="btn">Test</button></form>
-      <div id="ai-result"></div>
-    </div>
+    ${aiCards(st)}
     <div class="card"><h2>Run in the background</h2>
       <label class="row"><input type="checkbox" data-action="autostart" ${state.autostart ? 'checked' : ''}> Start Forza! Coach when I log in to this computer</label>
       <p class="muted small">Needed for automatic Build With Science syncs. Coach then runs without a window; open it as usual (the start file) to see it.</p>
@@ -529,6 +527,7 @@ function profileView(d) {
         <label class="field">Experience${opt('experience', ['beginner', 'intermediate'], ['Beginner', 'Some experience'])}</label>
         <label class="field">Workouts a week<input name="workouts_per_week" inputmode="numeric" value="${esc(p.workouts_per_week ?? 3)}"></label>
         <label class="field">Daily steps goal<input name="steps_goal" inputmode="numeric" value="${esc(p.steps_goal ?? 7000)}"></label>
+        <label class="field">Training section<select name="hide_training"><option value="false" ${p.hide_training ? '' : 'selected'}>Shown</option><option value="true" ${p.hide_training ? 'selected' : ''}>Hidden (never logs workouts in the app)</option></select></label>
       </div>
       ${p.onboarded_at ? `<p class="muted small">Set-up done on ${fmtDate(p.onboarded_at)}.</p>` : '<label class="row small"><input type="checkbox" name="finish_setup" value="1"> Set-up done: they go straight to the home screen</label>'}
       <div><button class="btn">Save profile</button></div>
@@ -580,7 +579,8 @@ function autoSyncCard(ready) {
       ? `<p><span class="pill good">On</span> every ${esc(a.everyHours)} h · plan ${a.plan === false ? 'not synced' : 'kept in sync'}<br>
          <span class="small muted">Last import: ${a.lastRun ? `${when(a.lastRun)} (${esc(a.lastResult ?? '')})` : 'not yet'}${a.lastError ? ` · last problem: ${esc(a.lastError)}` : ''}</span></p>
          ${state.auto?.background ? '' : '<p class="note small">Forza! Coach must be running for this. To keep it running without opening it, turn on <b>Setup → Run in the background</b>.</p>'}
-         <button class="btn secondary" data-action="auto-off">Turn off</button>`
+         <div class="row"><button class="btn" data-action="sync-now">Sync now</button><button class="btn secondary" data-action="auto-off">Turn off</button></div>
+         <p class="muted small">Sync now runs within a minute if the phone is connected and unlocked (no need to wait for it to be idle). The person can also press "Sync now" in the app.</p>`
       : ready.length
         ? `<form class="row" data-form="auto-on">
             ${ready.length > 1 ? `<select name="serial">${ready.map((x) => `<option value="${esc(x.serial)}">${esc(x.model || x.serial)}</option>`).join('')}</select>` : `<input type="hidden" name="serial" value="${esc(ready[0].serial)}">`}
@@ -590,6 +590,102 @@ function autoSyncCard(ready) {
         : '<p class="muted small">Check the phone above first.</p>'}
     ${state.auto?.job ? `<details style="margin-top:8px"><summary class="small">Last automatic run</summary>${jobLog(state.auto.job)}</details>` : ''}
   </div>`
+}
+
+// ---------------------------------------------------------------------------
+// Food photo AI: keys overview and model use order
+// ---------------------------------------------------------------------------
+
+function aiCards(st) {
+  if (!st.accessToken) return '<div class="card"><h2>Food photo AI</h2><p class="muted">Add your Supabase access token above to manage the AI keys.</p></div>'
+  const ai = state.ai
+  if (!ai) return '<div class="card"><h2>Food photo AI</h2><p class="muted">Loading…</p></div>'
+  const provider = (id) => ai.providers.find((p) => p.id === id)
+  const keyRows = ai.providers
+    .map(
+      (p) => `<tr>
+        <td><b>${esc(p.name)}</b><div class="muted small">${esc(p.note)}</div></td>
+        <td>${p.set ? '<span class="pill good">key saved</span>' : '<span class="pill info">no key</span>'}</td>
+        <td><form class="row" data-form="ai-key" data-provider="${esc(p.id)}" style="flex-wrap:nowrap">
+          ${p.base ? '<input name="base" placeholder="https://…/v1" style="width:150px" autocomplete="off">' : ''}
+          <input name="key" type="password" placeholder="${p.set ? 'replace key' : 'paste key'}" autocomplete="off" style="width:170px" required>
+          <button class="btn secondary small">Save</button></form></td>
+        <td class="row" style="flex-wrap:nowrap">${p.keyUrl ? `<a class="small" href="${esc(p.keyUrl)}" target="_blank" rel="noreferrer">Get a key ↗</a>` : ''}
+          ${p.set ? `<button class="btn danger small" data-action="ai-key-del" data-provider="${esc(p.id)}">Remove</button>` : ''}</td>
+      </tr>`,
+    )
+    .join('')
+  let usable = 0
+  const orderRows = ai.order
+    .map((step, i) => {
+      const has = provider(step.provider)?.set
+      const testIndex = has ? usable++ : null
+      const models = state.aiModels[step.provider] ?? []
+      return `<tr>
+        <td class="num"><b>${i + 1}</b></td>
+        <td><select data-ai="${i}" data-field="provider">${ai.providers.map((p) => `<option value="${esc(p.id)}" ${p.id === step.provider ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></td>
+        <td><input data-ai="${i}" data-field="model" value="${esc(step.model)}" list="models-${esc(step.provider)}" style="width:100%;min-width:220px" placeholder="model name">
+          <datalist id="models-${esc(step.provider)}">${models.map((m) => `<option value="${esc(m.id)}">${m.free ? 'free' : ''}</option>`).join('')}</datalist></td>
+        <td>${has ? '' : '<span class="pill warn" title="Add this provider\'s key above">no key: skipped</span>'}</td>
+        <td class="row" style="flex-wrap:nowrap">
+          <button class="btn secondary small" data-action="ai-up" data-i="${i}" ${i ? '' : 'disabled'}>↑</button>
+          <button class="btn secondary small" data-action="ai-down" data-i="${i}" ${i < ai.order.length - 1 ? '' : 'disabled'}>↓</button>
+          <button class="btn danger small" data-action="ai-del" data-i="${i}" ${ai.order.length > 1 ? '' : 'disabled'}>✕</button>
+          ${testIndex !== null ? `<button class="btn secondary small" data-action="ai-test-one" data-only="${testIndex}" title="Test only this model (save the order first)">Test</button>` : ''}
+        </td></tr>`
+    })
+    .join('')
+  return `<div class="card"><h2>Food photo AI: keys</h2>
+      <p class="muted small">Keys are stored as secrets of your Supabase project, never on this computer, and are never shown again. Add as many as you like: the order below decides which one is used.</p>
+      <table><tbody>${keyRows}</tbody></table>
+    </div>
+    <div class="card"><h2>Food photo AI: model use order</h2>
+      <p>Tried from the top. When a model is busy, hits its free limit or fails, the next one answers the photo. Models whose provider has no key are skipped.</p>
+      <table><thead><tr><th>#</th><th>Provider</th><th>Model</th><th></th><th></th></tr></thead><tbody>${orderRows}</tbody></table>
+      <div class="row" style="margin-top:10px">
+        <button class="btn secondary" data-action="ai-add">+ Model</button>
+        <span style="flex:1"></span>
+        <button class="btn" data-action="ai-order-save">Save order</button>
+      </div>
+      <p class="muted small" style="margin-top:12px">Test with a photo of a meal or of a nutrition label: the whole order, or one row (its Test button).</p>
+      <form class="row" data-form="ai-test"><input name="photo" type="file" accept="image/*" required><select name="mode"><option value="plate">Plate</option><option value="label">Nutrition label</option></select><button class="btn">Test the whole order</button></form>
+      <div id="ai-result"></div>
+    </div>`
+}
+
+async function loadAi() {
+  if (!state.status?.accessToken) return
+  state.ai = await api('/api/setup/ai').catch((e) => {
+    toast(`AI settings: ${e.message}`)
+    return null
+  })
+  for (const p of new Set((state.ai?.order ?? []).map((s) => s.provider))) await loadModels(p)
+}
+
+async function loadModels(provider) {
+  if (!state.aiModels[provider]) state.aiModels[provider] = await api(`/api/setup/ai-models?provider=${encodeURIComponent(provider)}`).catch(() => [])
+}
+
+function showAiResult(r) {
+  const out = document.getElementById('ai-result')
+  const rows = r.items ?? [{ name: `${r.name} (per 100 g)`, grams: 100, kcal: r.kcal, protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g }]
+  out.innerHTML = `<p class="ok">It works: ${esc(r.model)}, ${fmtNum(r.ms / 1000, 1)} s</p>
+    ${r.tried?.length ? `<details><summary class="small">Skipped before it (${r.tried.length})</summary><pre class="log">${esc(r.tried.join('\n'))}</pre></details>` : ''}
+    <table><thead><tr><th>Food</th><th class="num">g</th><th class="num">kcal</th><th class="num">P / C / F</th></tr></thead><tbody>${rows.map((i) => `<tr><td>${esc(i.name)}</td><td class="num">${fmtNum(i.grams)}</td><td class="num">${fmtNum(i.kcal)}</td><td class="num">${fmtNum(i.protein_g, 1)} / ${fmtNum(i.carbs_g, 1)} / ${fmtNum(i.fat_g, 1)}</td></tr>`).join('')}</tbody></table>${r.tip ? `<p class="muted small">${esc(r.tip)}</p>` : ''}`
+}
+
+async function testAi(only) {
+  const out = document.getElementById('ai-result')
+  if (!state.aiPhoto) {
+    out.innerHTML = '<p class="pill warn">Choose a test photo first (below).</p>'
+    return
+  }
+  out.innerHTML = '<p class="muted">Asking the AI…</p>'
+  try {
+    showAiResult(await api('/api/setup/test-ai', { method: 'POST', body: { image: state.aiPhoto.image, mode: state.aiPhoto.mode, ...(only !== undefined ? { only } : {}) } }))
+  } catch (e) {
+    out.innerHTML = `<p class="pill warn">Did not work</p><pre class="log">${esc(e.message)}</pre>`
+  }
 }
 
 async function loadAuto() {
@@ -635,11 +731,19 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
   const view = e.target.closest('button')?.dataset.view
   if (!view) return
   state.view = view
-  if (view === 'setup') state.autostart = (await api('/api/setup/autostart').catch(() => ({ enabled: false }))).enabled
+  if (view === 'setup') {
+    state.autostart = (await api('/api/setup/autostart').catch(() => ({ enabled: false }))).enabled
+    render()
+    await loadAi()
+  }
   render()
 })
 
-app.addEventListener('change', (e) => {
+app.addEventListener('change', async (e) => {
+  if (e.target.dataset?.ai !== undefined && e.target.dataset.field === 'provider') {
+    await loadModels(e.target.value)
+    return render()
+  }
   if (e.target.name === 'project') {
     state.setup.choice = e.target.value
     render()
@@ -648,6 +752,10 @@ app.addEventListener('change', (e) => {
 
 app.addEventListener('input', (e) => {
   const el = e.target
+  if (el.dataset.ai !== undefined) {
+    state.ai.order[Number(el.dataset.ai)][el.dataset.field] = el.value
+    return
+  }
   if (el.dataset.plan === undefined || !el.dataset.field) return
   const t = state.plan[Number(el.dataset.plan)]
   if (el.dataset.ex !== undefined) t.exercises[Number(el.dataset.ex)][el.dataset.field] = el.value
@@ -703,6 +811,31 @@ app.addEventListener('click', async (e) => {
       state.bws.devices = await api('/api/bws/devices')
       await loadAuto()
       return render()
+    }
+    if (action === 'ai-up' || action === 'ai-down' || action === 'ai-del' || action === 'ai-add') {
+      const order = state.ai.order
+      const i = Number(btn.dataset.i)
+      if (action === 'ai-up') [order[i - 1], order[i]] = [order[i], order[i - 1]]
+      if (action === 'ai-down') [order[i + 1], order[i]] = [order[i], order[i + 1]]
+      if (action === 'ai-del') order.splice(i, 1)
+      if (action === 'ai-add') order.push({ provider: 'openrouter', model: '' })
+      await loadModels(order.at(-1).provider)
+      return render()
+    }
+    if (action === 'ai-order-save') {
+      state.ai = await api('/api/setup/ai-order', { method: 'POST', body: { order: state.ai.order } })
+      toast('Order saved: the next food photo uses it')
+      return render()
+    }
+    if (action === 'ai-key-del') {
+      if (!confirm('Remove this key from your Supabase project?')) return
+      state.ai = await api(`/api/setup/ai-key/${btn.dataset.provider}`, { method: 'DELETE' })
+      return render()
+    }
+    if (action === 'ai-test-one') return testAi(Number(btn.dataset.only))
+    if (action === 'sync-now') {
+      await api(`/api/users/${state.selected}/sync-now`, { method: 'POST' })
+      return toast('Requested: it starts within a minute if the phone is connected and unlocked')
     }
     if (action === 'auto-off') {
       state.auto = await api(`/api/users/${state.selected}/auto-sync`, { method: 'POST', body: { enabled: false } })
@@ -825,6 +958,7 @@ app.addEventListener('submit', async (e) => {
       Object.assign(state.setup, await api('/api/setup/token', { method: 'POST', body: data }))
       await loadStatus()
       toast('Token saved')
+      if (state.status.configured) await loadAi()
       return render()
     }
     if (form.dataset.form === 'setup-create') {
@@ -835,19 +969,13 @@ app.addEventListener('submit', async (e) => {
       return render()
     }
     if (form.dataset.form === 'ai-key') {
-      await api('/api/setup/ai-key', { method: 'POST', body: data })
-      toast('Key saved: test it with a photo')
-      form.reset()
-      return
+      state.ai = await api('/api/setup/ai-key', { method: 'POST', body: { ...data, provider: form.dataset.provider } })
+      toast('Key saved as a secret of your Supabase project')
+      return render()
     }
     if (form.dataset.form === 'ai-test') {
-      const out = document.getElementById('ai-result')
-      out.innerHTML = '<p class="muted">Asking the AI…</p>'
-      const image = await fileToBase64(form.querySelector('input[type=file]').files[0])
-      const r = await api('/api/setup/test-ai', { method: 'POST', body: { image, mode: data.mode } })
-      const rows = r.items ?? [{ name: `${r.name} (per 100 g)`, grams: 100, kcal: r.kcal, protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g }]
-      out.innerHTML = `<p class="ok">It works: ${esc(r.model)}, ${fmtNum(r.ms / 1000, 1)} s</p><table><thead><tr><th>Food</th><th class="num">g</th><th class="num">kcal</th><th class="num">P / C / F</th></tr></thead><tbody>${rows.map((i) => `<tr><td>${esc(i.name)}</td><td class="num">${fmtNum(i.grams)}</td><td class="num">${fmtNum(i.kcal)}</td><td class="num">${fmtNum(i.protein_g, 1)} / ${fmtNum(i.carbs_g, 1)} / ${fmtNum(i.fat_g, 1)}</td></tr>`).join('')}</tbody></table>${r.tip ? `<p class="muted small">${esc(r.tip)}</p>` : ''}`
-      return
+      state.aiPhoto = { image: await fileToBase64(form.querySelector('input[type=file]').files[0]), mode: data.mode }
+      return testAi()
     }
     if (form.dataset.form === 'app-url') {
       await api('/api/setup/app-url', { method: 'POST', body: data })

@@ -22,8 +22,8 @@ export function Settings() {
     if (!draft) return
     setBusy(true)
     try {
-      const { display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience } = draft
-      await saveProfile({ display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience })
+      const { display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training } = draft
+      await saveProfile({ display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training })
       setSaved(true)
     } finally {
       setBusy(false)
@@ -116,6 +116,16 @@ export function Settings() {
               <NumberInput decimals={false} value={draft.steps_goal} onChange={(v) => set('steps_goal', v ?? 7000)} />
             </Field>
           </div>
+          <Field label={t('settings.training')} hint={t('settings.trainingHint')}>
+            <Segmented<'show' | 'hide'>
+              value={draft.hide_training ? 'hide' : 'show'}
+              onChange={(v) => set('hide_training', v === 'hide')}
+              options={[
+                { value: 'show', label: t('settings.trainingShow') },
+                { value: 'hide', label: t('settings.trainingHide') },
+              ]}
+            />
+          </Field>
           <Field label={t('onb.perWeek')}>
             <Segmented<number>
               value={draft.workouts_per_week}

@@ -26,6 +26,14 @@ export interface Profile {
   /** Weekly check-in correction on top of the estimated energy needs (kcal). */
   kcal_adjust: number
   kcal_checkin_at: string | null
+  /** The Train tab and training cards are hidden (people who never log training in the app). */
+  hide_training: boolean
+  /** Shown on the family challenge board. */
+  challenge_opt_in: boolean
+  /** Build With Science workouts are synced by Forza! Coach. */
+  bws_auto_sync: boolean
+  bws_synced_at: string | null
+  bws_sync_requested_at: string | null
 }
 
 export interface BodyWeight {

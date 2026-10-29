@@ -27,7 +27,8 @@ export function LogWeightSheet({ open, onClose, onSaved, last }: { open: boolean
   return (
     <Sheet open={open} onClose={onClose} title={t('weight.log')}>
       <div className="grid gap-4">
-        <Field label={t('weight.today')} hint={t('weight.howTo')}>
+        <p className="rounded-2xl bg-sky-soft p-3 text-sm">⏰ {t('weight.conditions')}</p>
+        <Field label={t('weight.today')}>
           <NumberInput value={kg} onChange={setKg} autoFocus className="h-16 text-3xl" />
         </Field>
         {error ? <p className="font-semibold text-danger">{t('common.saveError')}</p> : null}

@@ -45,6 +45,7 @@ export class Management {
   authConfig = (ref) => this.request('GET', `/projects/${ref}/config/auth`)
   updateAuthConfig = (ref, patch) => this.request('PATCH', `/projects/${ref}/config/auth`, patch)
   secretNames = async (ref) => (await this.request('GET', `/projects/${ref}/secrets`)).map((s) => s.name)
+  deleteSecrets = (ref, names) => this.request('DELETE', `/projects/${ref}/secrets`, names)
   setSecrets = (ref, values) =>
     this.request('POST', `/projects/${ref}/secrets`, Object.entries(values).map(([name, value]) => ({ name, value })))
   functions = (ref) => this.request('GET', `/projects/${ref}/functions`)

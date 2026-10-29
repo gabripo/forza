@@ -14,6 +14,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.health.connect.client.HealthConnectClient
@@ -83,6 +84,16 @@ class MainActivity : ComponentActivity() {
 
     private fun handleSetupLink(intent: Intent?) {
         val uri: Uri = intent?.data ?: return
+        if (uri.scheme == "forzahealth" && uri.host == "sync") {
+            // "Sync now" from the Forza! app: nothing is sent anywhere new, so no confirmation needed.
+            if (prefs.isConnected) {
+                SyncWorker.syncNow(this)
+                detail.text = getString(R.string.syncing)
+                Toast.makeText(this, R.string.sync_started, Toast.LENGTH_LONG).show()
+            }
+            setIntent(Intent(this, MainActivity::class.java))
+            return
+        }
         if (uri.scheme != "forzahealth" || uri.host != "setup") return
         val url = uri.getQueryParameter("url") ?: return
         val key = uri.getQueryParameter("key") ?: return

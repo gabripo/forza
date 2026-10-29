@@ -55,6 +55,7 @@ export function HealthSync() {
     <div className="grid gap-4">
       <PageHeader title={t('health.title')} back="/settings" />
       <p className="text-ink-2">{t('health.intro')}</p>
+      <SyncNow helperReady={isAndroid && Boolean(status.data?.exists)} lastSync={status.data?.lastUsed ?? null} />
 
       <Card title={t('health.step1')} action={<KeyRound className="size-5 text-ink-3" aria-hidden />}>
         <p className="mb-3 text-ink-2">{t('health.keyText')}</p>
@@ -141,6 +142,50 @@ export function HealthSync() {
 
       <ImportCard />
     </div>
+  )
+}
+
+/**
+ * "Sync now": the Android helper (steps, weight, meals) opens for a moment and syncs; Build With
+ * Science workouts are synced by Forza! Coach, which picks the request up within a minute when
+ * this phone is connected to its computer.
+ */
+function SyncNow({ helperReady, lastSync }: { helperReady: boolean; lastSync: string | null }) {
+  const { t, date } = useI18n()
+  const { profile, saveProfile } = useApp()
+  const [asked, setAsked] = useState(false)
+  if (!helperReady && !profile?.bws_auto_sync) return null
+  const when = (d: string) => date(d, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const pending = profile?.bws_sync_requested_at && (!profile.bws_synced_at || profile.bws_synced_at < profile.bws_sync_requested_at)
+
+  async function askBws() {
+    await saveProfile({ bws_sync_requested_at: new Date().toISOString() })
+    setAsked(true)
+  }
+
+  return (
+    <Card title={t('sync.title')} action={<RefreshCw className="size-5 text-ink-3" aria-hidden />}>
+      <div className="grid gap-3">
+        {helperReady ? (
+          <div>
+            <a href="forzahealth://sync" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-brand px-4 font-semibold text-white">
+              <RefreshCw className="size-5" aria-hidden /> {t('sync.health')}
+            </a>
+            {lastSync ? <p className="mt-1 text-sm text-ink-3">{t('health.lastSync', { date: when(lastSync) })}</p> : null}
+          </div>
+        ) : null}
+        {profile?.bws_auto_sync ? (
+          <div>
+            <Button block variant="secondary" onClick={askBws} disabled={asked || Boolean(pending)}>
+              <Dumbbell className="size-5" aria-hidden /> {asked || pending ? t('sync.bwsAsked') : t('sync.bws')}
+            </Button>
+            <p className="mt-1 text-sm text-ink-3">
+              {asked || pending ? t('sync.bwsHow') : profile.bws_synced_at ? t('sync.bwsLast', { date: when(profile.bws_synced_at) }) : t('sync.bwsAuto')}
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </Card>
   )
 }
 

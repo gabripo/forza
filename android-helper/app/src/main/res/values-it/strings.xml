@@ -7,6 +7,7 @@
     <string name="how_to_connect">Apri Forza! su questo telefono → Impostazioni → Collega Salute e bilancia → "Collega l\'app di supporto".</string>
     <string name="allow_access">Consenti l\'accesso</string>
     <string name="sync_now">Sincronizza ora</string>
+    <string name="sync_started">Sincronizzo passi, peso e pasti… Puoi tornare a Forza!.</string>
     <string name="syncing">Sincronizzazione…</string>
     <string name="last_sync">Ultima sincronizzazione: %1$s</string>
     <string name="synced">Inviati %1$d giorni di passi, %2$d pesate e %3$d pasti.</string>

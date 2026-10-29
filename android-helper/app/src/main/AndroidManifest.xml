@@ -37,6 +37,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="forzahealth" android:host="setup" />
+                <!-- forzahealth://sync  ("Sync now" in the Forza! web app) -->
+                <data android:scheme="forzahealth" android:host="sync" />
             </intent-filter>
         </activity>
 

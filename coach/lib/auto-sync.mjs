@@ -42,6 +42,12 @@ export async function autoSyncTick({ db, busy, startJob, runImport }) {
   if (!db || busy()) return
   const settings = Object.entries(await autoSyncSettings()).filter(([, a]) => a.enabled && a.serial)
   if (!settings.length) return
+  // "Sync now" pressed in the app (or in Coach): skip the waiting rules for that person.
+  const { data: profiles } = await db.from('profiles').select('id, locale, bws_sync_requested_at').in('id', settings.map(([id]) => id))
+  const requested = (id, a) => {
+    const at = profiles?.find((p) => p.id === id)?.bws_sync_requested_at
+    return Boolean(at) && new Date(at).getTime() > Math.max(a.lastRun ?? 0, a.lastAttempt ?? 0)
+  }
   const adb = await findAdb()
   if (!adb) return
   for (const d of await Device.list(adb)) {
@@ -53,26 +59,29 @@ export async function autoSyncTick({ db, busy, startJob, runImport }) {
     if (!entry) continue
     const [userId, a] = entry
     const now = Date.now()
-    if (a.lastRun && now - a.lastRun < (a.everyHours ?? 3) * 3600_000) continue
-    if (a.lastAttempt && now - a.lastAttempt < RETRY_MS) continue
+    const asked = requested(userId, a)
+    if (!asked && a.lastRun && now - a.lastRun < (a.everyHours ?? 3) * 3600_000) continue
+    if (!asked && a.lastAttempt && now - a.lastAttempt < RETRY_MS) continue
     const state = await device.readiness()
-    if (!state.awake || state.locked || state.idleMs < IDLE_MS) continue
+    if (!state.awake || state.locked || (!asked && state.idleMs < IDLE_MS)) continue
 
     await saveAutoSync(userId, { lastAttempt: now })
-    const { data: profile } = await db.from('profiles').select('locale').eq('id', userId).maybeSingle()
+    const profile = profiles?.find((p) => p.id === userId)
     const text = TEXT[profile?.locale === 'it' ? 'it' : 'en']
     startJob('bws-auto', async (log, signal) => {
       try {
         log('Automatic sync: the phone is idle, starting')
         await device.notify(text.start)
         await sleep(8000)
-        // Someone picked the phone up after the notice: try again later.
-        if ((await device.readiness()).idleMs < 8000) throw new Error('The phone is being used: will try again later')
+        // Someone picked the phone up after the notice: try again later (unless they asked for it).
+        if (!asked && (await device.readiness()).idleMs < 8000) throw new Error('The phone is being used: will try again later')
         const plan = !a.lastPlan || now - a.lastPlan > PLAN_EVERY_MS ? a.plan !== false : false
         const result = await runImport({ db, userId, since: 'new', serial: d.serial, plan, profile: false, log, signal })
         await device.shell('input', 'keyevent', 'KEYCODE_HOME')
         await device.notify(text.done(result.sessions))
         await saveAutoSync(userId, { lastRun: Date.now(), ...(plan ? { lastPlan: Date.now() } : {}), lastResult: `${result.sessions} new workouts`, lastError: null })
+        // The app shows when the workouts were last synced.
+        await db.from('profiles').update({ bws_synced_at: new Date().toISOString() }).eq('id', userId)
         return result
       } catch (e) {
         await saveAutoSync(userId, { lastError: e.message })

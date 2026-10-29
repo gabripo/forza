@@ -8,6 +8,7 @@
     <string name="how_to_connect">Open Forza! on this phone → Settings → Connect Health &amp; scale → "Connect the helper".</string>
     <string name="allow_access">Allow access</string>
     <string name="sync_now">Sync now</string>
+    <string name="sync_started">Syncing steps, weight and meals… You can go back to Forza!.</string>
     <string name="syncing">Syncing…</string>
     <string name="last_sync">Last sync: %1$s</string>
     <string name="synced">Sent %1$d days of steps, %2$d weigh-ins and %3$d meals.</string>

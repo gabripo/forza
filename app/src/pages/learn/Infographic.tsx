@@ -1,13 +1,15 @@
 import { Check, ChevronRight, Download, Printer } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type Ref } from 'react'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
 import { Button, PageHeader, Segmented } from '../../components/ui'
 import { translate, useI18n } from '../../lib/i18n'
-import { getReadLessons, markLessonRead } from '../../lib/data'
+import { Quiz } from '../../components/Quiz'
+import { getLessonProgress, markLessonRead } from '../../lib/data'
 import { saveNodeAsImage } from '../../lib/share'
 import type { L10n, Locale } from '../../lib/types'
-import { TOPICS, type Block, type Tone } from './content'
+import { ALL_TOPICS, EXPERT_TOPICS, TOPICS, type Block, type Tone, type Topic } from './content'
+import { QUIZZES } from './more'
 
 // Infographics always use this fixed light palette so they print and export identically.
 export const TONES: Record<Tone, { bg: string; fg: string; accent: string }> = {
@@ -24,16 +26,27 @@ const INK2 = '#57534E'
 export function Infographic() {
   const { id } = useParams()
   const { t, locale } = useI18n()
+  const navigate = useNavigate()
   const [lang, setLang] = useState<Locale>(locale)
   const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [read, setRead] = useState(false)
+  const [quizPassed, setQuizPassed] = useState(false)
   useEffect(() => {
-    if (id) void getReadLessons().then((s) => setRead(s.has(id))).catch(() => {})
+    if (!id) return
+    void getLessonProgress()
+      .then((rows) => {
+        const row = rows.find((r) => r.lesson_id === id)
+        setRead(Boolean(row))
+        setQuizPassed(Boolean(row?.quiz_passed_at))
+      })
+      .catch(() => {})
   }, [id])
-  const topic = TOPICS.find((x) => x.id === id)
+  const topic = ALL_TOPICS.find((x) => x.id === id)
   if (!topic) return <Navigate to="/learn" replace />
-  const next = TOPICS[TOPICS.indexOf(topic) + 1]
+  const track = EXPERT_TOPICS.includes(topic) ? EXPERT_TOPICS : TOPICS
+  const next = track[track.indexOf(topic) + 1]
+  const questions = QUIZZES[topic.id] ?? []
 
   async function toggleRead() {
     const value = !read
@@ -41,7 +54,6 @@ export function Infographic() {
     await markLessonRead(topic!.id, value).catch(() => setRead(!value))
   }
   const L = (x: L10n) => x[lang]
-  const tone = TONES[topic.tone]
 
   async function saveImage() {
     if (!ref.current) return
@@ -67,8 +79,8 @@ export function Infographic() {
             ]}
           />
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={() => window.print()}>
-              <Printer className="size-5" aria-hidden /> {t('learn.print')}
+            <Button variant="secondary" onClick={() => navigate(`/learn/print/${topic.id}?lang=${lang}`)}>
+              <Printer className="size-5" aria-hidden /> {t('learn.printA4')}
             </Button>
             <Button variant="secondary" onClick={saveImage} loading={saving}>
               <Download className="size-5" aria-hidden /> {t('learn.saveImage')}
@@ -77,38 +89,21 @@ export function Infographic() {
         </div>
       </div>
 
-      <article
-        ref={ref}
-        lang={lang}
-        className="print-area overflow-hidden rounded-3xl shadow-sm ring-1 ring-black/5"
-        style={{ background: '#FFFFFF', color: INK, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' }}
-      >
-        <header style={{ background: tone.accent, color: '#fff' }} className="px-5 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-5xl" aria-hidden>
-              {topic.emoji}
-            </span>
-            <div>
-              <h1 className="text-2xl leading-tight font-extrabold">{L(topic.title)}</h1>
-              <p className="mt-1 opacity-90">{L(topic.subtitle)}</p>
-            </div>
-          </div>
-        </header>
-        <div className="grid gap-5 p-5">
-          {topic.blocks.map((b, i) => (
-            <BlockView key={i} block={b} lang={lang} tone={topic.tone} />
-          ))}
-        </div>
-        <footer className="flex items-center gap-2 px-5 pb-5 text-xs" style={{ color: INK2 }}>
-          <Logo size={22} />
-          <span className="font-bold" style={{ color: INK }}>
-            Forza!
-          </span>
-          <span>· {translate(lang, 'learn.disclaimer')}</span>
-        </footer>
-      </article>
+      <LessonArticle ref={ref} topic={topic} lang={lang} />
 
-      <div className="no-print grid gap-2">
+      <div className="no-print grid gap-3">
+        {questions.length ? (
+          <Quiz
+            key={`${topic.id}-${lang}`}
+            lessonId={topic.id}
+            questions={questions}
+            passedBefore={quizPassed}
+            onPassed={() => {
+              setQuizPassed(true)
+              setRead(true)
+            }}
+          />
+        ) : null}
         <Button size="lg" variant={read ? 'secondary' : 'leaf'} onClick={toggleRead}>
           <Check className="size-5" aria-hidden /> {read ? t('learn.markedRead') : t('learn.markRead')}
         </Button>
@@ -132,6 +127,44 @@ export function Infographic() {
         ) : null}
       </div>
     </div>
+  )
+}
+
+/** One lesson as an infographic: on screen, saved as an image, or printed on A4. */
+export function LessonArticle({ topic, lang, ref, className = '' }: { topic: Topic; lang: Locale; ref?: Ref<HTMLDivElement>; className?: string }) {
+  const L = (x: L10n) => x[lang]
+  const tone = TONES[topic.tone]
+  return (
+    <article
+      ref={ref}
+      lang={lang}
+      className={`print-area overflow-hidden rounded-3xl shadow-sm ring-1 ring-black/5 ${className}`}
+      style={{ background: '#FFFFFF', color: INK, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' }}
+    >
+      <header style={{ background: tone.accent, color: '#fff' }} className="px-5 py-6">
+        <div className="flex items-center gap-3">
+          <span className="text-5xl" aria-hidden>
+            {topic.emoji}
+          </span>
+          <div>
+            <h1 className="text-2xl leading-tight font-extrabold">{L(topic.title)}</h1>
+            <p className="mt-1 opacity-90">{L(topic.subtitle)}</p>
+          </div>
+        </div>
+      </header>
+      <div className="grid gap-5 p-5">
+        {topic.blocks.map((b, i) => (
+          <BlockView key={i} block={b} lang={lang} tone={topic.tone} />
+        ))}
+      </div>
+      <footer className="flex items-center gap-2 px-5 pb-5 text-xs" style={{ color: INK2 }}>
+        <Logo size={22} />
+        <span className="font-bold" style={{ color: INK }}>
+          Forza!
+        </span>
+        <span>· {translate(lang, 'learn.disclaimer')}</span>
+      </footer>
+    </article>
   )
 }
 

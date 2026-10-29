@@ -1,6 +1,6 @@
 import { Barcode, Camera, PenLine, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
@@ -23,8 +23,10 @@ export function FoodManual() {
   const { energy } = useEnergy()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [meal, setMeal] = useState<Meal>(mealForNow())
-  const [items, setItems] = useState<(FoodItem & { foodId?: string; processed?: boolean; barcode?: string })[]>([])
+  // Coming from a photo ("adjust by hand"): start from what the AI saw.
+  const from = useLocation().state as { items?: FoodItem[]; meal?: Meal } | null
+  const [meal, setMeal] = useState<Meal>(from?.meal ?? mealForNow())
+  const [items, setItems] = useState<(FoodItem & { foodId?: string; processed?: boolean; barcode?: string })[]>(from?.items ?? [])
   const [scanning, setScanning] = useState(params.get('scan') === '1')
   const [looking, setLooking] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)

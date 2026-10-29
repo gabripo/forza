@@ -9,6 +9,7 @@ import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../
 import { deleteFood } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { Meal } from '../../lib/types'
+import { balancedDays } from '../../lib/rewards'
 import { useEnergy } from '../../lib/useEnergy'
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
@@ -40,6 +41,8 @@ export function FoodHome() {
   const tg = energy.targets
   const goal = profile.goal ?? 'maintain'
   const checkin = calorieCheckin(profile, weights)
+  const balanced = balancedDays(food, tg)
+  const last7 = Array.from({ length: 7 }, (_, i) => localDay(daysAgo(6 - i)))
 
   async function closeCheckin(apply: boolean) {
     if (!profile) return
@@ -153,6 +156,21 @@ export function FoodHome() {
           {sum.kcal < tg.kcal ? t('food.left', { kcal: num(tg.kcal - sum.kcal) }) : t('food.over', { kcal: num(sum.kcal - tg.kcal) })}
         </p>
       </Card>
+
+      {/* Balanced days: the reward for eating by the guidelines (small, reachable, visible). */}
+      <div className="flex items-center gap-3 rounded-3xl border border-line bg-card p-3">
+        <ul className="flex gap-1" aria-label={t('food.balancedWeek')}>
+          {last7.map((d) => (
+            <li key={d} title={date(d, { weekday: 'short', day: 'numeric' })} className={`grid size-7 place-items-center rounded-full text-xs ${balanced.get(d) ? 'bg-leaf text-white dark:text-black' : 'bg-card-2 text-ink-3'}`}>
+              {balanced.get(d) ? '✓' : date(d, { weekday: 'narrow' })}
+            </li>
+          ))}
+        </ul>
+        <p className="flex-1 text-sm">
+          <b>{t('food.balancedCount', { n: last7.filter((d) => balanced.get(d)).length })}</b>
+          <span className="block text-ink-2">{balanced.get(day) ? t('food.balancedToday') : t('food.balancedHow')}</span>
+        </p>
+      </div>
 
       {entries.length === 0 ? (
         <Card>

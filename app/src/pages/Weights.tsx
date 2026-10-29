@@ -50,6 +50,7 @@ export function Weights() {
   return (
     <div className="grid gap-4">
       <PageHeader title={t('weights.title')} back="/" />
+      <p className="rounded-2xl bg-sky-soft p-3 text-sm">⏰ {t('weight.conditions')}</p>
       <div className="grid grid-cols-2 gap-3">
         <Button size="lg" onClick={() => setLogOpen(true)}>
           <Plus className="size-5" aria-hidden /> {t('weight.log')}

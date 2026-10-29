@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import catalogue from '../data/exercises.json'
 import { daysAgo, localDay } from './calc'
 import { supabase } from './supabase'
+import type { LessonRow } from './rewards'
 import type {
   Activity,
   BodyWeight,
@@ -473,6 +474,41 @@ export async function photoUrls(paths: string[]): Promise<Map<string, string>> {
 export async function getReadLessons(): Promise<Set<string>> {
   const rows = check(await supabase.from('lesson_progress').select('lesson_id')) as { lesson_id: string }[]
   return new Set(rows.map((r) => r.lesson_id))
+}
+
+export async function getLessonProgress(): Promise<LessonRow[]> {
+  return check(await supabase.from('lesson_progress').select('lesson_id, read_at, quiz_score, quiz_passed_at')) as LessonRow[]
+}
+
+/** Saves a quiz result (and marks the lesson read). A pass is kept even if a later try goes worse. */
+export async function saveQuiz(lessonId: string, score: number): Promise<void> {
+  const passed = score >= 100
+  const { data } = await supabase.from('lesson_progress').select('quiz_passed_at, quiz_score').eq('lesson_id', lessonId).maybeSingle()
+  check(
+    await supabase.from('lesson_progress').upsert(
+      {
+        lesson_id: lessonId,
+        quiz_score: Math.max(score, data?.quiz_score ?? 0),
+        quiz_passed_at: data?.quiz_passed_at ?? (passed ? new Date().toISOString() : null),
+      },
+      { onConflict: 'user_id,lesson_id' },
+    ),
+  )
+}
+
+export interface BoardRow {
+  user_id: string
+  display_name: string
+  points: number
+  workouts: number
+  lessons: number
+  active_days: number
+  is_me: boolean
+}
+
+/** The family challenge board (only people who joined it; empty if you did not join). */
+export async function familyBoard(days = 7): Promise<BoardRow[]> {
+  return check(await supabase.rpc('family_board', { p_days: days })) as BoardRow[]
 }
 
 export async function markLessonRead(lessonId: string, read = true): Promise<void> {

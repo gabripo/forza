@@ -1,6 +1,7 @@
 // Learning content. Each topic is one printable infographic, in English and Italian.
 // Written for beginners: short sentences, everyday examples, no jargon.
 import type { L10n } from '../../lib/types'
+import { EXPERT_TOPICS, MEAL_TRICKS } from './more'
 
 export type Tone = 'orange' | 'green' | 'blue' | 'yellow' | 'pink' | 'purple'
 
@@ -392,3 +393,10 @@ export const TOPICS: Topic[] = [
     ],
   },
 ]
+
+// The meal tricks lessons come right after "Meal ideas" in the beginners' course.
+TOPICS.splice(TOPICS.findIndex((x) => x.id === 'meals') + 1, 0, ...MEAL_TRICKS)
+
+/** Every lesson, beginners' course first, then the expert track. */
+export const ALL_TOPICS: Topic[] = [...TOPICS, ...EXPERT_TOPICS]
+export { EXPERT_TOPICS }

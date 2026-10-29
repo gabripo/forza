@@ -1,4 +1,4 @@
-import { BookOpen, Camera, Check, ChevronRight, Footprints, Lightbulb, Play, Plus, Scale, Settings as SettingsIcon } from 'lucide-react'
+import { Barcode, BookOpen, Camera, Check, ChevronRight, Footprints, Lightbulb, Play, Plus, RefreshCw, Scale, Settings as SettingsIcon, Trophy } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
@@ -9,11 +9,13 @@ import { WeightChart } from '../components/WeightChart'
 import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
-import { getActivities, getFood, getReadLessons, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { getActivities, getFood, getLessonProgress, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
-import { TOPICS } from './learn/content'
+import { POINTS, weekPoints } from '../lib/rewards'
+import { EXPERT_TOPICS, TOPICS } from './learn/content'
+import { QUIZZES } from './learn/more'
 
 export function Dashboard() {
   const { t, l, num, kg, date } = useI18n()
@@ -21,13 +23,14 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [logOpen, setLogOpen] = useState(false)
   const { data, loading, reload } = useAsync(
-    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getReadLessons()]),
+    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress()]),
     [],
   )
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food, templates, activities, readLessons] = data
+    const [weights, sessions, steps, food, templates, activities, lessons] = data
+    const readLessons = new Set(lessons.map((r) => r.lesson_id))
     const energy = computeEnergy(profile, weights, steps, sessions, food)
     const trend = weightTrend(dailyWeights(weights))
     const today = localDay(new Date())
@@ -54,6 +57,19 @@ export function Dashboard() {
     const stepsToday = steps.find((s) => s.day === today)?.steps ?? null
     const next = nextTemplate(templates, sessions)
     const weighedToday = weights.some((w) => localDay(new Date(w.measured_at)) === today)
+    // Weigh-ins arriving from a scale or a health app: no need to ask for them.
+    const scaleSynced = weights.some((w) => (w.source === 'health_connect' || w.source === 'apple_health') && new Date(w.measured_at) >= daysAgo(30))
+    const rewardInput = {
+      lessons,
+      food,
+      weights,
+      steps,
+      workouts: sessions,
+      targets: energy.targets,
+      stepsGoal: profile.steps_goal,
+      baseIds: TOPICS.map((x) => x.id),
+      expertIds: EXPERT_TOPICS.map((x) => x.id),
+    }
     const activeMinutes = activities.filter((a) => localDay(new Date(a.started_at)) === today).reduce((m, a) => m + activityMinutes(a), 0)
     const nextLesson = TOPICS.find((x) => !readLessons.has(x.id)) ?? null
     const startKg = Number(profile.start_weight_kg ?? trend[0]?.kg ?? 0)
@@ -70,6 +86,8 @@ export function Dashboard() {
       stepsToday,
       next,
       weighedToday,
+      scaleSynced,
+      points: weekPoints(rewardInput),
       todayFoodCount: todayFood.length,
       activeMinutes,
       nextLesson,
@@ -112,16 +130,45 @@ export function Dashboard() {
         </Link>
       </header>
 
+      {/* Log food in one glance: the most frequent action, first and big. */}
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3">
+        <Button size="lg" className="h-auto min-h-20 flex-col py-3 text-lg leading-tight" onClick={() => navigate('/food/snap')}>
+          <Camera className="size-8" aria-hidden /> {t('food.snap')}
+        </Button>
+        <Button size="lg" variant="secondary" className="h-auto min-h-20 flex-col py-3 leading-tight" onClick={() => navigate('/food/add?scan=1')}>
+          <Barcode className="size-7 text-brand" aria-hidden /> {t('food.barcode')}
+        </Button>
+      </div>
+
+      {/* Tip of the day: highlighted, with a one-tap path to the lesson behind it. */}
+      <section className="rounded-3xl bg-linear-to-br from-sun-soft to-brand-soft p-5 shadow-sm ring-1 ring-sun/30">
+        <p className="flex items-center gap-2 text-sm font-extrabold tracking-wide text-sun uppercase">
+          <Lightbulb className="size-5" aria-hidden /> {t('dash.tip')}
+        </p>
+        <p className="mt-2 text-xl leading-snug font-bold">{l(tip.text)}</p>
+        {tipTopic ? (
+          <Link to={`/learn/${tipTopic.id}`} className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-card px-3 py-2 font-semibold text-brand-ink shadow-sm">
+            <span aria-hidden>{tipTopic.emoji}</span> {t('dash.learnWhy')} <ChevronRight className="size-4" aria-hidden />
+          </Link>
+        ) : null}
+      </section>
+
       {/* Daily checklist */}
       <Checklist
         items={[
-          {
-            key: 'workout',
-            done: Boolean(view.trainedToday) || (view.next?.daysAway ?? 0) > 0,
-            label: view.trainedToday ? t('check.list.workoutDone') : (view.next?.daysAway ?? 0) > 0 ? t('check.list.restDay') : t('check.list.workout', { name: view.next?.template.name ?? '' }),
-            to: view.next && !view.trainedToday && (view.next.daysAway ?? 0) === 0 ? `/train?start=${view.next.template.id}` : '/train',
-          },
-          { key: 'weight', done: view.weighedToday, label: view.weighedToday ? t('check.list.weighed') : t('check.list.weigh'), onClick: () => setLogOpen(true) },
+          ...(profile.hide_training
+            ? []
+            : [
+                {
+                  key: 'workout',
+                  done: Boolean(view.trainedToday) || (view.next?.daysAway ?? 0) > 0,
+                  label: view.trainedToday ? t('check.list.workoutDone') : (view.next?.daysAway ?? 0) > 0 ? t('check.list.restDay') : t('check.list.workout', { name: view.next?.template.name ?? '' }),
+                  to: view.next && !view.trainedToday && (view.next.daysAway ?? 0) === 0 ? `/train?start=${view.next.template.id}` : '/train',
+                },
+              ]),
+          view.scaleSynced
+            ? { key: 'weight', done: view.weighedToday, label: view.weighedToday ? t('check.list.weighed') : t('check.list.weighScale'), to: '/weights' }
+            : { key: 'weight', done: view.weighedToday, label: view.weighedToday ? t('check.list.weighed') : t('check.list.weigh'), onClick: () => setLogOpen(true) },
           { key: 'food', done: view.todayFoodCount > 0, label: view.todayFoodCount ? t('check.list.foodDone', { n: view.todayFoodCount }) : t('check.list.food'), to: '/food' },
           {
             key: 'steps',
@@ -133,41 +180,64 @@ export function Dashboard() {
       />
 
       {/* Next workout */}
-      <Card tone="brand">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-ink">
-              {!view.next ? t('dash.nextUp') : view.next.daysAway === 0 ? t('train.today') : view.next.daysAway ? t('train.onDay', { day: date(addDays(view.next.daysAway), { weekday: 'long' }) }) : t('dash.nextUp')}
-            </p>
-            <p className="text-xl leading-tight font-bold">{view.next ? view.next.template.name : t('dash.noPlan')}</p>
-            {view.next ? <p className="text-sm text-ink-2">{t('train.nExercises', { n: view.next.template.exercises.length })}</p> : null}
-            {view.activeMinutes ? (
-              <p className="mt-1 flex items-center gap-1 text-sm text-ink-2">
-                <Footprints className="size-4" aria-hidden /> {t('dash.activeToday', { n: view.activeMinutes })}
+      {profile.hide_training ? null : (
+        <Card tone="brand">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold uppercase tracking-wide text-brand-ink">
+                {!view.next ? t('dash.nextUp') : view.next.daysAway === 0 ? t('train.today') : view.next.daysAway ? t('train.onDay', { day: date(addDays(view.next.daysAway), { weekday: 'long' }) }) : t('dash.nextUp')}
               </p>
-            ) : null}
+              <p className="text-xl leading-tight font-bold">{view.next ? view.next.template.name : t('dash.noPlan')}</p>
+              {view.next ? <p className="text-sm text-ink-2">{t('train.nExercises', { n: view.next.template.exercises.length })}</p> : null}
+              {view.activeMinutes ? (
+                <p className="mt-1 flex items-center gap-1 text-sm text-ink-2">
+                  <Footprints className="size-4" aria-hidden /> {t('dash.activeToday', { n: view.activeMinutes })}
+                </p>
+              ) : null}
+            </div>
+            {view.next ? (
+              <Button size="lg" variant={view.next.daysAway ? 'secondary' : 'primary'} onClick={() => navigate(`/train?start=${view.next!.template.id}`)}>
+                <Play className="size-5" aria-hidden /> {t('train.start')}
+              </Button>
+            ) : (
+              <Button size="lg" onClick={() => navigate('/train/new')}>
+                <Plus className="size-5" aria-hidden /> {t('train.create')}
+              </Button>
+            )}
           </div>
-          {view.next ? (
-            <Button size="lg" variant={view.next.daysAway ? 'secondary' : 'primary'} onClick={() => navigate(`/train?start=${view.next!.template.id}`)}>
-              <Play className="size-5" aria-hidden /> {t('train.start')}
-            </Button>
-          ) : (
-            <Button size="lg" onClick={() => navigate('/train/new')}>
-              <Plus className="size-5" aria-hidden /> {t('train.create')}
-            </Button>
-          )}
-        </div>
-      </Card>
+        </Card>
+      )}
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="secondary" size="lg" className="h-auto flex-col py-3 leading-tight" onClick={() => setLogOpen(true)}>
+      {/* Weighing by hand only when no scale sends the weight. */}
+      {view.scaleSynced ? null : (
+        <Button variant="secondary" size="lg" onClick={() => setLogOpen(true)}>
           <Scale className="size-6 text-brand" aria-hidden /> {t('weight.log')}
         </Button>
-        <Button variant="secondary" size="lg" className="h-auto flex-col py-3 leading-tight" onClick={() => navigate('/food/snap')}>
-          <Camera className="size-6 text-brand" aria-hidden /> {t('food.snap')}
-        </Button>
-      </div>
+      )}
+
+      {/* Next lesson: a question to make it curious, and what it is worth. */}
+      {view.nextLesson ? (
+        <Link to={`/learn/${view.nextLesson.id}`} className="grid gap-2 rounded-3xl border-2 border-sky bg-card p-4">
+          <span className="flex items-center gap-3">
+            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sky-soft text-3xl" aria-hidden>
+              {view.nextLesson.emoji}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-sky">
+                <BookOpen className="size-4" aria-hidden /> {t('learn.nextLesson')} · {view.lessonsRead + 1}/{TOPICS.length}
+              </span>
+              <span className="block leading-tight font-bold">{l(view.nextLesson.title)}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
+          </span>
+          {QUIZZES[view.nextLesson.id] ? (
+            <span className="rounded-2xl bg-sky-soft px-3 py-2 text-sm">
+              🤔 <b>{t('dash.doYouKnow')}</b> {l(QUIZZES[view.nextLesson.id][0].q)}
+            </span>
+          ) : null}
+          <span className="text-sm text-ink-2">{t('dash.lessonReward', { pts: POINTS.lesson + POINTS.quiz })}</span>
+        </Link>
+      ) : null}
 
       {/* Weight */}
       <Card
@@ -189,39 +259,15 @@ export function Dashboard() {
           </p>
         ) : null}
         <WeightChart weights={view.weights} target={profile.target_weight_kg} />
-        <p className="mt-2 text-sm text-ink-3">{t('weight.trendExplain')}</p>
-      </Card>
-
-      {/* Strength */}
-      <Card title={t('dash.strength')}>
-        <StrengthChart sets={view.allSets} />
-      </Card>
-
-      {/* Week */}
-      <Card title={t('dash.thisWeek')}>
-        <p className="mb-2 text-lg">
-          <b>{t('dash.workoutsOf', { n: view.thisWeek, goal })}</b>
+        <p className="mt-2 text-sm text-ink-3">
+          {view.scaleSynced ? (
+            <>
+              <RefreshCw className="mr-1 inline size-3.5" aria-hidden />
+              {t('dash.weightSynced')}{' '}
+            </>
+          ) : null}
+          {t('weight.trendExplain')}
         </p>
-        <BarChart bars={view.weeks} goal={{ v: goal, label: t('dash.goal') }} />
-        <div className="mt-4 flex items-center gap-3">
-          <Footprints className="size-6 text-ink-2" aria-hidden />
-          <div className="flex-1">
-            <div className="mb-1 flex justify-between text-sm">
-              <span className="font-semibold">{t('dash.stepsToday')}</span>
-              <span className="tabular text-ink-2">
-                {view.stepsToday !== null ? num(view.stepsToday) : '—'} / {num(profile.steps_goal)}
-              </span>
-            </div>
-            <Progress value={view.stepsToday ?? 0} max={profile.steps_goal} color="var(--leaf)" />
-            {view.energy.avgSteps !== null ? (
-              <p className="mt-1 text-sm text-ink-3">{t('dash.stepsAvg', { n: num(view.energy.avgSteps) })}</p>
-            ) : (
-              <Link to="/settings/health" className="mt-1 block text-sm font-semibold text-brand-ink">
-                {t('dash.connectSteps')}
-              </Link>
-            )}
-          </div>
-        </div>
       </Card>
 
       {/* Food today */}
@@ -247,34 +293,52 @@ export function Dashboard() {
         </div>
       </Card>
 
-      {/* Next lesson */}
-      {view.nextLesson ? (
-        <Link to={`/learn/${view.nextLesson.id}`} className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4">
-          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sky-soft text-3xl" aria-hidden>
-            {view.nextLesson.emoji}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-sky">
-              <BookOpen className="size-4" aria-hidden /> {t('learn.nextLesson')} · {view.lessonsRead + 1}/{TOPICS.length}
-            </span>
-            <span className="block leading-tight font-bold">{l(view.nextLesson.title)}</span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
-        </Link>
-      ) : null}
+      {/* Points and the family challenge */}
+      <Link to="/challenge" className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sun-soft text-sun">
+          <Trophy className="size-6" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold">{t('dash.points', { n: view.points })}</span>
+          <span className="block text-sm text-ink-2">{profile.challenge_opt_in ? t('dash.seeBoard') : t('dash.joinChallenge')}</span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
+      </Link>
 
-      {/* Tip */}
-      <Card tone="sun">
-        <div className="flex gap-3">
-          <Lightbulb className="mt-0.5 size-6 shrink-0 text-sun" aria-hidden />
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-sun">{t('dash.tip')}</p>
-            <p className="text-lg">{l(tip.text)}</p>
-            {tipTopic ? (
-              <Link to={`/learn/${tipTopic.id}`} className="mt-1 inline-flex items-center font-semibold text-brand-ink">
-                {t('dash.learnMore')}: {l(tipTopic.title)} <ChevronRight className="size-4" />
+      {/* Strength */}
+      {profile.hide_training ? null : (
+        <Card title={t('dash.strength')}>
+          <StrengthChart sets={view.allSets} />
+        </Card>
+      )}
+
+      {/* Week */}
+      <Card title={t('dash.thisWeek')}>
+        {profile.hide_training ? null : (
+          <>
+            <p className="mb-2 text-lg">
+              <b>{t('dash.workoutsOf', { n: view.thisWeek, goal })}</b>
+            </p>
+            <BarChart bars={view.weeks} goal={{ v: goal, label: t('dash.goal') }} />
+          </>
+        )}
+        <div className={cx('flex items-center gap-3', !profile.hide_training && 'mt-4')}>
+          <Footprints className="size-6 text-ink-2" aria-hidden />
+          <div className="flex-1">
+            <div className="mb-1 flex justify-between text-sm">
+              <span className="font-semibold">{t('dash.stepsToday')}</span>
+              <span className="tabular text-ink-2">
+                {view.stepsToday !== null ? num(view.stepsToday) : '—'} / {num(profile.steps_goal)}
+              </span>
+            </div>
+            <Progress value={view.stepsToday ?? 0} max={profile.steps_goal} color="var(--leaf)" />
+            {view.energy.avgSteps !== null ? (
+              <p className="mt-1 text-sm text-ink-3">{t('dash.stepsAvg', { n: num(view.energy.avgSteps) })}</p>
+            ) : (
+              <Link to="/settings/health" className="mt-1 block text-sm font-semibold text-brand-ink">
+                {t('dash.connectSteps')}
               </Link>
-            ) : null}
+            )}
           </div>
         </div>
       </Card>

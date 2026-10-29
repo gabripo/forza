@@ -4,6 +4,7 @@ import { Loading } from './components/ui'
 import { AppProvider, useApp } from './lib/auth'
 import { I18nProvider } from './lib/i18n'
 import { isConfigured } from './lib/supabase'
+import { Challenge } from './pages/Challenge'
 import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
 import { FoodHome } from './pages/food/FoodHome'
@@ -13,6 +14,7 @@ import { HealthSync } from './pages/HealthSync'
 import { Install } from './pages/Install'
 import { Infographic } from './pages/learn/Infographic'
 import { LearnHome } from './pages/learn/LearnHome'
+import { PrintLessons } from './pages/learn/PrintLessons'
 import { Login } from './pages/Login'
 import { Onboarding } from './pages/Onboarding'
 import { Photos } from './pages/Photos'
@@ -31,6 +33,14 @@ function Gate() {
   const location = useLocation()
   // A setup code from Forza! Coach: handled before anything else, even when signed out.
   if (location.pathname === '/welcome') return <Welcome />
+  // Lessons are general information: they print without signing in (e.g. by a coach on a computer).
+  if (location.pathname.startsWith('/learn/print/')) {
+    return (
+      <Routes>
+        <Route path="learn/print/:ids" element={<PrintLessons />} />
+      </Routes>
+    )
+  }
   if (!isConfigured) return <Login />
   if (loading) return <Loading />
   if (!session) return <Login />
@@ -52,6 +62,7 @@ function Gate() {
         <Route path="food/add" element={<FoodManual />} />
         <Route path="learn" element={<LearnHome />} />
         <Route path="learn/:id" element={<Infographic />} />
+        <Route path="challenge" element={<Challenge />} />
         <Route path="weights" element={<Weights />} />
         <Route path="settings" element={<Settings />} />
         <Route path="settings/health" element={<HealthSync />} />
