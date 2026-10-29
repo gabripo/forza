@@ -12,6 +12,7 @@ import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.Display
@@ -52,6 +53,10 @@ class BwsService : AccessibilityService() {
     }
 
     private var shot: Bitmap? = null
+
+    /** Until when a gesture of ours may still be touching the screen: such taps never stop the sync. */
+    @Volatile
+    private var gestureUntil = 0L
     private var banner: FrameLayout? = null
     private var bannerText: TextView? = null
 
@@ -126,6 +131,7 @@ class BwsService : AccessibilityService() {
     private fun gesture(path: Path, ms: Long): Boolean {
         val done = CountDownLatch(1)
         var ok = false
+        gestureUntil = SystemClock.uptimeMillis() + ms + 3000
         val stroke = GestureDescription.StrokeDescription(path, 0, ms)
         val started = dispatchGesture(
             GestureDescription.Builder().addStroke(stroke).build(),
@@ -140,6 +146,7 @@ class BwsService : AccessibilityService() {
             null,
         )
         if (started) done.await(ms + 3000, TimeUnit.MILLISECONDS)
+        gestureUntil = SystemClock.uptimeMillis() + 500
         return ok
     }
 
@@ -228,7 +235,7 @@ class BwsService : AccessibilityService() {
         }
         val frame = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(194, 65, 12))
-            setOnClickListener { onTap() }
+            setOnClickListener { if (SystemClock.uptimeMillis() > gestureUntil) onTap() }
             // The page that runs the extractor lives here, out of sight, so the system keeps it running.
             extra?.let { addView(it, FrameLayout.LayoutParams(1, 1)) }
             addView(label, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
@@ -240,7 +247,13 @@ class BwsService : AccessibilityService() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT,
-        ).apply { gravity = Gravity.TOP }
+        ).apply {
+            gravity = Gravity.TOP
+            // Over the status bar itself, not below it (Android 11+ keeps windows clear of it by default),
+            // so the bar never covers the app being read.
+            if (Build.VERSION.SDK_INT >= 30) fitInsetsTypes = 0
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         getSystemService(WindowManager::class.java).addView(frame, params)
         banner = frame
         bannerText = label
