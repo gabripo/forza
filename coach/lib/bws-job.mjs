@@ -59,21 +59,29 @@ export async function runBwsImport({ db, userId, since = 'new', serial = null, p
       if (!from || d > from) from = d
     }
   }
+  const fresh = []
   await x.history({
     months: monthsSince(from),
+    until: from ? new Date(from.getFullYear(), from.getMonth(), from.getDate()) : null,
     known,
     onSession: async (s) => {
       raw.sessions.push(s)
+      fresh.push(s)
       await saveRaw()
     },
   })
 
-  const file = convert(raw, JSON.parse(await readFile(CATALOGUE, 'utf8')))
+  const catalogue = JSON.parse(await readFile(CATALOGUE, 'utf8'))
+  const file = convert(raw, catalogue)
   await writeFile(historyFile(userId), JSON.stringify(file, null, 1), { mode: 0o600 })
   log(`Read ${file.sessions.length} workouts and ${file.templates.length} plan workouts`)
   if (saveOnly) return { file: historyFile(userId), sessions: file.sessions.length }
-  log('Importing into Forza!')
-  const result = await importHistory(db, userId, file, { byCoach: true, onProgress: log })
+  // "New only" sends just the workouts read now; the plan only when it was read now.
+  const freshIds = new Set(convert({ sessions: fresh }, catalogue).sessions.map((s) => s.id))
+  const upload = since === 'new' ? { ...file, sessions: file.sessions.filter((s) => freshIds.has(s.id)), templates: plan ? file.templates : [] } : file
+  if (!profile) delete upload.profile
+  log(`Importing into Forza! (${upload.sessions.length} workouts${upload.templates.length ? ', the plan' : ''})`)
+  const result = await importHistory(db, userId, upload, { byCoach: true, onProgress: log })
   log(`Done: ${result.sessions} workouts, ${result.sets} sets, ${result.templates} plan workouts`)
   return result
 }

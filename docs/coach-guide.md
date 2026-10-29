@@ -97,12 +97,14 @@ They stay signed in: no password to remember.
 
 ## 4. Steps, weight and smart scales
 
-Forza! can read their daily **steps** and **weight** from the phone, so they never have to type them.
+Forza! can read their daily **steps**, **weight** and **meals** from the phone, so they never have to type them.
 On their phone, in Forza!: **Settings → Connect Health & scale**, then:
 
 - **Android**: tap **Create sync key**, then **Download** the small *Forza! Health* app and install it
   (allow installing from Chrome when asked). Back in Forza!, tap **Connect the helper** and allow
-  *Steps*, *Weight* and *Exercise*. It syncs a few times a day on its own.
+  *Steps*, *Weight*, *Exercise* and *Nutrition*. It syncs every hour on its own: weigh-ins from the scale,
+  steps, walks, and the meals logged in food apps such as Build With Science. Nothing to press, no computer
+  needed.
 - **iPhone**: follow the link to the **Forza Sync** shortcut ([guide](apple-shortcut.md)) and set it to
   run every day.
 - **Eufy (or any smart scale)**: in the EufyLife app, turn on **Health Connect** (Android) or **Apple Health**
@@ -112,7 +114,8 @@ On their phone, in Forza!: **Settings → Connect Health & scale**, then:
 
 If they used the **Build With Science** app on an **Android** phone, Coach can bring over their history:
 every workout with every set and effort, the weekly plan (days and supersets), their goal and step target.
-Their weigh-ins come by themselves through Health Connect (step 4).
+Their weigh-ins and the meals logged in Build With Science come by themselves through Health Connect
+(step 4): Build With Science writes every food diary entry there.
 
 1. On their phone, turn on **USB debugging** (once):
    Settings → About phone → tap **Build number** seven times; then Settings → System →
@@ -126,13 +129,25 @@ Their weigh-ins come by themselves through Health Connect (step 4).
    the next run continues where it stopped.
 5. Later, **Only workouts not imported yet** brings over just the new ones.
 
+**Automatic sync of the workouts.** In the same tab, under **Automatic sync**, click **Turn on**: from then on,
+whenever that phone is connected to this computer and has been left unlocked and untouched for 3 minutes,
+Coach imports the new workouts by itself (every 1–24 hours, as you choose), shows a notice on the phone while
+it works and goes back to the home screen. Touching the phone stops it; it tries again later.
+
+- The phone can stay in another room: use **Wi-Fi debugging** instead of the cable (Developer options →
+  **Wireless debugging**, pair it once with this computer; both must be on the same Wi-Fi).
+- Coach must be running. In **Setup → Run in the background**, tick **Start Forza! Coach when I log in**:
+  it then runs without a window.
+- With "keep the plan in sync", Build With Science is the source of the plan: changes made there replace the
+  plan in Forza! once a day. Untick it if you prefer editing the plan in Coach.
+
 <p><img src="screenshots/coach-import.jpg" width="560" alt="Build With Science import in Forza! Coach"></p>
 
 Coach can also save the result as a file (**Download the file**), which they can import themselves in
 Forza!: **Settings → Connect Health & scale → Import a history file**.
 
-*Not imported:* the food diary (Build With Science's nutrition screen cannot be read automatically),
-height and age (Build With Science does not show them), and progress photos.
+*Not imported:* height and age (Build With Science does not show them) and progress photos. The food
+diary arrives through Health Connect instead (step 4).
 
 ## 6. Coaching
 

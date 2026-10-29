@@ -10,6 +10,8 @@
 // Tested on a Pixel 7 with Build With Science 3.23. The layout is scaled to other screens, but a
 // new app version may move things: the extractor then stops with a clear message.
 
+import { sessionDate } from './bws-convert.mjs'
+
 const PACKAGE = 'com.bws.appv2'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const HEADER_RE = /^(?<name>.+?), (?<date>[A-Z][a-z]{2} \d{1,2})(?:, (?<prs>\d+))?, .$/u
@@ -407,8 +409,9 @@ export class BwsExtractor {
   /**
    * Every session in the given months (newest first), skipping keys already in `known`
    * ("name|Oct 26"). Calls onSession for each new one, so a long run can be resumed.
+   * `until` (a Date): stop at the first screen of known sessions older than it.
    */
-  async history({ months, known = new Set(), onSession = () => {} }) {
+  async history({ months, known = new Set(), onSession = () => {}, until = null }) {
     await this.openHistory()
     const d = this.d
     for (const month of months) {
@@ -423,6 +426,11 @@ export class BwsExtractor {
         await this.guard()
         const hs = this.headers(await this.nodes({ clip: true }))
         const pending = hs.filter((h) => !known.has(`${h.name.trim()}|${h.date}`) && h.date.startsWith(month))
+        // Newest first: once everything on screen is known and older than the last import, stop.
+        if (until && !pending.length && hs.some((h) => sessionDate(h.date) < until)) {
+          this.log('  reached the workouts imported before: done')
+          return
+        }
         if (!pending.length) {
           const before = JSON.stringify(hs.map((h) => [h.name, h.date, h.y]))
           await this.scroll(d.top(1200))

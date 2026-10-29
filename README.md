@@ -35,8 +35,9 @@ and adjust their plan from your own computer.
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Calorie target"> | **A calorie target that explains itself.** Five steps with their own numbers: energy at rest, walking and training (from the phone's steps), a reality check with the scale, the goal, and how calories split into protein, fat and carbs. |
 | <img src="docs/screenshots/lesson.jpg" width="200" alt="Lessons"> | **Learn the basics.** Twelve short infographics (why strength matters with age, protein, balanced plates, sleep, …) to read, print or share, in English or Italian. |
 
-Steps and weight arrive by themselves from **Health Connect** (Android) or **Apple Health** (iPhone), so smart
-scales like **Eufy** just work. Coming from **Build With Science**? The whole workout history comes along.
+Steps and weight arrive by themselves from **Health Connect** (Android, every hour) or **Apple Health** (iPhone),
+so smart scales like **Eufy** just work. Coming from **Build With Science**? The whole workout history comes
+along, and it **stays in sync**: meals through Health Connect, new workouts through Forza! Coach.
 
 ## For you, the family coach
 
@@ -44,7 +45,7 @@ scales like **Eufy** just work. Coming from **Build With Science**? The whole wo
 |---|---|
 | <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** runs on your computer (Mac, Windows or Linux). It sets everything up for you, creates the accounts, and shows each person's weight, strength, workouts, meals and check-ins. Edit their workout plan from home: it appears on their phone at the next opening. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Sign in with a QR code"> | **No passwords for them.** Make a QR code, they point the phone camera at it, and Forza! opens already signed in. Print it on a welcome card with simple instructions. |
-| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Import from Build With Science"> | **Bring their history.** Connect their Android phone with a cable and Coach imports every workout, set and effort, the weekly plan and the goal from Build With Science. |
+| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Import from Build With Science"> | **Bring their history, and keep it in sync.** Connect their Android phone (cable or Wi-Fi) and Coach imports every workout, set and effort, the weekly plan and the goal from Build With Science. Turn on automatic sync and new workouts follow by themselves. |
 
 ## Get started
 

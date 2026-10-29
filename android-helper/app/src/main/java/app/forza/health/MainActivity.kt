@@ -21,6 +21,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.lifecycle.lifecycleScope
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(BodyFatRecord::class),
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getReadPermission(NutritionRecord::class),
         HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND,
         HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY,
     )
@@ -61,6 +63,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
         setContentView(buildUi())
+        // Keeps the schedule current after an update (e.g. every 6 hours → every hour).
+        if (prefs.isConnected) SyncWorker.schedule(this)
         handleSetupLink(intent)
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("forza-sync-now").observe(this) { infos ->
             if (infos.any { it.state.isFinished || it.state == WorkInfo.State.RUNNING }) refresh()
@@ -122,6 +126,7 @@ class MainActivity : ComponentActivity() {
             }
             val hasData = HealthPermission.getReadPermission(StepsRecord::class) in granted ||
                 HealthPermission.getReadPermission(WeightRecord::class) in granted
+            val missing = permissions - granted
             status.text = when {
                 !connected -> getString(R.string.not_connected)
                 !hasData -> getString(R.string.needs_access)
@@ -133,6 +138,8 @@ class MainActivity : ComponentActivity() {
                 if (last > 0) getString(R.string.last_sync, DateUtils.getRelativeTimeSpanString(last)) else null,
                 prefs.lastMessage,
                 if (!connected) getString(R.string.how_to_connect) else null,
+                // Added in 1.1: phones set up earlier have not granted meals yet.
+                if (connected && hasData && HealthPermission.getReadPermission(NutritionRecord::class) in missing) getString(R.string.meals_access) else null,
             ).joinToString("\n")
             allow.isEnabled = connected
             sync.isEnabled = connected && hasData

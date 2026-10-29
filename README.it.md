@@ -36,9 +36,10 @@ L'app è anche in italiano: la lingua si cambia in qualsiasi momento.*
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Obiettivo di calorie"> | **Un obiettivo di calorie che si spiega da solo.** Cinque passaggi con i propri numeri: energia a riposo, camminata e allenamento (dai passi del telefono), la verifica con la bilancia, l'obiettivo e come si dividono le calorie tra proteine, grassi e carboidrati. |
 | <img src="docs/screenshots/lesson.jpg" width="200" alt="Lezioni"> | **Impara le basi.** Dodici brevi infografiche (perché la forza conta con l'età, le proteine, il piatto equilibrato, il sonno, …) da leggere, stampare o condividere. |
 
-Passi e peso arrivano da soli da **Connessione Salute** (Android) o **Apple Salute** (iPhone), quindi le
-bilance smart come **Eufy** funzionano subito. Arrivi da **Build With Science**? Lo storico degli
-allenamenti viene con te.
+Passi e peso arrivano da soli da **Connessione Salute** (Android, ogni ora) o **Apple Salute** (iPhone), quindi
+le bilance smart come **Eufy** funzionano subito. Arrivi da **Build With Science**? Lo storico degli
+allenamenti viene con te e **resta sincronizzato**: i pasti tramite Connessione Salute, i nuovi allenamenti
+tramite Forza! Coach.
 
 ## Per te, il coach di famiglia
 
@@ -46,7 +47,7 @@ allenamenti viene con te.
 |---|---|
 | <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** funziona sul tuo computer (Mac, Windows o Linux). Configura tutto per te, crea gli account e mostra di ognuno peso, forza, allenamenti, pasti e check-in. Modifichi la scheda da casa: compare sul telefono alla prossima apertura. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Accesso con codice QR"> | **Nessuna password da ricordare.** Crei un codice QR, la persona lo inquadra con la fotocamera e Forza! si apre già con l'accesso fatto. Puoi stamparlo su un biglietto di benvenuto con le istruzioni. |
-| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Importazione da Build With Science"> | **Porta con te lo storico.** Collega il telefono Android con un cavo e Coach importa da Build With Science ogni allenamento con serie e sforzo, la scheda settimanale e l'obiettivo. |
+| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Importazione da Build With Science"> | **Porta con te lo storico e tienilo aggiornato.** Collega il telefono Android (cavo o Wi-Fi) e Coach importa da Build With Science ogni allenamento con serie e sforzo, la scheda settimanale e l'obiettivo. Con la sincronizzazione automatica i nuovi allenamenti arrivano da soli. |
 
 ## Come iniziare
 

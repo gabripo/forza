@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Forza! Health</string>
-    <string name="intro">Sends your daily steps, weight and walks from Health Connect to Forza!, a few times a day. Nothing else is read.</string>
+    <string name="intro">Sends your daily steps, weight, walks and meals from Health Connect to Forza!, every hour. Nothing else is read.</string>
     <string name="not_connected">Not connected yet</string>
     <string name="needs_access">Connected. Allow access to steps and weight.</string>
     <string name="all_good">✓ Connected and syncing</string>
@@ -10,7 +10,8 @@
     <string name="sync_now">Sync now</string>
     <string name="syncing">Syncing…</string>
     <string name="last_sync">Last sync: %1$s</string>
-    <string name="synced">Sent %1$d days of steps and %2$d weigh-ins.</string>
+    <string name="synced">Sent %1$d days of steps, %2$d weigh-ins and %3$d meals.</string>
+    <string name="meals_access">New: tap "Allow access" and turn on Nutrition to bring over the meals you log in Build With Science or other food apps.</string>
     <string name="bad_key">The sync key is no longer valid. Connect the helper again from Forza!.</string>
     <string name="server_error">Server error (%1$d). Will retry later.</string>
     <string name="offline">No connection. Will retry later.</string>
@@ -19,5 +20,5 @@
     <string name="confirm_text">Your steps and weight will be sent to %1$s. Only connect if you opened this link from your own Forza! app.</string>
     <string name="connect">Connect</string>
     <string name="eufy_hint">Eufy scale: in the EufyLife app, turn on Health Connect (or Google Fit) for weight. Forza! then gets every weigh-in automatically.</string>
-    <string name="privacy">Forza! Health reads only: daily step count, body weight, body fat percentage and exercise sessions (such as walks) from Health Connect.\n\nThe data is sent over an encrypted connection to the Forza! server set up by your family administrator, where it is visible only to you and to that administrator. It is used only to show your progress in the Forza! app. Nothing is sold or shared.\n\nYou can remove access at any time in Health Connect settings, or uninstall this app.</string>
+    <string name="privacy">Forza! Health reads only: daily step count, body weight, body fat percentage, exercise sessions (such as walks) and meals (name, meal and nutrients, as logged in food apps) from Health Connect.\n\nThe data is sent over an encrypted connection to the Forza! server set up by your family administrator, where it is visible only to you and to that administrator. It is used only to show your progress in the Forza! app. Nothing is sold or shared.\n\nYou can remove access at any time in Health Connect settings, or uninstall this app.</string>
 </resources>

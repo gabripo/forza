@@ -5,6 +5,8 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.MealType
+import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
@@ -29,13 +31,16 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.Period
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 /**
- * Reads daily steps (last 14 days) and weigh-ins from Health Connect and sends them to Forza!.
- * Weights come from any app that writes to Health Connect, including the EufyLife scale app.
+ * Reads daily steps (last 14 days), weigh-ins, exercise sessions and meals from Health Connect and
+ * sends them to Forza!. Weights come from any app that writes to Health Connect (the EufyLife scale
+ * through Google Fit, for example); meals from food diaries such as Build With Science.
  */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -101,7 +106,49 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             }
         }
 
+        // Meals: one entry per day and meal (breakfast, lunch…) and per app, so Forza! shows the same
+        // diary as the app that wrote it. The server replaces the whole window each time, so edits and
+        // deletions in that app are mirrored.
+        val meals = JSONArray()
+        var mealsSince: Instant? = null
+        if (HealthPermission.getReadPermission(NutritionRecord::class) in granted) {
+            val zone = ZoneId.systemDefault()
+            val days = if (prefs.mealsSynced) 14L else 90L
+            val since = LocalDate.now(zone).minusDays(days).atStartOfDay(zone).toInstant()
+            mealsSince = since
+            val groups = linkedMapOf<String, JSONObject>()
+            var page: String? = null
+            do {
+                val response = client.readRecords(
+                    ReadRecordsRequest(NutritionRecord::class, TimeRangeFilter.after(since), pageSize = 1000, pageToken = page),
+                )
+                for (r in response.records) {
+                    val day = r.startTime.atZone(r.startZoneOffset ?: zone.rules.getOffset(r.startTime)).toLocalDate()
+                    val meal = mealOf(r.mealType)
+                    val origin = r.metadata.dataOrigin.packageName
+                    val group = groups.getOrPut("$day|$meal|$origin") {
+                        // Food apps often store a whole day at noon: place each meal at its usual time instead.
+                        val at = day.atTime(MEAL_TIME.getValue(meal)).atZone(zone).toInstant()
+                        JSONObject().put("day", day.toString()).put("meal", meal).put("origin", origin).put("at", at.toString()).put("items", JSONArray())
+                    }
+                    group.getJSONArray("items").put(
+                        JSONObject()
+                            .put("name", r.name ?: "")
+                            .put("kcal", r.energy?.inKilocalories ?: 0.0)
+                            .put("protein_g", r.protein?.inGrams ?: 0.0)
+                            .put("carbs_g", r.totalCarbohydrate?.inGrams ?: 0.0)
+                            .put("fat_g", r.totalFat?.inGrams ?: 0.0)
+                            .put("fiber_g", r.dietaryFiber?.inGrams ?: 0.0)
+                            .put("sugar_g", r.sugar?.inGrams ?: 0.0),
+                    )
+                }
+                page = response.pageToken
+            } while (page != null)
+            groups.values.forEach { meals.put(it) }
+        }
+
         val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights).put("activities", activities)
+        if (mealsSince != null) body.put("meals", meals).put("meals_since", mealsSince.toString())
         return withContext(Dispatchers.IO) {
             try {
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -118,7 +165,8 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 when (code) {
                     200 -> {
                         prefs.lastSync = System.currentTimeMillis()
-                        prefs.lastMessage = applicationContext.getString(R.string.synced, steps.length(), weights.length())
+                        if (mealsSince != null) prefs.mealsSynced = true
+                        prefs.lastMessage = applicationContext.getString(R.string.synced, steps.length(), weights.length(), meals.length())
                         Result.success()
                     }
                     401 -> {
@@ -137,6 +185,13 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         }
     }
 
+    private fun mealOf(type: Int): String = when (type) {
+        MealType.MEAL_TYPE_BREAKFAST -> "breakfast"
+        MealType.MEAL_TYPE_LUNCH -> "lunch"
+        MealType.MEAL_TYPE_DINNER -> "dinner"
+        else -> "snack"
+    }
+
     private fun kindOf(type: Int): String = when (type) {
         ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "walking"
         ExerciseSessionRecord.EXERCISE_TYPE_RUNNING, ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL -> "running"
@@ -148,12 +203,18 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
     companion object {
         private const val PERIODIC = "forza-sync"
+        private val MEAL_TIME = mapOf(
+            "breakfast" to LocalTime.of(8, 0),
+            "lunch" to LocalTime.of(13, 0),
+            "snack" to LocalTime.of(16, 30),
+            "dinner" to LocalTime.of(20, 0),
+        )
         private const val NOW = "forza-sync-now"
         private val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
-        /** A few times a day, whenever the phone is online. */
+        /** Every hour, whenever the phone is online (Android may group runs to save battery). */
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS).setConstraints(online).build()
+            val request = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS).setConstraints(online).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
 

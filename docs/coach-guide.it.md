@@ -98,13 +98,14 @@ reset). L'accesso resta attivo: nessuna password da ricordare.
 
 ## 4. Passi, peso e bilance smart
 
-Forza! può leggere **passi** e **peso** dal telefono, così non bisogna mai scriverli.
+Forza! può leggere **passi**, **peso** e **pasti** dal telefono, così non bisogna mai scriverli.
 Sul suo telefono, in Forza!: **Impostazioni → Collega Salute e bilancia**, poi:
 
 - **Android**: tocca **Crea chiave**, poi **Scarica** la piccola app *Forza! Health* e
   installala (consenti l'installazione da Chrome quando richiesto). Tornati in Forza!, tocca
-  **Collega l’app di supporto** e consenti *Passi*, *Peso* e *Allenamento*. Si sincronizza da sola qualche
-  volta al giorno.
+  **Collega l’app di supporto** e consenti *Passi*, *Peso*, *Allenamento* e *Alimentazione*. Si sincronizza da
+  sola ogni ora: le pesate della bilancia, i passi, le camminate e i pasti registrati in app come Build With
+  Science. Niente da premere, nessun computer necessario.
 - **iPhone**: segui il link al comando rapido **Forza Sync** ([guida](apple-shortcut.md)) e impostalo
   perché parta ogni giorno.
 - **Eufy (o qualsiasi bilancia smart)**: nell'app EufyLife attiva **Connessione Salute** (Android) o
@@ -114,7 +115,8 @@ Sul suo telefono, in Forza!: **Impostazioni → Collega Salute e bilancia**, poi
 
 Se usava l'app **Build With Science** su un telefono **Android**, Coach può portare lo storico in Forza!:
 ogni allenamento con tutte le serie e lo sforzo, la scheda settimanale (giorni e superset), l'obiettivo e
-i passi giornalieri. Le pesate arrivano da sole tramite Connessione Salute (punto 4).
+i passi giornalieri. Le pesate e i pasti registrati in Build With Science arrivano da soli tramite Connessione
+Salute (punto 4): Build With Science vi scrive ogni voce del diario alimentare.
 
 1. Sul suo telefono attiva il **debug USB** (una volta):
    Impostazioni → Info telefono → tocca **Numero build** sette volte; poi Impostazioni → Sistema →
@@ -128,13 +130,26 @@ i passi giornalieri. Le pesate arrivano da sole tramite Connessione Salute (punt
    quando vuoi: la volta dopo riprende da dove si era fermato.
 5. In seguito, **Only workouts not imported yet** importa solo quelli nuovi.
 
+**Sincronizzazione automatica degli allenamenti.** Nella stessa scheda, sotto **Automatic sync**, clicca
+**Turn on**: da quel momento, ogni volta che quel telefono è collegato a questo computer ed è rimasto sbloccato e
+inutilizzato per 3 minuti, Coach importa da solo i nuovi allenamenti (ogni 1–24 ore, come preferisci), mostra un
+avviso sul telefono mentre lavora e poi torna alla schermata Home. Se si tocca il telefono si ferma e riprova
+più tardi.
+
+- Il telefono può restare in un'altra stanza: usa il **debug wireless** invece del cavo (Opzioni sviluppatore →
+  **Debug wireless**, abbinalo una volta a questo computer; devono essere sulla stessa rete Wi-Fi).
+- Coach deve essere in funzione. In **Setup → Run in the background** spunta **Start Forza! Coach when I log
+  in**: così funziona senza finestra.
+- Con "keep the plan in sync" la scheda viene da Build With Science: le modifiche fatte lì sostituiscono la
+  scheda in Forza! una volta al giorno. Togli la spunta se preferisci modificare la scheda in Coach.
+
 <p><img src="screenshots/coach-import.jpg" width="560" alt="Importazione da Build With Science in Forza! Coach"></p>
 
 Coach può anche salvare il risultato come file (**Download the file**), che la persona può importare da
 sola in Forza!: **Impostazioni → Collega Salute e bilancia → Importa un file di storico**.
 
-*Non viene importato:* il diario alimentare (la schermata nutrizione di Build With Science non si può
-leggere automaticamente), altezza ed età (Build With Science non le mostra) e le foto dei progressi.
+*Non viene importato:* altezza ed età (Build With Science non le mostra) e le foto dei progressi. Il diario
+alimentare arriva invece tramite Connessione Salute (punto 4).
 
 ## 6. Fare da coach
 

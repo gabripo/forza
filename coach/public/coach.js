@@ -13,6 +13,8 @@ const state = {
   status: null,
   setup: { projects: null, organizations: [], choice: null, job: null },
   bws: { devices: null, job: null },
+  auto: null,
+  autostart: null,
   signin: null,
   view: 'people',
   users: [],
@@ -466,6 +468,10 @@ function serverView() {
       <form class="row" data-form="ai-test"><input name="photo" type="file" accept="image/*" required><select name="mode"><option value="plate">Plate</option><option value="label">Nutrition label</option></select><button class="btn">Test</button></form>
       <div id="ai-result"></div>
     </div>
+    <div class="card"><h2>Run in the background</h2>
+      <label class="row"><input type="checkbox" data-action="autostart" ${state.autostart ? 'checked' : ''}> Start Forza! Coach when I log in to this computer</label>
+      <p class="muted small">Needed for automatic Build With Science syncs. Coach then runs without a window; open it as usual (the start file) to see it.</p>
+    </div>
     <div class="card"><h2>App address</h2>
       <form class="row" data-form="app-url"><input name="appUrl" value="${esc(st.appUrl)}" style="min-width:320px"><button class="btn secondary">Save</button></form>
       <p class="muted small">Used in sign-in QR codes. Keep the shared address unless you publish your own copy of the app.</p>
@@ -557,9 +563,37 @@ function importView() {
       ${b.job ? jobLog(b.job) : ''}
       ${b.job?.status === 'done' ? '<p class="small"><button class="btn secondary small" data-action="bws-file">Download the file</button> <span class="muted">(to keep, or to import in the app: Settings → Connect Health & scale)</span></p>' : ''}
     </div>
+    ${autoSyncCard(ready)}
     <div class="card"><h2>Import a history file</h2>
       <p class="muted">A <code>forza-history-v1</code> JSON file (workouts with every set, a plan, weigh-ins, meals), for example converted from another app. Importing the same file again does not create duplicates.</p>
       <form class="row" data-form="import"><input name="file" type="file" accept="application/json,.json" required><button class="btn">Import</button></form></div>`
+}
+
+function autoSyncCard(ready) {
+  const a = state.auto?.settings
+  const on = Boolean(a?.enabled)
+  const when = (t) => fmtDate(t, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return `<div class="card"><h2>Automatic sync</h2>
+    <p>Forza! Coach can import new workouts by itself whenever ${on ? `<b>${esc(a.model || 'this phone')}</b>` : 'this phone'} is connected to this computer, with a cable or with <b>Wi-Fi debugging</b> (Developer options → Wireless debugging; then <code>adb pair</code> once). It waits until the phone has been unlocked and untouched for 3 minutes, shows a notice on it, imports, then goes back to the home screen. Touching the phone stops it; it tries again later.</p>
+    <p class="muted small">Meals and weigh-ins need no computer: the Forza! Health app on the phone sends them every hour through Health Connect.</p>
+    ${on
+      ? `<p><span class="pill good">On</span> every ${esc(a.everyHours)} h · plan ${a.plan === false ? 'not synced' : 'kept in sync'}<br>
+         <span class="small muted">Last import: ${a.lastRun ? `${when(a.lastRun)} (${esc(a.lastResult ?? '')})` : 'not yet'}${a.lastError ? ` · last problem: ${esc(a.lastError)}` : ''}</span></p>
+         ${state.auto?.background ? '' : '<p class="note small">Forza! Coach must be running for this. To keep it running without opening it, turn on <b>Setup → Run in the background</b>.</p>'}
+         <button class="btn secondary" data-action="auto-off">Turn off</button>`
+      : ready.length
+        ? `<form class="row" data-form="auto-on">
+            ${ready.length > 1 ? `<select name="serial">${ready.map((x) => `<option value="${esc(x.serial)}">${esc(x.model || x.serial)}</option>`).join('')}</select>` : `<input type="hidden" name="serial" value="${esc(ready[0].serial)}">`}
+            <label class="small">every <select name="everyHours">${[1, 3, 6, 12, 24].map((h) => `<option value="${h}" ${h === 3 ? 'selected' : ''}>${h} h</option>`).join('')}</select></label>
+            <label class="row small"><input type="checkbox" name="plan" value="1" checked> keep the plan in sync (Build With Science is the source of the plan)</label>
+            <button class="btn">Turn on</button></form>`
+        : '<p class="muted small">Check the phone above first.</p>'}
+    ${state.auto?.job ? `<details style="margin-top:8px"><summary class="small">Last automatic run</summary>${jobLog(state.auto.job)}</details>` : ''}
+  </div>`
+}
+
+async function loadAuto() {
+  if (state.selected) state.auto = await api(`/api/users/${state.selected}/auto-sync`)
 }
 
 async function pollJob(id, holder) {
@@ -601,6 +635,7 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
   const view = e.target.closest('button')?.dataset.view
   if (!view) return
   state.view = view
+  if (view === 'setup') state.autostart = (await api('/api/setup/autostart').catch(() => ({ enabled: false }))).enabled
   render()
 })
 
@@ -666,6 +701,18 @@ app.addEventListener('click', async (e) => {
     }
     if (action === 'bws-devices') {
       state.bws.devices = await api('/api/bws/devices')
+      await loadAuto()
+      return render()
+    }
+    if (action === 'auto-off') {
+      state.auto = await api(`/api/users/${state.selected}/auto-sync`, { method: 'POST', body: { enabled: false } })
+      toast('Automatic sync turned off')
+      return render()
+    }
+    if (action === 'autostart') {
+      const { enabled } = await api('/api/setup/autostart', { method: 'POST', body: { enabled: btn.checked } })
+      state.autostart = enabled
+      toast(enabled ? 'Forza! Coach will start when you log in' : 'Forza! Coach will not start by itself')
       return render()
     }
     if (action === 'bws-adb') {
@@ -686,6 +733,10 @@ app.addEventListener('click', async (e) => {
       state.tab = btn.dataset.tab
       render()
       if (state.tab === 'food') loadPhotos()
+      if (state.tab === 'import') {
+        await loadAuto()
+        render()
+      }
       return
     }
     if (action === 'ex-add') state.plan[ti].exercises.push({ exercise_id: state.catalogue?.builtIn[0]?.id ?? 'goblet_squat', sets: 3, rep_min: 8, rep_max: 12, rest_s: 90 })
@@ -809,6 +860,11 @@ app.addEventListener('submit', async (e) => {
       state.data.profile = await api(`/api/users/${state.selected}/profile`, { method: 'PUT', body })
       await loadUsers()
       toast('Profile saved')
+      return render()
+    }
+    if (form.dataset.form === 'auto-on') {
+      state.auto = await api(`/api/users/${state.selected}/auto-sync`, { method: 'POST', body: { enabled: true, serial: data.serial, everyHours: data.everyHours, plan: Boolean(data.plan) } })
+      toast('Automatic sync is on')
       return render()
     }
     if (form.dataset.form === 'bws') {

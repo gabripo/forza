@@ -180,6 +180,7 @@ function ImportCard() {
       <ul className="mb-3 grid list-disc gap-1 pl-5 text-ink-2">
         <li>{t('import.what')}</li>
         <li>{t('import.weights')}</li>
+        <li>{t('import.auto')}</li>
         <li>{t('import.how')}</li>
       </ul>
       <a

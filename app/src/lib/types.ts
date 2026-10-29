@@ -120,8 +120,10 @@ export interface FoodLog {
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null
-  source: 'ai' | 'manual' | 'barcode' | 'import'
+  source: 'ai' | 'manual' | 'barcode' | 'import' | 'health_connect'
   ai_notes: string | null
+  /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science). */
+  origin?: string | null
 }
 
 export interface Checkin {

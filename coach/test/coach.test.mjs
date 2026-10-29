@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { platform, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { parseNodes } from '../lib/adb.mjs'
+import { parseNodes, parsePower } from '../lib/adb.mjs'
 import { convert, effortToRir, parseValue, sessionDate, uuid5 } from '../lib/bws-convert.mjs'
 import { cleanName, monthsSince } from '../lib/bws-extract.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
@@ -86,6 +86,12 @@ test('uiautomator dump parsing', () => {
     { x: 540, y: 550, top: 500, bottom: 600, label: 'Workout A, Oct 26, .', click: true },
     { x: 60, y: 35, top: 10, bottom: 60, label: 'Settings & more', click: false },
   ])
+})
+
+test('phone idle time from dumpsys power', () => {
+  const text = `  mWakefulness=Awake\n  mLastWakeTime=184567155 (180841 ms ago)\n mLastUserActivityTime(excludingAttention)=184570850\n`
+  assert.deepEqual(parsePower(text), { awake: true, idleMs: 177146 })
+  assert.deepEqual(parsePower('  mWakefulness=Asleep\n'), { awake: false, idleMs: 0 })
 })
 
 test('server region from the time zone', () => {

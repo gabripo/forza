@@ -5,7 +5,7 @@ import { MacroBar, Ring } from '../../components/charts'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
-import { calorieCheckin, daysAgo, localDay, scoreBand } from '../../lib/calc'
+import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../lib/calc'
 import { deleteFood } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { Meal } from '../../lib/types'
@@ -165,7 +165,13 @@ export function FoodHome() {
               {entries
                 .filter((e) => e.meal === m)
                 .map((e) => {
-                  const score = goal === 'muscle_gain' ? e.score_muscle_gain : e.score_fat_loss
+                  // Synced meals arrive without a score: work it out here, against today's target.
+                  const scores =
+                    e.score_fat_loss === null
+                      ? scorePlate({ kcal: Number(e.kcal), protein_g: Number(e.protein_g), carbs_g: Number(e.carbs_g), fat_g: Number(e.fat_g), fiber_g: Number(e.fiber_g), sugar_g: Number(e.sugar_g) }, e.meal, tg.kcal, false, new Date(e.eaten_at))
+                      : { fatLoss: e.score_fat_loss, muscleGain: e.score_muscle_gain ?? e.score_fat_loss }
+                  const score = goal === 'muscle_gain' ? scores.muscleGain : scores.fatLoss
+                  const synced = e.source === 'health_connect'
                   const band = score !== null ? scoreBand(score) : null
                   return (
                     <li key={e.id} className="flex items-center gap-3">
@@ -174,15 +180,19 @@ export function FoodHome() {
                         <p className="text-sm text-ink-2">
                           {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g
                         </p>
+                        {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
                       </div>
                       {band ? (
                         <span className={`rounded-full px-2 py-0.5 text-sm font-bold ${band === 'rethink' ? 'bg-danger-soft text-danger' : band === 'okay' ? 'bg-sun-soft text-sun' : 'bg-leaf-soft text-leaf'}`}>
                           {score}
                         </span>
                       ) : null}
-                      <button onClick={() => remove(e.id)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
-                        <Trash2 className="size-5" />
-                      </button>
+                      {/* Synced meals are changed in the app that logged them: a delete here would come back. */}
+                      {synced ? null : (
+                        <button onClick={() => remove(e.id)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
+                          <Trash2 className="size-5" />
+                        </button>
+                      )}
                     </li>
                   )
                 })}

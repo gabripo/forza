@@ -175,15 +175,27 @@ fibre, insulin sensitivity, eating around training, meal ideas, moving more, sle
 
 ### Steps, weight and scales
 
-- **Android**: the *Forza! Health* helper reads steps, weight (with body fat), and walks/exercise from
-  Health Connect a few times a day (WorkManager) and posts them with the personal sync key.
+- **Android**: the *Forza! Health* helper reads steps, weight (with body fat), walks/exercise and **meals**
+  from Health Connect every hour (WorkManager, which survives reboots and app updates) and posts them with the
+  personal sync key. Meals are grouped per day, meal and source app, each group gets a stable id, and the
+  server replaces the whole window it receives: an entry edited or deleted in the food app is edited or
+  deleted in Forza! too. Synced meals show their source and are changed only in the app that logged them.
 - **iPhone**: an Apple Shortcut reads Apple Health and posts the same data; it can run daily as an automation.
 - **Smart scales** (Eufy and others) write to Health Connect / Apple Health, so they need no integration
   of their own; past weigh-ins can also be imported from a CSV export.
 
 ### Importing from Build With Science
 
-Build With Science has no export, so Forza! Coach reads it the way a person would: through Android's
+Build With Science keeps its data in its own cloud and has no export. Three paths cover it:
+
+| Data | How it reaches Forza! | Automatic? |
+|---|---|---|
+| Weigh-ins | Build With Science (and the scale) store them in Health Connect → *Forza! Health* helper | yes, hourly |
+| Food diary | Build With Science writes every entry to Health Connect (Nutrition) → helper | yes, hourly |
+| Workouts, plan, goal | Forza! Coach reads the app over ADB (below) | yes, when the phone is connected and idle |
+
+Workouts are not in Health Connect (Build With Science does not write exercise sessions), so Forza! Coach reads
+them the way a person would: through Android's
 accessibility tree (`uiautomator dump`) over ADB, plus screenshots for the coloured effort dots
 (green = easy, yellow = moderate, orange-red = hard). Design choices:
 
@@ -197,8 +209,15 @@ accessibility tree (`uiautomator dump`) over ADB, plus screenshots for the colou
 - **Faithful plan**: weekdays and supersets come from the plan preview; the number of sets is capped by
   what was really done recently (Build With Science counts optional extra sets).
 - **Device-independent**: positions are written for one phone and scaled by screen density.
-- **Not imported**: the food diary (that screen never becomes idle, so Android cannot describe it),
-  height and age (not shown by the app) and progress photos. Weigh-ins come through Health Connect.
+- **Automatic sync**: Coach checks every minute for phones with automatic sync on, connected by cable or
+  Wi-Fi debugging. It starts only when the phone is awake, unlocked and untouched for 3 minutes (Android's
+  power manager reports the last touch), posts a notification on the phone first, imports only the new
+  workouts (the plan at most once a day), then returns to the home screen. Each phone is recognised by its
+  own serial number, the same over USB and Wi-Fi. "Start when I log in" keeps Coach running in the
+  background (a LaunchAgent on macOS, the Startup folder on Windows, XDG autostart on Linux); a second start
+  opens the running Coach instead of starting another.
+- **Not imported**: height and age (not shown by the app) and progress photos. The food diary screen cannot
+  be read (it never becomes idle), which is why meals come through Health Connect instead.
 
 The result is a `forza-history-v1` file ([format](import-format.md)), imported by code shared between
 Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
@@ -217,7 +236,8 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
   plan between people; every save keeps the previous version, restorable in one click.
 - **Exercises**: video links and coach notes for any exercise; shared custom exercises.
 - **Food AI test**: send a photo with the project's secret key to check the key, the model and the speed.
-- **Imports**: Build With Science (USB) and history files.
+- **Imports**: Build With Science (cable or Wi-Fi, once or automatically) and history files.
+- **Background mode**: optional start at login, so automatic syncs need no one at the computer.
 - **Runs everywhere**: double-click launchers for macOS (`.command`), Windows (`.bat`) and Linux (`.sh`)
   install the dependencies on first run; a CLI (`node cli.mjs`) does the same for servers and power users.
   If Android tools are missing, Coach downloads Google's official platform-tools.
@@ -249,8 +269,10 @@ questions and at any time in Settings (it applies immediately). Numbers and date
 
 ## Known limits
 
-- Build With Science import: Android only (iPhone apps cannot be read from a computer), and tied to the
-  app's current layout; a new version of Build With Science may need small changes to the extractor.
+- Build With Science workouts: Android only (iPhone apps cannot be read from a computer), tied to the app's
+  current layout (a new version of Build With Science may need small changes to the extractor), and the
+  automatic sync needs the phone and the coach's computer to meet (cable, or the same Wi-Fi). Meals and
+  weigh-ins have no such limit.
 - The food photo AI gives estimates, not measurements: portions should be checked.
 - Health data on iPhone needs the Shortcut to run (iOS does not let web apps or background helpers read
   Apple Health on their own).

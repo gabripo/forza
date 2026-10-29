@@ -165,6 +165,26 @@ export class Device {
     }
   }
 
+  /** The phone's own serial number: the same over USB and over Wi-Fi debugging. */
+  async hardwareSerial() {
+    return (await this.shell('getprop', 'ro.serialno')).trim()
+  }
+
+  /**
+   * Whether the phone can be used now without disturbing anyone: screen on, unlocked, and how long
+   * since someone last touched it (Android's power manager keeps that time).
+   */
+  async readiness() {
+    const { locked, focus } = await this.foreground()
+    return { ...parsePower(await this.shell('dumpsys', 'power')), locked, focus }
+  }
+
+  /** Shows (or replaces) a notification on the phone, so whoever holds it knows what is happening. */
+  async notify(text) {
+    const quote = (v) => `'${String(v).replaceAll("'", "'\\''")}'`
+    await this.run(['shell', 'cmd', 'notification', 'post', '-S', 'bigtext', '-t', quote('Forza!'), 'forza-sync', quote(text)]).catch(() => {})
+  }
+
   /** Name of the app in front, and whether the phone is locked. */
   async foreground() {
     const w = await this.shell('dumpsys', 'window')
@@ -188,4 +208,12 @@ export function parseNodes(xml) {
     nodes.push({ x: Math.round((x1 + x2) / 2), y: Math.round((y1 + y2) / 2), top: y1, bottom: y2, label, click: attr('clickable') === 'true' })
   }
   return nodes
+}
+
+/** Screen on? Milliseconds since the last touch? (from `dumpsys power`; times are in uptime ms) */
+export function parsePower(text) {
+  const wake = text.match(/mLastWakeTime=(\d+) \((\d+) ms ago\)/)
+  const touch = text.match(/mLastUserActivityTime(?:\(excludingAttention\))?=(\d+)/)
+  const now = wake ? Number(wake[1]) + Number(wake[2]) : null
+  return { awake: /mWakefulness=Awake/.test(text), idleMs: now !== null && touch ? Math.max(0, now - Number(touch[1])) : 0 }
 }

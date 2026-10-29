@@ -74,7 +74,14 @@ the same folder, readable only by your user, and the dashboard says so. `FORZA_C
 folder.
 
 Coach listens only on `127.0.0.1` (port 4545, or the next free one), refuses other host names, and
-requires a random token generated at each launch (it is in the address that opens the browser).
+requires a random token generated at each launch (it is in the address that opens the browser). The running
+instance writes its port and token to `running.json` in the folder above (readable only by you), so a second
+start opens it instead of starting another.
+
+**Run in the background** (Coach → Setup), needed for automatic Build With Science syncs, adds a login item:
+`~/Library/LaunchAgents/app.forza.coach.plist` (macOS, log in `coach.log`), `Forza Coach.vbs` in the Startup
+folder (Windows), `~/.config/autostart/forza-coach.desktop` (Linux). Unticking removes it.
+`node server.mjs --background` is the same thing by hand.
 
 ## Alternative: the Supabase CLI
 

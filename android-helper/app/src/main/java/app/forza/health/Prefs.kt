@@ -22,6 +22,11 @@ class Prefs(context: Context) {
         get() = prefs.getString("last_message", null)
         set(value) = prefs.edit().putString("last_message", value).apply()
 
+    /** True after the first meal sync (which reads 90 days; later ones read 14). */
+    var mealsSynced: Boolean
+        get() = prefs.getBoolean("meals_synced", false)
+        set(value) = prefs.edit().putBoolean("meals_synced", value).apply()
+
     val isConnected: Boolean
         get() = !url.isNullOrBlank() && !key.isNullOrBlank()
 }

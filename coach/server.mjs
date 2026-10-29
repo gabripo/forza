@@ -7,9 +7,10 @@
 //
 //   npm start          -> your Forza! server (set it up the first time from the browser)
 //   npm run local      -> the local `supabase start` stack (development)
+//   --background       -> no browser (started at login for automatic syncs)
 import { spawn } from 'node:child_process'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { platform } from 'node:os'
 import { dirname, extname, join } from 'node:path'
@@ -17,15 +18,20 @@ import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
+import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
+import { autostartEnabled, setAutostart } from './lib/autostart.mjs'
 import { Stop } from './lib/bws-extract.mjs'
 import { DEFAULT_APP_URL, loadConnection } from './lib/connection.mjs'
 import { historyFile, runBwsImport } from './lib/bws-job.mjs'
 import { install, Management, regionForTimeZone } from './lib/project.mjs'
-import { getConfig, getSecret, setConfig, setSecret, store } from './lib/secrets.mjs'
+import { configDir, getConfig, getSecret, setConfig, setSecret, store } from './lib/secrets.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT ?? 4545)
 const LOCAL = process.argv.includes('--local')
+const BACKGROUND = process.argv.includes('--background')
+// The local development stack keeps its own settings, so tests never touch the real ones.
+if (LOCAL) process.env.FORZA_COACH_HOME ??= join(configDir(), 'local')
 const TOKEN = randomBytes(24).toString('hex')
 
 // ---------------------------------------------------------------------------
@@ -57,9 +63,9 @@ async function management() {
 
 const jobs = new Map()
 
-function startJob(kind, run) {
+function startJob(kind, run, meta = {}) {
   const id = randomBytes(6).toString('hex')
-  const job = { id, kind, status: 'running', log: [], result: null, error: null, controller: new AbortController() }
+  const job = { id, kind, ...meta, started_at: new Date().toISOString(), status: 'running', log: [], result: null, error: null, controller: new AbortController() }
   const log = (line) => {
     job.log.push(`${new Date().toLocaleTimeString('en-GB')}  ${line}`)
     console.log(`[${kind}] ${line}`)
@@ -227,9 +233,33 @@ async function bwsDevices() {
   return { adb, devices: await Device.list(adb) }
 }
 
+const importing = () => [...jobs.values()].some((j) => j.kind.startsWith('bws') && j.status === 'running')
+
 function bwsImport(userId, options) {
   const db = need()
-  return startJob('bws', (log, signal) => runBwsImport({ ...options, db, userId, log, signal }))
+  if (importing()) throw Object.assign(new Error('An import is already running'), { status: 409 })
+  return startJob('bws', (log, signal) => runBwsImport({ ...options, db, userId, log, signal }), { userId })
+}
+
+/** Automatic sync for one person: the phone (by its own serial number), how often, and the last runs. */
+async function autoSyncView(userId) {
+  const settings = (await autoSyncSettings())[userId] ?? null
+  const job = [...jobs.values()].filter((j) => j.kind === 'bws-auto' && j.userId === userId).at(-1)
+  return { settings, job: job ? jobView(job) : null, background: autostartEnabled() }
+}
+
+async function setAutoSync(userId, body) {
+  if (!body.enabled) {
+    await saveAutoSync(userId, { enabled: false })
+    return autoSyncView(userId)
+  }
+  const adb = await findAdb()
+  if (!adb) throw Object.assign(new Error('adb is not installed'), { status: 409 })
+  const phone = (await Device.list(adb)).find((d) => d.serial === body.serial && d.state === 'device')
+  if (!phone) throw Object.assign(new Error('Connect the phone first'), { status: 409 })
+  const serial = await new Device(adb, phone.serial).hardwareSerial()
+  await saveAutoSync(userId, { enabled: true, serial, model: phone.model, everyHours: Number(body.everyHours) || 3, plan: body.plan !== false, lastError: null })
+  return autoSyncView(userId)
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +407,10 @@ const routes = [
   ],
   ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(need(), m[1], body, { byCoach: true })],
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
+  ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],
+  ['POST', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m, body) => setAutoSync(m[1], body)],
+  ['GET', /^\/api\/setup\/autostart$/, () => ({ enabled: autostartEnabled() })],
+  ['POST', /^\/api\/setup\/autostart$/, async (_m, body) => ({ enabled: await setAutostart(Boolean(body.enabled)) })],
   ['POST', /^\/api\/bws\/download-adb$/, () => startJob('adb', (log) => downloadAdb(log).then((adb) => ({ adb })))],
   ['POST', /^\/api\/users\/([\w-]+)\/bws$/, (m, body) => bwsImport(m[1], body)],
   [
@@ -522,15 +556,50 @@ function openBrowser(link) {
   }
 }
 
+// One Coach per computer: a second start (e.g. a double-click while it runs at login) opens the
+// running one instead. Its address and token are in a file only this user can read.
+const RUNNING = join(configDir(), 'running.json')
+try {
+  const other = JSON.parse(await readFile(RUNNING, 'utf8'))
+  process.kill(other.pid, 0)
+  const res = await fetch(`http://127.0.0.1:${other.port}/api/status`, { headers: { authorization: `Bearer ${other.token}` } })
+  if (res.ok) {
+    const link = `http://127.0.0.1:${other.port}/#token=${other.token}`
+    console.log(`\nForza! Coach is already running → ${link}\n`)
+    if (!BACKGROUND && !process.argv.includes('--no-open')) openBrowser(link)
+    process.exit(0)
+  }
+} catch {
+  // not running
+}
+
 await connect()
 let port = PORT
-// Another copy already running (or another program on the port): use the next free one.
+// Another program on the port: use the next free one.
 server.on('error', (e) => {
   if (e.code !== 'EADDRINUSE' || port >= PORT + 10) throw e
   server.listen(++port, '127.0.0.1')
 })
-server.listen(port, '127.0.0.1', () => {
+server.listen(port, '127.0.0.1', async () => {
   const link = `http://127.0.0.1:${port}/#token=${TOKEN}`
   console.log(`\nForza! Coach (${LOCAL ? 'local stack' : (ctx?.url ?? 'not set up yet')})\n→ ${link}\n\nOnly this computer can reach it. Keep this window open; close it (or press Ctrl+C) to stop.\n`)
-  if (!process.argv.includes('--no-open')) openBrowser(link)
+  if (!LOCAL) {
+    await mkdir(configDir(), { recursive: true, mode: 0o700 }).catch(() => {})
+    await writeFile(RUNNING, JSON.stringify({ pid: process.pid, port, token: TOKEN }), { mode: 0o600 }).catch(() => {})
+  }
+  if (!BACKGROUND && !process.argv.includes('--no-open')) openBrowser(link)
 })
+
+const stop = () => {
+  if (!LOCAL) rm(RUNNING, { force: true }).finally(() => process.exit(0))
+  else process.exit(0)
+}
+process.on('SIGINT', stop)
+process.on('SIGTERM', stop)
+
+// Automatic Build With Science sync: a quick check every minute (nothing happens unless a person
+// has it turned on and their phone is connected, unlocked and idle).
+const tick = () =>
+  autoSyncTick({ db: ctx?.db, busy: importing, startJob, runImport: runBwsImport }).catch((e) => console.error('[auto-sync]', e.message))
+setTimeout(tick, 20_000)
+setInterval(tick, 60_000)

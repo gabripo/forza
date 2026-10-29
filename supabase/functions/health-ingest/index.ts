@@ -11,7 +11,28 @@
 //   weights_text one "yyyy-MM-dd[THH:mm]<sep>value" per line
 //   activities   [{ start: ISO, end: ISO, kind: "walking", title?: "Morning walk" }]
 //   activities_text one "start ISO<sep>end ISO<sep>kind" per line (from the Shortcut)
+//   meals        [{ day, meal, origin, at, items: [{ name, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g }] }]
+//   meals_since  ISO start of the window the meals cover: synced meals in it that are no longer sent
+//                were deleted in the food app, and are deleted here too
 import { adminClient, corsHeaders, json, sha256Hex } from '../_shared/util.ts'
+
+const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
+const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g'] as const
+const APP_NAMES: Record<string, string> = { 'com.bws.appv2': 'Build With Science', 'com.myfitnesspal.android': 'MyFitnessPal', 'com.fatsecret.android': 'FatSecret' }
+
+/** A stable UUID from a text: the same meal always gets the same row. */
+async function stableId(text: string): Promise<string> {
+  const h = (await sha256Hex(text)).slice(0, 32).split('')
+  h[12] = '5'
+  h[16] = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16)
+  const s = h.join('')
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`
+}
+
+const nutrient = (v: unknown, max: number) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n * 10) / 10)) : 0
+}
 
 const MAX_ROWS = 400
 const SOURCES = new Set(['apple_health', 'health_connect'])
@@ -151,6 +172,55 @@ Deno.serve(async (req) => {
     if (error) return json({ error: 'activities_failed', detail: error.message }, 500)
   }
 
+  let meals = 0
+  const since = new Date(String(body.meals_since ?? ''))
+  if (Array.isArray(body.meals) && !Number.isNaN(since.getTime())) {
+    const rows = []
+    for (const m of (body.meals as Record<string, unknown>[]).slice(0, 2000)) {
+      const at = new Date(String(m?.at))
+      const meal = MEALS.includes(String(m?.meal)) ? String(m.meal) : 'snack'
+      const origin = String(m?.origin ?? '').slice(0, 120)
+      const items = (Array.isArray(m?.items) ? (m.items as Record<string, unknown>[]) : []).slice(0, 80).map((i) => ({
+        name: String(i?.name ?? '').trim().slice(0, 120) || 'Food',
+        grams: 0,
+        kcal: nutrient(i?.kcal, 5000),
+        protein_g: nutrient(i?.protein_g, 500),
+        carbs_g: nutrient(i?.carbs_g, 500),
+        fat_g: nutrient(i?.fat_g, 500),
+        fiber_g: nutrient(i?.fiber_g, 500),
+        sugar_g: nutrient(i?.sugar_g, 500),
+      }))
+      if (Number.isNaN(at.getTime()) || !items.length) continue
+      const total = (k: (typeof NUTRIENTS)[number]) => Math.round(items.reduce((a, i) => a + i[k], 0) * 10) / 10
+      rows.push({
+        id: await stableId(`hc-meal:${userId}:${String(m.day)}:${meal}:${origin}`),
+        user_id: userId,
+        eaten_at: at.toISOString(),
+        meal,
+        title: items.map((i) => i.name).join(', ').slice(0, 200),
+        items,
+        kcal: total('kcal'),
+        protein_g: total('protein_g'),
+        carbs_g: total('carbs_g'),
+        fat_g: total('fat_g'),
+        fiber_g: total('fiber_g'),
+        sugar_g: total('sugar_g'),
+        source: 'health_connect',
+        origin: APP_NAMES[origin] ?? origin,
+      })
+    }
+    if (rows.length) {
+      const { error } = await admin.from('food_logs').upsert(rows, { onConflict: 'id' })
+      if (error) return json({ error: 'meals_failed', detail: error.message }, 500)
+    }
+    // Mirror deletions made in the food app, only inside the window the phone just read.
+    const { data: existing } = await admin.from('food_logs').select('id').eq('user_id', userId).eq('source', 'health_connect').gte('eaten_at', since.toISOString())
+    const keep = new Set(rows.map((r) => r.id))
+    const gone = (existing ?? []).map((r) => r.id).filter((id) => !keep.has(id))
+    if (gone.length) await admin.from('food_logs').delete().in('id', gone)
+    meals = rows.length
+  }
+
   await admin.from('sync_tokens').update({ last_used_at: new Date().toISOString() }).eq('user_id', userId)
-  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: activities.length })
+  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: activities.length, meals })
 })
