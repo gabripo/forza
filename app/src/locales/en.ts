@@ -33,7 +33,7 @@ export const en = {
     text: 'This code signs you in to Forza! on this phone. You will stay signed in: no password to remember.',
     textServer: 'This code connects this phone to your family\'s Forza!. Then sign in with your email and password.',
     server: 'Your data is kept on your family\'s server:',
-    switch: 'You are signed in as {email}: you will be switched to the new account.',
+    switch: 'You are signed in as {email}: this code replaces that sign-in.',
     go: 'Start',
     connect: 'Connect',
     expired: 'This code has expired or was already used. Ask your family for a new one.',

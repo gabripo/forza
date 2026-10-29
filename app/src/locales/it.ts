@@ -35,7 +35,7 @@ export const it: Dict = {
     text: 'Questo codice ti fa entrare in Forza! su questo telefono. L\'accesso resta attivo: nessuna password da ricordare.',
     textServer: 'Questo codice collega questo telefono al Forza! della tua famiglia. Poi entra con email e password.',
     server: 'I tuoi dati sono conservati sul server della tua famiglia:',
-    switch: 'Hai già un accesso come {email}: passerai al nuovo account.',
+    switch: 'Hai già un accesso come {email}: questo codice lo sostituisce.',
     go: 'Inizia',
     connect: 'Collega',
     expired: 'Questo codice è scaduto o è già stato usato. Chiedi un codice nuovo alla tua famiglia.',
