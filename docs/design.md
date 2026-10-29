@@ -102,7 +102,7 @@ On macOS, Coach uses Apple's `security` tool rather than a Node keyring library:
 
 Built so that the most frequent action takes one glance and one tap:
 
-1. **Photo** and **barcode** buttons at the very top: logging a meal never needs a menu.
+1. **Photo**, **dictate** and **barcode** buttons at the very top: logging a meal never needs a menu.
 2. **The tip of the day**, highlighted in a coloured card with a link to the lesson that explains it.
 3. A **daily checklist** (workout or rest day, weigh-in, meals, steps: "3 of 4 done"). A checklist is
    easier to act on than a page of statistics.
@@ -117,6 +117,13 @@ up, after the toilet, before drinking or eating.
 Home sits in the middle of the bottom bar, raised, so it is always under the thumb. People who never log
 workouts can hide **Train** (Settings → Training section, or from Coach): the tab becomes Settings, and
 workout items leave the Home page.
+
+**Arrange the page.** Each part of Home (log food, tip, checklist, next workout, lesson, weight, food today,
+points, strength, week) can be moved up or down: in the app (Settings → Arrange the Home page, big arrow
+buttons rather than dragging, saved at each move) or by the coach in Coach (Profile → Home page order). The
+order is one list of ids in the profile (`home_order`); ids are defined once in
+[`shared/home-sections.mjs`](../shared/home-sections.mjs), and parts added in later versions slot into
+their default place.
 
 ### Training
 
@@ -182,6 +189,17 @@ Ways to log a meal:
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
 against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out.
 
+**Dictate.** Tap **Dictate** and say the meal. The words come from the phone's own speech recognition (the
+Web Speech API in Chrome on Android and Safari on iPhone; where a browser lacks it, such as Firefox, the
+microphone key of the keyboard does the same), so no speech model runs anywhere. The sentence is then read
+**on the phone**: it is split at "and", "with" and commas, each part is matched to the built-in food table
+(with everyday names: "pollo", "spaghetti", "caffè"; singular and plural; longest name first) and its
+amount understood (grams, kilos, spoons, slices, glasses, pots, "two", "half"; a bare small number counts
+pieces, a large one grams). Only the words it does not recognise ("lasagne") go to the food AI, as text; if
+the AI is not set up, the rest still counts and the person is told what was left out. The words can be
+corrected before going on; grams appear as inputs only after **Adjust quantities**, to keep the screen
+simple. "Not right? Ask the AI" sends the whole sentence instead.
+
 **Advice before numbers.** After a photo, the first thing shown is at most three things to do ("Add some
 protein!", "Add vegetables", "A smaller portion"), or a compliment if the plate is good; calories and protein
 follow in one line, and the item list with grams is behind a **Details** toggle. Tapping a piece of advice
@@ -189,8 +207,27 @@ explains it and offers two ways forward: **retake the photo** (after changing th
 hand** (the manual form opens pre-filled with the items). Beginners act on a sentence; a number like
 "38% of calories from fat" means nothing to them.
 
+**The next meal.** Once a meal is logged, Forza! suggests the next one. It looks at what the day has so far
+against the targets: the nutrient lagging furthest behind the calories (half the calories eaten but a fifth
+of the fat → fat), or "something light" when fewer than 300 kcal are left. It picks a real dish built around
+that nutrient (salmon and vegetables, a tuna and bean salad, lentils, chicken salad, yogurt with oats…),
+made of foods from the built-in table and scaled to the calories left for that meal, so "Log this meal"
+opens it pre-filled. Snacks are suggested only to people who log snacks; "Another idea" shows the next best
+dish.
+
 The food page shows the last seven days as dots: a day is **balanced** when it has at least two meals,
 calories within ±15% of the target and at least 80% of the protein target.
+
+### Sources
+
+The Training section explains why it works the way it does, in plain words, with the studies behind each
+point (a "Source" link opens the reference and its DOI): strength training twice a week for every adult
+(WHO 2020 guidelines; NSCA position statement on older adults, Fragala 2019), strength gains at any age
+(Peterson 2010), progressive overload (ACSM position stand 2009), stopping short of failure (Grgic 2022) and
+the reps-in-reserve effort scale (Zourdos 2016), light and heavy loads (Schoenfeld 2017), weekly sets and
+frequency (Schoenfeld 2016, 2017), warm-up sets (Fradkin 2010), rest between sets (Grgic 2018), supersets
+(Weakley 2017) and protein (Morton 2018). The list lives in
+[`app/src/data/sources.ts`](../app/src/data/sources.ts).
 
 ### Learn
 
@@ -255,8 +292,8 @@ counts), and only to callers who joined; nobody can read anyone else's weight, m
 Build With Science keeps its data in its own cloud and has no export. Reading the copy it keeps on the
 phone is not possible either: Android stores each app's database in a private folder (`/data/data/…`) that
 only that app can open. A computer over ADB can reach it only if the app is "debuggable" or allows backups,
-and Build With Science is neither (checked on a Pixel 7: `run-as` refused, backups disabled, nothing in the
-shared folders). Rooting the phone would work but voids its security, which is not acceptable for a family
+and Build With Science is neither (`run-as` is refused, backups are disabled and nothing is kept in the shared
+folders). Rooting the phone would work but voids its security, which is not acceptable for a family
 member's phone. Three paths cover it instead:
 
 | Data | How it reaches Forza! | Automatic? |
@@ -312,7 +349,8 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
   model list comes live from its catalogue (vision models only, free ones first). **Test** sends a photo
   through one model or the whole order and reports which model answered, how long it took and why the others
   were skipped.
-- **Per-person settings**: everything in the profile, including hiding the Train section.
+- **Per-person settings**: everything in the profile, including hiding the Train section and the order of
+  the Home page.
 - **Imports**: Build With Science (cable or Wi-Fi, once or automatically) and history files.
 - **Background mode**: optional start at login, so automatic syncs need no one at the computer.
 - **Runs everywhere**: double-click launchers for macOS (`.command`), Windows (`.bat`) and Linux (`.sh`)
@@ -359,8 +397,10 @@ questions and at any time in Settings (it applies immediately). Numbers and date
   imports, warm-up detection, effort colours, plan sets, dates without a year), screen parsing, regions,
   key storage fallback.
 - Edge Functions: `deno check`.
-- End to end: the app and Coach are tried against a local Supabase stack, and on a real Android phone
-  over USB (`adb reverse`), including the Build With Science import.
+- End to end: the screenshots workflow (`.github/workflows/screenshots.yml`) starts a local Supabase stack
+  with the demo data, opens the app and Coach in a browser, goes through the main screens (Home, a workout,
+  food by dictation, a barcode, the calorie explanation, lessons, Coach) and commits the pictures that
+  changed, so the README always shows the current version ([`scripts/screenshots`](../scripts/screenshots)).
 
 ## Known limits
 
@@ -369,6 +409,8 @@ questions and at any time in Settings (it applies immediately). Numbers and date
   automatic sync needs the phone and the coach's computer to meet (cable, or the same Wi-Fi). Meals and
   weigh-ins have no such limit.
 - The food photo AI gives estimates, not measurements: portions should be checked.
+- Dictation uses the browser's speech recognition where it exists (Chrome on Android, Safari on iPhone);
+  elsewhere the keyboard's microphone key does the same job. Foods outside the built-in table need the food AI.
 - Health data on iPhone needs the Shortcut to run (iOS does not let web apps or background helpers read
   Apple Health on their own).
 - Forza! is not a medical device and gives general information only.

@@ -1,0 +1,77 @@
+name: Screenshots
+
+# Retakes the README pictures (docs/screenshots) from the demo family member "Maria" after every change
+# to the app, Forza! Coach or the database, and commits the ones that changed. A push made with the
+# workflow's own token does not start new runs, so this never loops.
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'coach/**', 'shared/**', 'supabase/**', 'scripts/screenshots/**', '.github/workflows/screenshots.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  take:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            coach/package-lock.json
+            scripts/screenshots/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      - name: Phone fonts (Roboto, colour emoji)
+        run: sudo apt-get update -q && sudo apt-get install -yq fonts-roboto fonts-noto-color-emoji
+
+      - name: Local database with the demo data
+        run: |
+          supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -f scripts/screenshots/prepare.sql
+          supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|ANON_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
+
+      - name: The app, built for the local database
+        working-directory: app
+        run: |
+          npm ci
+          VITE_SUPABASE_URL="$API_URL" VITE_SUPABASE_KEY="${PUBLISHABLE_KEY:-$ANON_KEY}" npm run build
+          nohup npx vite preview --port 4173 --strictPort --host 127.0.0.1 > ../preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+
+      - name: Forza! Coach on the local database
+        working-directory: coach
+        run: |
+          npm ci
+          nohup node server.mjs --local --no-open > ../coach.log 2>&1 &
+          for i in $(seq 1 30); do grep -q '#token=' ../coach.log && break; sleep 1; done
+          echo "COACH_URL=$(grep -o 'http://127.0.0.1:[0-9]*/#token=[0-9a-f]*' ../coach.log)" >> "$GITHUB_ENV"
+
+      - name: Take the screenshots
+        working-directory: scripts/screenshots
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          APP_URL=http://127.0.0.1:4173/ SUPABASE_URL="$API_URL" SUPABASE_KEY="${PUBLISHABLE_KEY:-$ANON_KEY}" node take.mjs
+
+      - name: Commit the pictures that changed
+        run: |
+          git add docs/screenshots
+          if git diff --cached --quiet; then echo 'The screenshots are up to date.'; exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Update screenshots [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main

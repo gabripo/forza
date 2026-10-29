@@ -185,6 +185,9 @@ Apri Forza! Coach quando vuoi:
 - **Profile → Training section**: scegli **Hidden** per chi non registrerà mai gli allenamenti nell'app (per
   esempio vuole solo mangiare meglio). La scheda Allenati e le voci sugli allenamenti in Home spariscono; si
   può riattivarla in Impostazioni.
+- **Profile → Home page order**: porta in alto quello che conta di più per la persona (per esempio i pulsanti
+  del cibo per primi e l'allenamento in fondo), poi **Save order**. Si può fare anche dall'app: Impostazioni →
+  Riordina la Home.
 
 **Cosa ha bisogno del tuo computer?** Niente di quello che si usa ogni giorno. L'app, i dati, le foto del
 cibo, passi, peso e pasti sono online, quindi il tuo computer può restare spento. Solo l'importazione automatica

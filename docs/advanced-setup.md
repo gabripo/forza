@@ -175,5 +175,21 @@ VITE_SUPABASE_KEY=<publishable key printed by `supabase status`>
 To try the app on a real phone over USB: `adb reverse tcp:5173 tcp:5173 && adb reverse tcp:54321 tcp:54321`,
 then open `http://localhost:5173` on the phone.
 
+### Screenshots
+
+The pictures in `docs/screenshots` are taken by [`scripts/screenshots/take.mjs`](../scripts/screenshots/take.mjs)
+from the demo data. GitHub Actions retakes them after every change to the app, Coach or the database
+(`.github/workflows/screenshots.yml`) and commits the ones that changed. To take them yourself, with the local
+stack running:
+
+```bash
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f scripts/screenshots/prepare.sql   # demo data in English
+cd app && npm run build && npx vite preview --port 4173 &                                          # the app
+cd scripts/screenshots && npm install && npx playwright install chromium
+APP_URL=http://127.0.0.1:4173/ SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_KEY=<publishable key> node take.mjs
+```
+
+Add `COACH_URL=<the link Coach prints with --local>` for the Coach pictures.
+
 Checks (also run by CI): `cd app && npx tsc -b && npm run lint && npm run build`, `cd coach && npm test`,
 `deno check supabase/functions/*/index.ts`.

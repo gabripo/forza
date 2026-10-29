@@ -22,16 +22,18 @@ e aggiorni la scheda dal tuo computer.
   <img src="docs/screenshots/progress.jpg" width="190" alt="Progressi in parole semplici">
 </p>
 
-*Schermate da un telefono vero con uno storico di allenamenti reale (importato da Build With Science).
-L'app è anche in italiano: la lingua si cambia in qualsiasi momento.*
+*Schermate della persona di prova, rifatte in automatico dopo ogni modifica all'app. L'app è anche in
+italiano: la lingua si cambia in qualsiasi momento.*
 
 ## Per chi si allena
 
 | | |
 |---|---|
-| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **Un piano chiaro per ogni giorno.** I pulsanti foto e codice a barre in cima, il consiglio del giorno, una breve checklist (allenamento o riposo, pesata, pasti, passi), l'allenamento di oggi, la tendenza del peso e la prossima lezione. Non ti alleni con l'app? Nascondi la sezione Allenati nelle Impostazioni. |
-| <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento"> | **Allenamenti per principianti.** Ogni esercizio ha foto, tre passi semplici e un video. I pesi sono **già compilati e salgono da soli** quando si diventa più forti. Serie di riscaldamento, superset, timer di recupero con suono e "quanto è stata dura?" per ogni serie. Funziona anche senza campo in palestra. |
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **Un piano chiaro per ogni giorno.** I pulsanti foto, detta e codice a barre in cima, il consiglio del giorno, una breve checklist (allenamento o riposo, pesata, pasti, passi), l'allenamento di oggi, la tendenza del peso e la prossima lezione. Non ti alleni con l'app? Nascondi la sezione Allenati. Ogni parte della pagina si può spostare in su o in giù, da sé o dal proprio coach. |
+| <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento"> | **Allenamenti per principianti.** Ogni esercizio ha foto, tre passi semplici e un video. I pesi sono **già compilati e salgono da soli** quando si diventa più forti. Serie di riscaldamento, superset, timer di recupero con suono e "quanto è stata dura?" per ogni serie. Funziona anche senza campo in palestra. Le idee principali rimandano agli studi che le sostengono. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progressi"> | **Progressi che tutti capiscono.** Tendenza del peso (smussata, così gli alti e bassi di ogni giorno non scoraggiano), forza guadagnata, costanza, passi, ognuno con un giudizio in parole e un consiglio concreto. Settimane di fila, record, foto dei progressi private e una scheda "condividi con la famiglia". |
+| <img src="docs/screenshots/voice.jpg" width="200" alt="Detta il pasto"> | **Oppure basta dirlo.** Tocca **Detta** e di' cosa hai mangiato («due uova, una fetta di pane e un caffè»): il riconoscimento vocale del telefono lo scrive, Forza! riconosce cibi e quantità sul telefono e chiede all'AI solo quelli che non conosce. Puoi correggere le parole, e i grammi solo se vuoi. |
+| <img src="docs/screenshots/food.jpg" width="200" alt="Idea per il prossimo pasto"> | **Cosa mangiare dopo.** Dopo ogni pasto, un'idea per il successivo che porta quello che manca alla giornata (pollo e patate a pranzo? A cena grassi buoni), già dosata sulle calorie rimaste e registrabile con un tocco. |
 | <img src="docs/screenshots/barcode.jpg" width="200" alt="Codice a barre"> | **Il cibo in tre modi.** Una foto del piatto (l'AI stima ogni alimento), il **codice a barre** (Open Food Facts, milioni di prodotti) o a mano. Dopo una foto, Forza! dice prima **cosa fare** ("Aggiungi proteine!"), poi mostra i numeri; con un tocco rifai la foto o correggi a mano. Ogni piatto riceve un punteggio per perdere grasso e per aumentare i muscoli. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Obiettivo di calorie"> | **Un obiettivo di calorie che si spiega da solo.** Cinque passaggi con i propri numeri: energia a riposo, camminata e allenamento (dai passi del telefono), la verifica con la bilancia, l'obiettivo e come si dividono le calorie tra proteine, grassi e carboidrati. |
 | <img src="docs/screenshots/lesson.jpg" width="200" alt="Lezioni"> | **Impara le basi, poi di più.** Un corso base di 14 brevi infografiche (proteine, piatto equilibrato, trucchi per avere energia costante, sonno, …) e lezioni per esperti (glicogeno, distribuzione dei pasti, creatina, …), ognuna con un quiz di due domande, punti e medaglie. Si stampano su fogli A4, in italiano o inglese. |

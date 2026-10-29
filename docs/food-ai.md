@@ -41,11 +41,14 @@ one request waited more than two minutes. The function now follows a **model use
 (`FOOD_AI_STEP_TIMEOUT_MS`). Out of quota (429), overloaded (503), out of credit (402) or silent: the photo
 moves on to the next model. Only the last one gets a second try.
 
-Live test of the default order from Coach (*Test the whole order*, the banana photo):
-`gemini-3.6-flash` answered in 22.4 s, **105 kcal**. Testing `gemini-3.5-flash-lite` on its own at the same
-time gave 503 and then a timeout: it was the busy one that hour. A family with only one Gemini key is
-therefore best served by adding a free OpenRouter key and one of its vision models at the bottom of the
-order.
+A family with only one Gemini key is best served by adding a free OpenRouter key and one of its vision
+models at the bottom of the order: busy hours at Google then cost a few seconds instead of a failed photo.
+
+## Dictated meals
+
+The same function estimates meals described in words (`mode: "text"`), for **Dictate**. The phone first
+matches the words to its built-in food table and sends only what it does not recognise ("lasagne"), so most
+dictated meals never reach the AI and do not count against the daily limit.
 
 ## Free tier limits to keep in mind
 

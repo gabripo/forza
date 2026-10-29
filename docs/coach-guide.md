@@ -178,6 +178,9 @@ Open Forza! Coach whenever you like:
 - **Profile → Training section**: choose **Hidden** for someone who will never log workouts in the app (for
   example, they only want to eat better). The Train tab and the workout items on Home disappear; they can
   change it back in Settings.
+- **Profile → Home page order**: move what matters most to them to the top (for example the food buttons
+  first and the workout last), then **Save order**. They can do the same in the app: Settings → Arrange the
+  Home page.
 
 **What needs your computer?** Nothing they use every day. The app, their data, food photos, steps, weight and
 meals all live online, so your computer can be off. Only the automatic import of **Build With Science

@@ -1,0 +1,12 @@
+{
+  "name": "forza-screenshots",
+  "private": true,
+  "type": "module",
+  "description": "Takes the README screenshots from the demo data (see .github/workflows/screenshots.yml).",
+  "scripts": {
+    "take": "node take.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.64.1"
+  }
+}

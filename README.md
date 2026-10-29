@@ -22,15 +22,17 @@ and adjust their plan from your own computer.
   <img src="docs/screenshots/progress.jpg" width="190" alt="Progress in plain words">
 </p>
 
-*Screenshots from a real phone with real training history (imported from Build With Science).*
+*Screenshots of the demo family member, retaken automatically after every change to the app.*
 
 ## For the person training
 
 | | |
 |---|---|
-| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **A clear plan for every day.** Photo and barcode buttons right at the top, the tip of the day, a short checklist (workout or rest, weigh-in, meals, steps), today's workout, the weight trend and the next lesson. Not training in the app? Hide the Train section in Settings. |
-| <img src="docs/screenshots/workout.jpg" width="200" alt="Workout"> | **Workouts for beginners.** Every exercise has photos, three simple steps and a video. Weights are **pre-filled and go up automatically** when they get stronger. Warm-up sets, supersets, a rest timer with sound, and "how hard was it?" for each set. Works without signal in the gym. |
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **A clear plan for every day.** Photo, dictate and barcode buttons right at the top, the tip of the day, a short checklist (workout or rest, weigh-in, meals, steps), today's workout, the weight trend and the next lesson. Not training in the app? Hide the Train section. Every part of the page can be moved up or down, by them or by their coach. |
+| <img src="docs/screenshots/workout.jpg" width="200" alt="Workout"> | **Workouts for beginners.** Every exercise has photos, three simple steps and a video. Weights are **pre-filled and go up automatically** when they get stronger. Warm-up sets, supersets, a rest timer with sound, and "how hard was it?" for each set. Works without signal in the gym. The main ideas link to the studies behind them. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progress"> | **Progress anyone can understand.** Weight trend (smoothed, so daily ups and downs don't discourage), strength gained, consistency, steps, each with a verdict in words and one concrete tip. Streaks, records, private progress photos and a "share with family" card. |
+| <img src="docs/screenshots/voice.jpg" width="200" alt="Dictate a meal"> | **Or just say it.** Tap **Dictate** and say what you ate (“two eggs, a slice of bread and a coffee”): the phone's own speech recognition writes it down, Forza! recognises the foods and amounts on the phone, and asks the AI only about the ones it does not know. Fix the words, and the grams only if you want to. |
+| <img src="docs/screenshots/food.jpg" width="200" alt="Next meal idea"> | **What to eat next.** After each meal, an idea for the next one that brings what the day is missing (chicken and potatoes for lunch? Dinner with healthy fats), already sized to the calories left and one tap away from logging. |
 | <img src="docs/screenshots/barcode.jpg" width="200" alt="Barcode"> | **Food in three ways.** Snap a photo of the plate (AI estimates every item), **scan a barcode** (Open Food Facts, millions of products), or add it by hand. After a photo, Forza! first says **what to do** ("Add some protein!"), then shows the numbers; one tap retakes the photo or fixes it by hand. Every plate gets a score for losing fat and for building muscle. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Calorie target"> | **A calorie target that explains itself.** Five steps with their own numbers: energy at rest, walking and training (from the phone's steps), a reality check with the scale, the goal, and how calories split into protein, fat and carbs. |
 | <img src="docs/screenshots/lesson.jpg" width="200" alt="Lessons"> | **Learn the basics, then more.** A beginners' course of 14 short infographics (protein, balanced plates, meal tricks for steady energy, sleep, …) and expert lessons (glycogen, meal timing, creatine, …), each with a two-question quiz, points and badges. Print them on A4 paper, in English or Italian. |
