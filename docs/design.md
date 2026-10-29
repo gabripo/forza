@@ -110,8 +110,8 @@ Built so that the most frequent action takes one glance and one tap:
    worth), today's food, this week's points and the family challenge.
 
 The **Log weight** button disappears when a scale already sends weigh-ins (any weigh-in from Health Connect
-or Apple Health in the last 30 days): one less thing to do, and no duplicate entries. The checklist item
-then says "from your scale". Every weigh-in form reminds people to weigh in the same conditions: just woken
+or Apple Health in the last 30 days): one less thing to do, and no duplicate entries. Until the day's
+weigh-in arrives, the checklist item says "step on the scale (it syncs by itself)". Every weigh-in form reminds people to weigh in the same conditions: just woken
 up, after the toilet, before drinking or eating.
 
 Home sits in the middle of the bottom bar, raised, so it is always under the thumb. People who never log

@@ -1,5 +1,6 @@
 import { BookOpen, Dumbbell, Home, LineChart, Settings, Utensils } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { useApp } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { loadActive } from '../lib/workout'
@@ -20,6 +21,12 @@ export function Layout() {
   const { t } = useI18n()
   const { profile } = useApp()
   const active = loadActive()
+  const { pathname } = useLocation()
+  const navType = useNavigationType()
+  // A new page starts at its top; "back" keeps where the browser left it.
+  useEffect(() => {
+    if (navType !== 'POP') window.scrollTo(0, 0)
+  }, [pathname, navType])
   return (
     <div className="mx-auto min-h-dvh max-w-xl">
       <main className="px-4 pb-28">

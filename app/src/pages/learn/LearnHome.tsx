@@ -77,7 +77,10 @@ export function LearnHome() {
             </div>
           ) : null}
         </div>
-      ) : null}
+      ) : (
+        // Holds the header's place while it loads, so the lessons below don't jump under a finger.
+        <div className="h-60 animate-pulse rounded-3xl border border-line bg-card" aria-hidden />
+      )}
 
       <Segmented<Track>
         value={track}
