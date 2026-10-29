@@ -119,7 +119,11 @@ export function Settings() {
           <Field label={t('settings.training')} hint={t('settings.trainingHint')}>
             <Segmented<'show' | 'hide'>
               value={draft.hide_training ? 'hide' : 'show'}
-              onChange={(v) => set('hide_training', v === 'hide')}
+              onChange={(v) => {
+                // Like the language, this applies straight away: the menu changes under the finger.
+                set('hide_training', v === 'hide')
+                void saveProfile({ hide_training: v === 'hide' })
+              }}
               options={[
                 { value: 'show', label: t('settings.trainingShow') },
                 { value: 'hide', label: t('settings.trainingHide') },
