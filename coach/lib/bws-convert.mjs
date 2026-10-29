@@ -123,21 +123,26 @@ function goalOf(text) {
   return null
 }
 
+const isTimedTarget = (reps) => /\d\s*s$|duration|sec/i.test(String(reps ?? ''))
+
 /**
  * @param {{ profile?: any, plan?: any, sessions: any[] }} raw  what the extractor read
  * @param {any[]} catalogue  app/src/data/exercises.json
+ * @param {{ now?: Date, knownSessions?: any[] }} [options]
+ *   knownSessions: workouts already in Forza! (forza-history format). They are not exported, but the
+ *   plan uses them like the ones just read: recent set counts, and rebuilding a workout with no preview.
  */
-export function convert(raw, catalogue, { now = new Date() } = {}) {
+export function convert(raw, catalogue, { now = new Date(), knownSessions = [] } = {}) {
   const known = new Map(catalogue.map((e) => [e.id, e]))
   const custom = new Map()
 
   /** Forza! id for a BWS exercise; unknown ones become custom exercises. */
-  const idFor = (bwsName, values = []) => {
+  const idFor = (bwsName, values = [], reps = null) => {
     const name = bwsName.trim()
     if (MAP[name]) return MAP[name]
     const key = slug(name)
     if (!custom.has(key)) {
-      const timed = values.some((v) => v?.duration_s)
+      const timed = values.some((v) => v?.duration_s) || isTimedTarget(reps)
       const weighted = values.some((v) => v?.weight_kg)
       custom.set(key, { key, name_en: name, name_it: name, kind: timed ? 'time' : weighted ? 'reps' : 'bodyweight', muscles: [], equipment: weighted ? 'other' : 'bodyweight' })
     }
@@ -190,8 +195,10 @@ export function convert(raw, catalogue, { now = new Date() } = {}) {
   sessions.sort((a, b) => a.started_at.localeCompare(b.started_at))
 
   // Working sets per exercise in the last 4 sessions: BWS counts optional extra sets in its plan.
+  // Everything known, oldest first: what was just read plus what Forza! already has.
+  const history = [...knownSessions.filter((k) => !sessions.some((s) => s.id === k.id)), ...sessions].sort((a, b) => a.started_at.localeCompare(b.started_at))
   const recent = new Map()
-  for (const s of sessions) {
+  for (const s of history) {
     const counts = new Map()
     for (const x of s.sets) if (!x.is_warmup) counts.set(x.exercise_id, (counts.get(x.exercise_id) ?? 0) + 1)
     for (const [k, n] of counts) recent.set(k, [...(recent.get(k) ?? []), n])
@@ -211,7 +218,7 @@ export function convert(raw, catalogue, { now = new Date() } = {}) {
       const rows =
         w.exercises ??
         (() => {
-          const recentOnes = sessions.filter((s) => s.name === w.name).slice(-3)
+          const recentOnes = history.filter((s) => s.name.trim() === w.name.trim()).slice(-3)
           const last = recentOnes.at(-1)
           if (!last) return []
           const ids = [...new Set(last.sets.map((x) => x.exercise_id))]
@@ -223,10 +230,10 @@ export function convert(raw, catalogue, { now = new Date() } = {}) {
           })
         })()
       const exercises = rows.map((e) => {
-        const id = e.id ?? idFor(e.bws)
+        const id = e.id ?? idFor(e.bws, [], e.reps)
         const kind = kindOf(id)
         const nums = (String(e.reps).match(/\d+/g) ?? []).map(Number)
-        const timed = kind === 'time' || kind === 'cardio' || /s$|duration/.test(String(e.reps))
+        const timed = kind === 'time' || kind === 'cardio' || isTimedTarget(e.reps)
         const [repMin, repMax] = timed ? (nums.length ? [nums[0], nums[0] + 15] : [20, 45]) : nums.length >= 2 ? [nums[0], nums[1]] : nums.length ? [nums[0], nums[0]] : [8, 12]
         let rest = COMPOUND.has(id) ? 150 : e.superset ? 75 : 90
         if ((kind === 'time' || kind === 'bodyweight') && !COMPOUND.has(id)) rest = 60
@@ -241,7 +248,9 @@ export function convert(raw, catalogue, { now = new Date() } = {}) {
           superset: e.superset ?? null,
         }
       })
-      templates.push({ name: w.name, notes: 'From Build With Science', weekday: weekdayOf(w.name), exercises })
+      // fromHistory: rebuilt from past sessions, less precise than a preview (no supersets, rep ranges guessed).
+      if (!exercises.length) continue // nothing known about it: leave the plan as it is
+      templates.push({ name: w.name, notes: 'From Build With Science', weekday: weekdayOf(w.name), exercises, ...(w.exercises ? {} : { fromHistory: true }) })
     }
   }
 

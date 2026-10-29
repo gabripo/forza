@@ -80,6 +80,36 @@ test('conversion: warm-ups, plan days, unknown exercises', () => {
   assert.deepEqual(out.profile, { goal: 'fat_loss', start_weight_kg: 78, steps_goal: 7000, workouts_per_week: 1, experience: 'intermediate' })
 })
 
+test('plan: workouts done this week use known history, timed targets, never empty', () => {
+  const raw = {
+    plan: {
+      schedule: { sun: 'Workout C', wed: 'Core', thu: 'Ghost' },
+      workouts: [
+        { name: 'Workout C', exercises: null },
+        { name: 'Core', exercises: [{ bws: 'Ground Sit', sets: 3, reps: 'Duration' }] },
+        { name: 'Ghost', exercises: null },
+      ],
+    },
+    sessions: [],
+  }
+  const knownSessions = [
+    { id: 'a', name: 'Workout C', started_at: '2026-10-25T17:00:00Z', sets: [
+      { exercise_id: 'hip_thrust', is_warmup: true, reps: 10 },
+      { exercise_id: 'hip_thrust', is_warmup: false, reps: 12 },
+      { exercise_id: 'hip_thrust', is_warmup: false, reps: 10 },
+    ] },
+  ]
+  const out = convert(raw, [{ id: 'hip_thrust', kind: 'reps' }], { now: new Date(2026, 9, 29), knownSessions })
+  assert.deepEqual(out.sessions, [])
+  const c = out.templates.find((t) => t.name === 'Workout C')
+  assert.equal(c.fromHistory, true)
+  assert.deepEqual(c.exercises.map((e) => [e.exercise_id, e.sets, e.rep_min, e.rep_max]), [['hip_thrust', 2, 10, 12]])
+  const core = out.templates.find((t) => t.name === 'Core')
+  assert.deepEqual([core.exercises[0].rep_min, core.exercises[0].rep_max], [20, 45])
+  assert.equal(out.custom_exercises[0].kind, 'time')
+  assert.equal(out.templates.some((t) => t.name === 'Ghost'), false)
+})
+
 test('uiautomator dump parsing', () => {
   const xml = `<?xml version="1.0"?><hierarchy><node text="Workout A, Oct 26, ." content-desc="" clickable="true" bounds="[0,500][1080,600]" /><node text="" content-desc="Settings &amp; more" clickable="false" bounds="[10,10][110,60]" /><node text="" content-desc="" bounds="[0,0][1,1]" /></hierarchy>`
   assert.deepEqual(parseNodes(xml), [
