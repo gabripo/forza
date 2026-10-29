@@ -56,5 +56,5 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" android-helper/forza-health.apk \
             --title "Forza! Health helper ${{ github.ref_name }}" \
-            --notes "Android helper that syncs steps and weight from Health Connect to Forza!. Install it from your phone (allow installing from this source when asked)." \
+            --notes "Android helper that sends steps, weight, walks and meals from Health Connect to Forza! every hour. Install it from your phone (allow installing from this source when asked); it updates over the previous version." \
             || gh release upload "${{ github.ref_name }}" android-helper/forza-health.apk --clobber

@@ -166,8 +166,15 @@ Deno.serve(async (req) => {
       if (start && end) pushActivity(start, end, kind, null)
     }
   }
-  if (activities.length) {
-    const rows = activities.slice(-MAX_ROWS).map((a) => ({ ...a, user_id: userId, source }))
+  // The same walk can arrive twice (the phone's own tracking and Google Fit, a watch…): keep one per
+  // start time, the longest. Duplicates in one upsert would make the whole sync fail.
+  const byStart = new Map<string, (typeof activities)[number]>()
+  for (const a of activities) {
+    const prev = byStart.get(a.started_at)
+    if (!prev || a.ended_at > prev.ended_at) byStart.set(a.started_at, a)
+  }
+  if (byStart.size) {
+    const rows = [...byStart.values()].slice(-MAX_ROWS).map((a) => ({ ...a, user_id: userId, source }))
     const { error } = await admin.from('activities').upsert(rows, { onConflict: 'user_id,started_at,source' })
     if (error) return json({ error: 'activities_failed', detail: error.message }, 500)
   }
@@ -222,5 +229,5 @@ Deno.serve(async (req) => {
   }
 
   await admin.from('sync_tokens').update({ last_used_at: new Date().toISOString() }).eq('user_id', userId)
-  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: activities.length, meals })
+  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: byStart.size, meals })
 })
