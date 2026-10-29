@@ -88,14 +88,20 @@ export class BwsExtractor {
     throw new Stop(`Cannot find the "${name}" tab. Is Build With Science open on its main screen?`)
   }
 
-  /** Scrolls down until a node with this label shows up. */
-  async scrollTo(label, tries = 6) {
+  /** Scrolls down until a node with this label shows up (null if it never does). */
+  async seek(label, tries = 6) {
     for (let i = 0; i < tries; i++) {
       const n = this.find(await this.nodes(), label)
       if (n && n.y < this.d.bottom(2150)) return n
       await this.scroll(this.d.top(900))
     }
-    throw new Stop(`Cannot find "${label}" in Build With Science.`)
+    return null
+  }
+
+  async scrollTo(label, tries = 6) {
+    const n = await this.seek(label, tries)
+    if (!n) throw new Stop(`Cannot find "${label}" in Build With Science.`)
+    return n
   }
 
   // -------------------------------------------------------------------------
@@ -257,11 +263,19 @@ export class BwsExtractor {
   async openHistory() {
     this.log('Opening Workout History')
     await this.tab('Progress')
-    await this.scrollToTop()
-    // The link sits inside the WORKOUTS card, which opens on tap.
-    const card = (await this.nodes()).find((n) => n.label.startsWith('WORKOUTS,') && n.click)
-    if (card && !this.find(await this.nodes(), 'See Full Workout Analysis')) await this.d.tap(card.x, card.y, 2000)
-    await this.tapNode(await this.scrollTo('See Full Workout Analysis'), 3000)
+    // The link sits inside the WORKOUTS card, which opens and closes on tap (and the app remembers
+    // it): look for it, and if it is not there, toggle the card and look again.
+    let link = null
+    for (let attempt = 0; attempt < 3 && !link; attempt++) {
+      await this.scrollToTop()
+      if (attempt > 0) {
+        const card = (await this.nodes()).find((n) => n.label.startsWith('WORKOUTS,') && n.click)
+        if (card) await this.d.tap(card.x, card.y, 2000)
+      }
+      link = await this.seek('See Full Workout Analysis', 4)
+    }
+    if (!link) throw new Stop('Cannot find "See Full Workout Analysis" in Build With Science.')
+    await this.tapNode(link, 3000)
     const all = this.find(await this.nodes(), 'See all')
     if (!all) throw new Stop('Cannot find "See all" under Recent Workouts.')
     await this.tapNode(all, 3000)
