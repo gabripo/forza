@@ -7,10 +7,11 @@
 // "Change". The phone must stay unlocked with Build With Science in front; if anything else
 // comes to the front, it stops.
 //
-// Tested on a Pixel 7 with Build With Science 3.23. The layout is scaled to other screens, but a
-// new app version may move things: the extractor then stops with a clear message.
+// Positions are written for a 1080×2400 screen and scaled to other screens; a new version of Build
+// With Science may move things: the extractor then stops with a clear message. The same code runs in
+// Forza! Coach (over ADB) and on the phone itself (Forza! Health helper, through its accessibility service).
 
-import { sessionDate } from './bws-convert.mjs'
+import { sessionDate } from './bws-dates.mjs'
 
 const PACKAGE = 'com.bws.appv2'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -72,9 +73,7 @@ export class BwsExtractor {
 
   /** Restarts the app (like swiping it away), so it opens on its home screen: some screens never settle enough to be read. */
   async launch() {
-    await this.d.shell('am', 'force-stop', PACKAGE)
-    await sleep(1000)
-    await this.d.shell('monkey', '-p', PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1')
+    await this.d.launch(PACKAGE)
     await sleep(7000)
     await this.guard()
   }

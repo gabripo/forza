@@ -200,6 +200,15 @@ function SyncNow({ helperReady, lastSync }: { helperReady: boolean; lastSync: st
             {lastSync ? <p className="mt-1 text-sm text-ink-3">{t('health.lastSync', { date: when(lastSync) })}</p> : null}
           </div>
         ) : null}
+        {/* Build With Science read on this phone by the helper: no computer needed. */}
+        {helperReady && (profile?.bws_auto_sync || profile?.bws_synced_at) ? (
+          <div>
+            <a href="forzahealth://bws" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-card-2 px-4 font-semibold">
+              <Dumbbell className="size-5" aria-hidden /> {t('sync.bwsPhone')}
+            </a>
+            <p className="mt-1 text-sm text-ink-3">{t('sync.bwsPhoneHow')}</p>
+          </div>
+        ) : null}
         {profile?.bws_auto_sync ? (
           <div>
             <Button block variant="secondary" onClick={askBws} loading={asking} disabled={pending}>

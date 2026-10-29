@@ -9,6 +9,7 @@ import { useApp } from '../../lib/auth'
 import { scorePlate, sumItems } from '../../lib/calc'
 import { addFood, readLabel } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
+import { searchFoods } from '../../lib/voice'
 import { compressPhoto } from '../../lib/image'
 import { lookupBarcode, productAt, recentProducts, rememberProduct, type Product } from '../../lib/products'
 import { FOOD_FORMATS, validGtin } from '../../lib/scan'
@@ -40,9 +41,9 @@ export function FoodManual() {
   const [busy, setBusy] = useState(false)
 
   const results = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    if (!needle) return FOODS.slice(0, 12)
-    return FOODS.filter((f) => f.name.en.toLowerCase().includes(needle) || f.name.it.toLowerCase().includes(needle))
+    if (!q.trim()) return FOODS.slice(0, 12)
+    // Everyday names count too: "hamburger di tacchino", "nutella", "pasta e fagioli".
+    return searchFoods(q)
   }, [q])
 
   if (!profile || !energy) return <Loading />

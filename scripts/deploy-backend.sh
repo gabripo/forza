@@ -23,6 +23,7 @@ supabase db push --linked
 echo "→ Deploying server functions"
 supabase functions deploy food-estimate --no-verify-jwt
 supabase functions deploy health-ingest --no-verify-jwt
+supabase functions deploy bws-ingest --no-verify-jwt
 
 read -r -s -p "Google Gemini API key for food photos (leave empty to skip): " GEMINI
 echo

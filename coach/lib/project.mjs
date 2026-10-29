@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 
 const API = 'https://api.supabase.com/v1'
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-export const FUNCTIONS = ['food-estimate', 'health-ingest']
+export const FUNCTIONS = ['food-estimate', 'health-ingest', 'bws-ingest']
 
 export class Management {
   constructor(token) {

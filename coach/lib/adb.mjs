@@ -122,6 +122,13 @@ export class Device {
     await sleep(wait)
   }
 
+  /** Restarts an app (like swiping it away and opening it again), so it opens on its home screen. */
+  async launch(pkg) {
+    await this.shell('am', 'force-stop', pkg)
+    await sleep(1000)
+    await this.shell('monkey', '-p', pkg, '-c', 'android.intent.category.LAUNCHER', '1')
+  }
+
   async back(wait = 1500) {
     await this.shell('input', 'keyevent', 'KEYCODE_BACK')
     await sleep(wait)

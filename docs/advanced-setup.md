@@ -52,8 +52,8 @@ What `install` does, through the [Supabase Management API](https://supabase.com/
 1. applies the files in `supabase/migrations/` that the project does not have yet, each one in a single
    transaction, recording them in `supabase_migrations.schema_migrations` (the same table the Supabase CLI
    uses, so both tools can manage one project);
-2. deploys `supabase/functions/food-estimate` and `health-ingest` with JWT verification off (both
-   functions check the caller themselves);
+2. deploys `supabase/functions/food-estimate`, `health-ingest` and `bws-ingest` with JWT verification off
+   (all three check the caller themselves);
 3. closes public sign-ups, sets one-time sign-in links to last 24 hours, and adds the app address to the
    allowed redirect URLs;
 4. stores the Gemini key as a function secret, if given;
@@ -93,6 +93,7 @@ supabase link --project-ref <project-ref>
 supabase db push --linked
 supabase functions deploy food-estimate --no-verify-jwt
 supabase functions deploy health-ingest --no-verify-jwt
+supabase functions deploy bws-ingest --no-verify-jwt
 supabase secrets set GEMINI_API_KEY=AIza…
 ```
 

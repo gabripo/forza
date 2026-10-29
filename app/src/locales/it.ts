@@ -700,7 +700,9 @@ export const it: Dict = {
   sync: {
     title: 'Sincronizza ora',
     health: 'Sincronizza passi, peso e pasti',
-    bws: 'Sincronizza gli allenamenti di Build With Science',
+    bws: 'Sincronizza tramite il computer di chi ti segue',
+    bwsPhone: 'Sincronizza gli allenamenti da questo telefono',
+    bwsPhoneHow: 'Apre Build With Science e legge i nuovi allenamenti: lascia il telefono sbloccato senza toccarlo per 1–3 minuti. La prima volta l’app Forza! Health ti chiede di attivarla in Accessibilità.',
     bwsAsked: 'Sincronizzazione richiesta',
     bwsHow: 'Tieni il telefono sbloccato e collegato al computer di chi ti segue, poi lascialo per un minuto: Forza! Coach fa il resto.',
     bwsLast: 'Ultima sincronizzazione allenamenti: {date}',

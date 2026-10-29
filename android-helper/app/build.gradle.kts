@@ -34,6 +34,8 @@ android {
             if (keystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
+    // The Build With Science extractor is shared with Forza! Coach: copied from coach/lib at build time.
+    sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/bws-assets").get().asFile)
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -51,3 +53,10 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.activity:activity-ktx:1.12.4")
 }
+
+val copyBwsScripts by tasks.registering(Copy::class) {
+    from(rootProject.file("../coach/lib")) { include("bws-extract.mjs", "bws-convert.mjs", "bws-dates.mjs", "sha1.mjs") }
+    from(rootProject.file("../app/src/data")) { include("exercises.json") }
+    into(layout.buildDirectory.dir("generated/bws-assets/bws"))
+}
+tasks.named("preBuild") { dependsOn(copyBwsScripts) }

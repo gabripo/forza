@@ -698,7 +698,9 @@ export const en = {
   sync: {
     title: 'Sync now',
     health: 'Sync steps, weight and meals',
-    bws: 'Sync Build With Science workouts',
+    bws: 'Sync workouts through your coach’s computer',
+    bwsPhone: 'Sync workouts on this phone',
+    bwsPhoneHow: 'Opens Build With Science and reads the new workouts: leave the phone unlocked and don’t touch it for 1–3 minutes. The first time, the Forza! Health helper asks you to turn it on in Accessibility.',
     bwsAsked: 'Sync requested',
     bwsHow: 'Keep the phone unlocked and connected to your coach’s computer, then leave it for a minute: Forza! Coach does the rest.',
     bwsLast: 'Last workouts sync: {date}',

@@ -5,7 +5,8 @@ on:
     tags: ['helper-v*']
     paths: ['android-helper/**']
   pull_request:
-    paths: ['android-helper/**']
+    # The helper packs the Build With Science extractor from coach/lib and the exercise list from the app.
+    paths: ['android-helper/**', 'coach/lib/bws-*.mjs', 'coach/lib/sha1.mjs', 'app/src/data/exercises.json']
   workflow_dispatch:
 
 permissions:

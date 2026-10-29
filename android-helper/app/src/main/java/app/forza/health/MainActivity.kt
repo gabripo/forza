@@ -1,11 +1,15 @@
 package app.forza.health
 
+import android.Manifest
 import android.app.AlertDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.format.DateUtils
 import android.view.Gravity
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -17,6 +21,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
@@ -54,11 +59,18 @@ class MainActivity : ComponentActivity() {
         refresh()
     }
 
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshBws() }
+
     private lateinit var prefs: Prefs
     private lateinit var status: TextView
     private lateinit var detail: TextView
     private lateinit var allow: Button
     private lateinit var sync: Button
+    private lateinit var bwsStatus: TextView
+    private lateinit var bwsTurnOn: Button
+    private lateinit var bwsRestricted: Button
+    private lateinit var bwsSync: Button
+    private lateinit var bwsReminder: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,10 +92,17 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        refreshBws()
     }
 
     private fun handleSetupLink(intent: Intent?) {
         val uri: Uri = intent?.data ?: return
+        if (uri.scheme == "forzahealth" && uri.host == "bws") {
+            // "Sync workouts on this phone" in the Forza! app, or the daily reminder.
+            startBws()
+            setIntent(Intent(this, MainActivity::class.java))
+            return
+        }
         if (uri.scheme == "forzahealth" && uri.host == "sync") {
             // "Sync now" from the Forza! app: nothing is sent anywhere new, so no confirmation needed.
             if (prefs.isConnected) {
@@ -157,6 +176,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startBws() {
+        val problem = BwsSync.start(this)
+        if (problem == null) {
+            Toast.makeText(this, R.string.bws_starting, Toast.LENGTH_LONG).show()
+        } else {
+            bwsStatus.text = problem
+            Toast.makeText(this, problem, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /** Build With Science on this phone: off until the person turns on the accessibility service. */
+    private fun refreshBws() {
+        val on = BwsService.isEnabled(this)
+        val last = prefs.bwsLast
+        bwsStatus.text = listOfNotNull(
+            if (on) getString(R.string.bws_ready) else getString(R.string.bws_explain),
+            if (!on) getString(R.string.bws_restricted_hint) else null,
+            if (last > 0) getString(R.string.bws_last, DateUtils.getRelativeTimeSpanString(last), prefs.bwsMessage.orEmpty()) else null,
+        ).joinToString("\n\n")
+        bwsTurnOn.visibility = if (on) android.view.View.GONE else android.view.View.VISIBLE
+        bwsRestricted.visibility = bwsTurnOn.visibility
+        bwsSync.isEnabled = on && prefs.isConnected
+        val minutes = prefs.bwsReminder
+        bwsReminder.text = if (minutes < 0) getString(R.string.bws_reminder_off) else getString(R.string.bws_reminder_on, "%02d:%02d".format(minutes / 60, minutes % 60))
+        bwsReminder.isEnabled = on
+    }
+
+    private fun pickReminder() {
+        if (prefs.bwsReminder >= 0) {
+            prefs.bwsReminder = -1
+            BwsReminder.schedule(this, -1)
+            refreshBws()
+            return
+        }
+        TimePickerDialog(this, { _, hour, minute ->
+            prefs.bwsReminder = hour * 60 + minute
+            BwsReminder.schedule(this, prefs.bwsReminder)
+            if (Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+            refreshBws()
+        }, 20, 0, true).show()
+    }
+
     private fun buildUi(): ScrollView {
         val pad = (20 * resources.displayMetrics.density).toInt()
         val column = LinearLayout(this).apply {
@@ -195,6 +256,26 @@ class MainActivity : ComponentActivity() {
             text = getString(R.string.eufy_hint)
             gravity = Gravity.START
         })
+
+        // Build With Science workouts, read on this phone (no computer needed).
+        column.addView(text(22f, bold = true).apply {
+            text = getString(R.string.bws_title)
+            setPadding(0, pad * 2, 0, pad / 3)
+        })
+        bwsStatus = text(16f, color = Color.rgb(87, 83, 78))
+        column.addView(bwsStatus)
+        fun button(label: Int, action: () -> Unit) = Button(this).apply {
+            text = getString(label)
+            textSize = 18f
+            setOnClickListener { action() }
+        }
+        bwsTurnOn = button(R.string.bws_open_settings) { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        bwsRestricted = button(R.string.bws_app_info) {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+        }
+        bwsSync = button(R.string.bws_sync) { startBws() }
+        bwsReminder = button(R.string.bws_reminder_off) { pickReminder() }
+        for (b in listOf(bwsTurnOn, bwsRestricted, bwsSync, bwsReminder)) column.addView(b, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         return ScrollView(this).apply { addView(column) }
     }
 }

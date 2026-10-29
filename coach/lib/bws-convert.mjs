@@ -1,6 +1,9 @@
 // Converts what bws-extract.mjs read from Build With Science into a forza-history-v1 file
 // (docs/import-format.md): plan, workout history, goal and settings.
-import { createHash } from 'node:crypto'
+import { sessionDate } from './bws-dates.mjs'
+import { sha1 } from './sha1.mjs'
+
+export { sessionDate }
 
 // Build With Science name → Forza! exercise id (app/src/data/exercises.json)
 export const MAP = {
@@ -56,10 +59,11 @@ const NS = '6f0f1c1e-7a62-4c55-9a8e-0f6d1f2a3b4c'
 
 /** RFC 4122 version 5 UUID (SHA-1 of a namespace and a name). */
 export function uuid5(name, ns = NS) {
-  const hash = createHash('sha1').update(Buffer.from(ns.replace(/-/g, ''), 'hex')).update(name, 'utf8').digest()
+  const space = ns.replace(/-/g, '').match(/../g).map((x) => parseInt(x, 16))
+  const hash = sha1(new Uint8Array([...space, ...new TextEncoder().encode(name)]))
   hash[6] = (hash[6] & 0x0f) | 0x50
   hash[8] = (hash[8] & 0x3f) | 0x80
-  const h = hash.subarray(0, 16).toString('hex')
+  const h = [...hash.subarray(0, 16)].map((x) => x.toString(16).padStart(2, '0')).join('')
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
 }
 
@@ -100,14 +104,6 @@ export function parseValue(v) {
   m = /^(\d+):(\d{2})$/.exec(v)
   if (m) return { duration_s: Number(m[1]) * 60 + Number(m[2]) }
   throw new Error(`Unknown set value "${v}"`)
-}
-
-/** "Oct 26" → a date in the 12 months up to `now` (the history screen shows no year). */
-export function sessionDate(label, now = new Date()) {
-  const [mon, day] = label.split(' ')
-  const month = MONTHS.indexOf(mon)
-  const year = month > now.getMonth() || (month === now.getMonth() && Number(day) > now.getDate()) ? now.getFullYear() - 1 : now.getFullYear()
-  return new Date(year, month, Number(day), 18, 0)
 }
 
 /** Ids stay stable between imports. The first imports (2026) used the date without a year. */

@@ -11,7 +11,7 @@ import { addFood, estimateText } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { FoodItem, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
-import { parseMeal } from '../../lib/voice'
+import { mergeSpeech, parseMeal } from '../../lib/voice'
 
 type Item = FoodItem & { foodId?: string }
 
@@ -69,10 +69,13 @@ export function FoodVoice() {
     const r = new SpeechRecognition()
     r.lang = locale === 'it' ? 'it-IT' : 'en-GB'
     r.interimResults = true
-    r.continuous = true
+    // On Android, continuous listening repeats earlier words in every new piece: one sentence at a
+    // time works better there (tap again to add more).
+    r.continuous = !/android/i.test(navigator.userAgent)
     const before = text.trim()
     r.onresult = (e) => {
-      const said = Array.from(e.results, (x) => x[0].transcript).join(' ').trim()
+      let said = ''
+      for (const result of Array.from(e.results)) said = mergeSpeech(said, result[0].transcript)
       setText([before, said].filter(Boolean).join(', '))
     }
     r.onerror = (e) => {
