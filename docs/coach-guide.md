@@ -141,6 +141,21 @@ Their weigh-ins and the meals logged in Build With Science come by themselves th
    the next run continues where it stopped.
 5. Later, **Only workouts not imported yet** brings over just the new ones.
 
+**Without a computer: on their phone.** After the first import, new workouts can also be read by the phone
+itself, through the *Forza! Health* helper (step 4):
+
+1. Open Forza! Health → **Build With Science workouts** → **Turn on in Accessibility**, and turn on
+   *Forza! Health: Build With Science workouts*. If the switch is greyed out (Android 13 and newer, for apps
+   not installed from the Play Store): **App info** → menu ⋮ → **Allow restricted settings**, then try again.
+2. From then on, in Forza! → **Settings → Connect Health & scale → Sync workouts on this phone** (or **Sync
+   workouts now** in the helper). Build With Science opens and scrolls by itself for 1–3 minutes: leave the
+   phone unlocked and don't touch it. A thin orange bar at the top says what is happening; tap it to stop.
+3. Optional: **Daily reminder** in the helper, at a time that suits them (for example after the usual
+   workout): a notification, and one tap starts the sync.
+
+It is the same reader as Coach's, with the same rules (read-only, it never taps Start, Edit or Delete) and
+the same result. It needs Android 11 or newer.
+
 **Automatic sync of the workouts.** In the same tab, under **Automatic sync**, click **Turn on**: from then on,
 whenever that phone is connected to this computer and has been left unlocked and untouched for 3 minutes,
 Coach imports the new workouts by itself (every 1–24 hours, as you choose), shows a notice on the phone while
@@ -182,9 +197,9 @@ Open Forza! Coach whenever you like:
   first and the workout last), then **Save order**. They can do the same in the app: Settings → Arrange the
   Home page.
 
-**What needs your computer?** Nothing they use every day. The app, their data, food photos, steps, weight and
-meals all live online, so your computer can be off. Only the automatic import of **Build With Science
-workouts** needs Coach running and their phone within reach (same Wi-Fi or cable). You don't need Docker.
+**What needs your computer?** Nothing they use every day. The app, their data, food photos, steps, weight,
+meals and, with the helper, Build With Science workouts all work without it, so your computer can be off.
+Coach is for setting up, following progress and editing plans. You don't need Docker.
 
 ## 7. Keeping Forza! up to date
 

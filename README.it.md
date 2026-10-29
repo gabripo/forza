@@ -41,7 +41,7 @@ italiano: la lingua si cambia in qualsiasi momento.*
 Passi e peso arrivano da soli da **Connessione Salute** (Android, ogni ora) o **Apple Salute** (iPhone), quindi
 le bilance smart come **Eufy** funzionano subito. Arrivi da **Build With Science**? Lo storico degli
 allenamenti viene con te e **resta sincronizzato**: i pasti tramite Connessione Salute, i nuovi allenamenti
-tramite Forza! Coach. Una **sfida di famiglia** amichevole e facoltativa dà punti per l'impegno (allenamenti,
+letti dal telefono stesso (o da Forza! Coach). Una **sfida di famiglia** amichevole e facoltativa dà punti per l'impegno (allenamenti,
 lezioni, passi, pasti registrati), mai per il peso: anche chi comincia può superare chi si allena da anni.
 
 ## Per te, il coach di famiglia

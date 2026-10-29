@@ -184,7 +184,8 @@ Ways to log a meal:
   no key, and strong on Italian and European products. This is the same source Build With Science falls
   back to for barcodes. Unknown product? A photo of the **nutrition label** is read by the AI (values per
   100 g). Recently scanned products are one tap away.
-- **By hand**: 60+ common foods with typical portions, or custom values.
+- **By hand**: about 230 common foods and Italian dishes with typical portions (searched by everyday names
+  too: "hamburger di tacchino", "pasta e fagioli", "nutella"), or custom values.
 
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
 against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out.
@@ -199,6 +200,14 @@ pieces, a large one grams). Only the words it does not recognise ("lasagne") go 
 the AI is not set up, the rest still counts and the person is told what was left out. The words can be
 corrected before going on; grams appear as inputs only after **Adjust quantities**, to keep the screen
 simple. "Not right? Ask the AI" sends the whole sentence instead.
+
+Dishes are recognised as one food: names containing "e" or "con" ("pasta e fagioli", "toast prosciutto e
+formaggio") are kept whole before the sentence is split; a form followed by what it is made of ("hamburger
+di salmone", "polpette di tacchino") counts as that food in the form's portion; grams said for a plate of
+pasta or risotto are read as the dry pasta in it ("80 grammi di pasta al pomodoro" is a full plate). Words
+that are neither food, amount nor description ("al curry") go to the AI. Chrome on Android repeats earlier
+words in each new piece of recognised speech ("due hamburger", "due hamburger di tacchino"): pieces are
+merged by their overlap, and Android listens one sentence at a time.
 
 **Advice before numbers.** After a photo, the first thing shown is at most three things to do ("Add some
 protein!", "Add vegetables", "A smaller portion"), or a compliment if the plate is good; calories and protein
@@ -300,7 +309,7 @@ member's phone. Three paths cover it instead:
 |---|---|---|
 | Weigh-ins | Build With Science (and the scale) store them in Health Connect → *Forza! Health* helper | yes, hourly |
 | Food diary | Build With Science writes every entry to Health Connect (Nutrition) → helper | yes, hourly |
-| Workouts, plan, goal | Forza! Coach reads the app over ADB (below) | yes, when the phone is connected and idle |
+| Workouts, plan, goal | the *Forza! Health* helper reads the app on the phone itself, or Forza! Coach over ADB (below) | on request or with a daily reminder (phone); when the phone is connected and idle (Coach) |
 
 Workouts are not in Health Connect (Build With Science does not write exercise sessions), so Forza! Coach reads
 them the way a person would: through Android's
@@ -326,6 +335,29 @@ accessibility tree (`uiautomator dump`) over ADB, plus screenshots for the colou
   opens the running Coach instead of starting another.
 - **Not imported**: height and age (not shown by the app) and progress photos. The food diary screen cannot
   be read (it never becomes idle), which is why meals come through Health Connect instead.
+
+**On the phone, without a computer.** The extractor talks to the phone through a handful of methods (read
+the screen's texts and positions, tap, swipe, back, restart the app, which app is in front, the colour of a
+pixel). The *Forza! Health* helper provides the same methods with an Android **accessibility service**: the
+accessibility tree (what `uiautomator dump` reads too), gestures (`dispatchGesture`), global Back/Home, and
+`takeScreenshot` for the effort dots. The extractor and the converter are not rewritten: the same files
+from `coach/lib` are packed into the APK at build time and run in a hidden WebView inside the helper. So:
+
+- one reader for Coach and phone, with the same read-only rules and the same ids, so both can be used;
+- conversion happens on the phone, in its time zone, like Coach on the family computer;
+- the new `bws-ingest` Edge Function, authenticated with the person's sync key like `health-ingest`, tells
+  the phone which workouts it already has (and the last 90 days, which the plan needs) and imports the
+  result, keeping only workouts, the plan and the goal from it, with the same plan guard as Coach;
+- the service listens only to Build With Science and acts only during a sync the person started (from the
+  helper, from Forza!'s *Sync workouts on this phone*, or from the optional daily reminder). A thin bar over
+  the status bar keeps the screen on, says what is happening and stops the sync when tapped; locking the
+  phone or opening another app stops it too.
+
+Why not something else: Android keeps the app's database private (above); the phone's own *wireless
+debugging* could give the helper ADB, but it switches off at every reboot and Wi-Fi change; reading Build With
+Science's cloud would mean handling the person's password and going against its terms. Limits: the phone
+must be unlocked while it reads (nothing can unlock a phone with a PIN), Android 11 or newer, and on
+Android 13+ a helper installed outside the Play Store needs "Allow restricted settings" once.
 
 The result is a `forza-history-v1` file ([format](import-format.md)), imported by code shared between
 Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
@@ -377,7 +409,7 @@ Everything a person uses daily runs in the cloud, so **the coach's computer can 
 | Data, sign-in, photos | the family's Supabase project | no |
 | Food photo AI | Supabase Edge Function → AI provider | no |
 | Steps, weight, scale, meals from other apps | the phone (Android helper, hourly; Apple Shortcut) → Supabase | no |
-| Build With Science **workouts** | Forza! Coach reading the phone over ADB | **yes**: Coach must be running and the phone on the same Wi-Fi (or cable) |
+| Build With Science **workouts** | the phone itself (helper's accessibility service → `bws-ingest`), or Forza! Coach over ADB | no (phone); yes, if Coach does it |
 | Following progress, editing plans | Forza! Coach (or nothing: the person's own app works without it) | only when the coach wants to look |
 
 Docker is **not** needed to use Forza!: it is only used by developers to run a local copy of Supabase
@@ -404,10 +436,9 @@ questions and at any time in Settings (it applies immediately). Numbers and date
 
 ## Known limits
 
-- Build With Science workouts: Android only (iPhone apps cannot be read from a computer), tied to the app's
-  current layout (a new version of Build With Science may need small changes to the extractor), and the
-  automatic sync needs the phone and the coach's computer to meet (cable, or the same Wi-Fi). Meals and
-  weigh-ins have no such limit.
+- Build With Science workouts: Android only (iPhone apps cannot be read by another app or a computer), tied
+  to the app's current layout (a new version of Build With Science may need small changes to the extractor),
+  and the phone must stay unlocked for the 1–3 minutes it reads. Meals and weigh-ins have no such limit.
 - The food photo AI gives estimates, not measurements: portions should be checked.
 - Dictation uses the browser's speech recognition where it exists (Chrome on Android, Safari on iPhone);
   elsewhere the keyboard's microphone key does the same job. Foods outside the built-in table need the food AI.

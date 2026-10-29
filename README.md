@@ -39,7 +39,7 @@ and adjust their plan from your own computer.
 
 Steps and weight arrive by themselves from **Health Connect** (Android, every hour) or **Apple Health** (iPhone),
 so smart scales like **Eufy** just work. Coming from **Build With Science**? The whole workout history comes
-along, and it **stays in sync**: meals through Health Connect, new workouts through Forza! Coach.
+along, and it **stays in sync**: meals through Health Connect, new workouts read by the phone itself (or by Forza! Coach).
 A friendly, opt-in **family challenge** gives points for showing up (workouts, lessons, steps, meals logged),
 never for weight, so a beginner can beat the family athlete.
 

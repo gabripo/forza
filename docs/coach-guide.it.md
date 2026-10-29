@@ -143,6 +143,23 @@ Salute (punto 4): Build With Science vi scrive ogni voce del diario alimentare.
    quando vuoi: la volta dopo riprende da dove si era fermato.
 5. In seguito, **Only workouts not imported yet** importa solo quelli nuovi.
 
+**Senza computer: dal suo telefono.** Dopo la prima importazione, i nuovi allenamenti può leggerli anche il
+telefono stesso, con l'app di supporto *Forza! Health* (punto 4):
+
+1. Apri Forza! Health → **Allenamenti di Build With Science** → **Attiva in Accessibilità** e attiva
+   *Forza! Health: allenamenti di Build With Science*. Se l'interruttore è grigio (Android 13 e successivi, per
+   le app non installate dal Play Store): **Info app** → menu ⋮ → **Consenti impostazioni con restrizioni**,
+   poi riprova.
+2. Da quel momento, in Forza! → **Impostazioni → Collega Salute e bilancia → Sincronizza gli allenamenti da
+   questo telefono** (oppure **Sincronizza gli allenamenti** nell'app di supporto). Build With Science si apre e
+   scorre da sola per 1–3 minuti: lascia il telefono sbloccato senza toccarlo. Una sottile barra arancione in
+   alto dice cosa sta succedendo; toccala per fermare.
+3. Facoltativo: **Promemoria giornaliero** nell'app di supporto, all'ora che preferisce (per esempio dopo
+   l'allenamento di solito): una notifica, e con un tocco parte la sincronizzazione.
+
+È lo stesso lettore di Coach, con le stesse regole (sola lettura, non tocca mai Start, Edit o Delete) e lo
+stesso risultato. Serve Android 11 o successivo.
+
 **Sincronizzazione automatica degli allenamenti.** Nella stessa scheda, sotto **Automatic sync**, clicca
 **Turn on**: da quel momento, ogni volta che quel telefono è collegato a questo computer ed è rimasto sbloccato e
 inutilizzato per 3 minuti, Coach importa da solo i nuovi allenamenti (ogni 1–24 ore, come preferisci), mostra un
@@ -190,9 +207,9 @@ Apri Forza! Coach quando vuoi:
   Riordina la Home.
 
 **Cosa ha bisogno del tuo computer?** Niente di quello che si usa ogni giorno. L'app, i dati, le foto del
-cibo, passi, peso e pasti sono online, quindi il tuo computer può restare spento. Solo l'importazione automatica
-degli **allenamenti di Build With Science** ha bisogno di Coach acceso e del telefono a portata (stessa Wi-Fi o
-cavo). Docker non serve.
+cibo, passi, peso, pasti e, con l'app di supporto, gli allenamenti di Build With Science funzionano senza, quindi
+il tuo computer può restare spento. Coach serve per configurare, seguire i progressi e modificare le schede.
+Docker non serve.
 
 ## 7. Aggiornare Forza!
 
