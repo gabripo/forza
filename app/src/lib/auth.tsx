@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { finishPendingSignIn } from './connect'
 import { getProfile, loadExercises, updateProfile, CATALOGUE } from './data'
 import { useI18n } from './i18n'
 import { supabase } from './supabase'
@@ -10,6 +11,8 @@ interface AppState {
   session: Session | null
   profile: Profile | null
   loading: boolean
+  /** A setup code that could not sign in (expired or already used). */
+  connectError: 'expired' | null
   exercises: Map<string, Exercise>
   saveProfile: (patch: Partial<Profile>) => Promise<void>
   refreshExercises: () => Promise<void>
@@ -23,13 +26,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [connectError, setConnectError] = useState<'expired' | null>(null)
   const [exercises, setExercises] = useState(() => new Map(CATALOGUE.map((e) => [e.id, e])))
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      if (!data.session) setLoading(false)
-    })
+    // Finish a setup-code sign-in started before the app reloaded on the new server.
+    void finishPendingSignIn()
+      .then((err) => setConnectError(err))
+      .then(() => supabase.auth.getSession())
+      .then(({ data }) => {
+        setSession(data.session)
+        if (!data.session) setLoading(false)
+      })
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       if (!s) {
@@ -87,7 +95,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AppContext.Provider value={{ session, profile, loading, exercises, saveProfile, refreshExercises, signOut }}>
+    <AppContext.Provider value={{ session, profile, loading, connectError, exercises, saveProfile, refreshExercises, signOut }}>
       {children}
     </AppContext.Provider>
   )

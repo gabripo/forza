@@ -9,7 +9,7 @@ import { deleteWeight, getWeights, importWeights, useAsync } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 
 export function Weights() {
-  const { t, num, date } = useI18n()
+  const { t, kg, date } = useI18n()
   const { profile } = useApp()
   const { data, loading, reload } = useAsync(() => getWeights(3650), [])
   const [logOpen, setLogOpen] = useState(false)
@@ -90,7 +90,7 @@ export function Weights() {
             {[...weights].reverse().slice(0, 200).map((w) => (
               <li key={w.id} className="flex items-center gap-3 py-1">
                 <span className="flex-1">
-                  <span className="font-semibold">{num(Number(w.weight_kg), 1)} kg</span>
+                  <span className="font-semibold">{kg(Number(w.weight_kg))} kg</span>
                   <span className="ml-2 text-sm text-ink-2">{date(w.measured_at, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </span>
                 <span className="text-xs text-ink-3">{t(`source.${w.source}`)}</span>

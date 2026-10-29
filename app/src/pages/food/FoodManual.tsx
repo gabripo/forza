@@ -1,25 +1,37 @@
-import { Plus, Search, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Barcode, Camera, PenLine, Plus, Search, Trash2 } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
+import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { FOODS, foodAt, type Food } from '../../data/foods'
 import { useApp } from '../../lib/auth'
 import { scorePlate, sumItems } from '../../lib/calc'
-import { addFood } from '../../lib/data'
+import { addFood, readLabel } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
+import { compressPhoto } from '../../lib/image'
+import { lookupBarcode, productAt, recentProducts, rememberProduct, type Product } from '../../lib/products'
+import { FOOD_FORMATS, validGtin } from '../../lib/scan'
 import type { FoodItem, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 
 const PROCESSED = new Set(['biscuits', 'croissant', 'soda', 'ice_cream'])
 
 export function FoodManual() {
-  const { t, l } = useI18n()
+  const { t, l, locale } = useI18n()
   const { profile } = useApp()
   const { energy } = useEnergy()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const [meal, setMeal] = useState<Meal>(mealForNow())
-  const [items, setItems] = useState<(FoodItem & { foodId?: string })[]>([])
+  const [items, setItems] = useState<(FoodItem & { foodId?: string; processed?: boolean; barcode?: string })[]>([])
+  const [scanning, setScanning] = useState(params.get('scan') === '1')
+  const [looking, setLooking] = useState(false)
+  const [product, setProduct] = useState<Product | null>(null)
+  const [notFound, setNotFound] = useState<string | null>(null)
+  const [labelError, setLabelError] = useState<string | null>(null)
+  const labelInput = useRef<HTMLInputElement>(null)
+  const recent = useMemo(() => recentProducts(), [])
   const [q, setQ] = useState('')
   const [picked, setPicked] = useState<Food | null>(null)
   const [grams, setGrams] = useState<number | null>(null)
@@ -34,7 +46,64 @@ export function FoodManual() {
 
   if (!profile || !energy) return <Loading />
   const totals = sumItems(items)
-  const processed = items.some((i) => i.foodId && PROCESSED.has(i.foodId))
+  const processed = items.some((i) => i.processed || (i.foodId && PROCESSED.has(i.foodId)))
+
+  async function onCode(raw: string) {
+    setScanning(false)
+    const code = raw.replace(/\D/g, '')
+    if (!validGtin(code)) {
+      setNotFound(code || raw)
+      return
+    }
+    setLooking(true)
+    try {
+      const p = await lookupBarcode(code, locale)
+      if (p) setProduct(p)
+      else setNotFound(code)
+    } catch {
+      setNotFound(code)
+    } finally {
+      setLooking(false)
+    }
+  }
+
+  /** Product unknown: read the nutrition label from a photo instead. */
+  async function onLabel(file: File | undefined) {
+    if (!file || !notFound) return
+    setLabelError(null)
+    setLooking(true)
+    try {
+      const photo = await compressPhoto(file, 1600)
+      const r = await readLabel({ image: photo.base64, locale })
+      if (!r.is_label || !r.kcal) {
+        setLabelError(t('scan.noLabel'))
+        return
+      }
+      const p: Product = {
+        code: notFound,
+        name: r.name || t('scan.unnamed'),
+        brand: r.brand || null,
+        image: null,
+        per100: { kcal: Math.round(r.kcal), protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, fiber_g: r.fiber_g, sugar_g: r.sugar_g },
+        servingG: r.serving_g > 0 ? r.serving_g : null,
+        ultraProcessed: false,
+        source: 'label',
+      }
+      setNotFound(null)
+      setProduct(p)
+    } catch (e) {
+      const code = (e as Error).message
+      setLabelError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+    } finally {
+      setLooking(false)
+    }
+  }
+
+  function addProduct(p: Product, grams: number) {
+    rememberProduct(p)
+    setItems((xs) => [...xs, { ...productAt(p, grams), processed: p.ultraProcessed, barcode: p.code }])
+    setProduct(null)
+  }
 
   function addPicked() {
     if (!picked || !grams) return
@@ -53,12 +122,12 @@ export function FoodManual() {
         eaten_at: now.toISOString(),
         meal,
         title: items.map((i) => i.name).join(', ').slice(0, 120),
-        items: items.map(({ foodId: _drop, ...rest }) => rest),
+        items: items.map(({ foodId: _drop, processed: _p, barcode: _b, ...rest }) => rest),
         ...totals,
         score_fat_loss: s.fatLoss,
         score_muscle_gain: s.muscleGain,
         photo_path: null,
-        source: 'manual',
+        source: items.some((i) => i.barcode) ? 'barcode' : 'manual',
         ai_notes: null,
       })
       navigate('/food')
@@ -96,6 +165,30 @@ export function FoodManual() {
       </Card>
 
       <Card title={t('manual.addFood')}>
+        <Button block variant="secondary" className="mb-3" onClick={() => setScanning(true)} loading={looking}>
+          <Barcode className="size-5" aria-hidden /> {t('scan.button')}
+        </Button>
+        {!q.trim() && recent.length ? (
+          <>
+            <p className="mb-1 text-sm font-semibold text-ink-2">{t('scan.recent')}</p>
+            <ul className="mb-3 grid gap-1">
+              {recent.slice(0, 5).map((p) => (
+                <li key={p.code}>
+                  <button onClick={() => setProduct(p)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{p.name}</span>
+                      <span className="block text-sm text-ink-2">
+                        {p.brand ? `${p.brand} · ` : ''}
+                        {t('manual.per100', { kcal: p.per100.kcal, p: p.per100.protein_g })}
+                      </span>
+                    </span>
+                    <Plus className="size-5 text-brand" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         <div className="relative mb-3">
           <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('manual.search')} className="pl-10" />
@@ -164,6 +257,33 @@ export function FoodManual() {
           </div>
         ) : null}
       </Sheet>
+      {scanning ? (
+        <Scanner formats={FOOD_FORMATS} title={t('scan.title')} hint={t('scan.hint')} allowTyping onResult={onCode} onClose={() => setScanning(false)} />
+      ) : null}
+      <ProductSheet product={product} onClose={() => setProduct(null)} onAdd={addProduct} />
+      <Sheet open={notFound !== null} onClose={() => setNotFound(null)} title={t('scan.notFoundTitle')}>
+        <div className="grid gap-3">
+          <p className="text-ink-2">{t('scan.notFound', { code: notFound ?? '' })}</p>
+          <input ref={labelInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onLabel(e.target.files?.[0])} />
+          <Button size="lg" block onClick={() => labelInput.current?.click()} loading={looking}>
+            <Camera className="size-5" aria-hidden /> {t('scan.photoLabel')}
+          </Button>
+          {labelError ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{labelError}</p> : null}
+          <Button
+            variant="secondary"
+            block
+            onClick={() => {
+              setNotFound(null)
+              setCustom(true)
+            }}
+          >
+            <PenLine className="size-5" aria-hidden /> {t('manual.custom')}
+          </Button>
+          <Button variant="ghost" block onClick={() => { setNotFound(null); setScanning(true) }}>
+            {t('scan.again')}
+          </Button>
+        </div>
+      </Sheet>
       <CustomItemSheet
         open={custom}
         onClose={() => setCustom(false)}
@@ -212,6 +332,61 @@ function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () 
           {t('manual.add')}
         </Button>
       </div>
+    </Sheet>
+  )
+}
+
+function ProductSheet({ product, onClose, onAdd }: { product: Product | null; onClose: () => void; onAdd: (p: Product, grams: number) => void }) {
+  const { t } = useI18n()
+  const [grams, setGrams] = useState<number | null>(null)
+  const [shown, setShown] = useState<string | null>(null)
+  // Start from one serving (or 100 g) each time a new product opens.
+  if (product && shown !== product.code) {
+    setShown(product.code)
+    setGrams(product.servingG ?? 100)
+  }
+  const presets = product
+    ? [
+        ...(product.servingG ? [{ label: t('scan.serving', { g: product.servingG }), g: product.servingG }] : []),
+        ...(product.servingG ? [{ label: '×2', g: product.servingG * 2 }] : []),
+        { label: '50 g', g: 50 },
+        { label: '100 g', g: 100 },
+      ]
+    : []
+  const n = product && grams ? productAt(product, grams) : null
+  return (
+    <Sheet open={Boolean(product)} onClose={onClose} title={product?.name ?? ''}>
+      {product ? (
+        <div className="grid gap-4">
+          <div className="flex items-center gap-3">
+            {product.image ? <img src={product.image} alt="" className="size-16 rounded-2xl bg-white object-contain" /> : null}
+            <div className="min-w-0 text-sm text-ink-2">
+              {product.brand ? <p className="font-semibold text-ink">{product.brand}</p> : null}
+              <p>{t('manual.per100', { kcal: product.per100.kcal, p: product.per100.protein_g })}</p>
+              <p className="text-ink-3">{product.source === 'label' ? t('scan.fromLabel') : t('scan.fromOff')}</p>
+            </div>
+          </div>
+          <Field label={t('manual.howMuch')}>
+            <NumberInput decimals={false} value={grams} onChange={setGrams} />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            {presets.map((x) => (
+              <Button key={x.label} variant="secondary" size="sm" onClick={() => setGrams(Math.round(x.g))}>
+                {x.label}
+              </Button>
+            ))}
+          </div>
+          {n ? (
+            <p className="text-ink-2">
+              {n.kcal} kcal · {t('macro.protein')} {n.protein_g} g · {t('macro.carbs')} {n.carbs_g} g · {t('macro.fat')} {n.fat_g} g
+            </p>
+          ) : null}
+          {product.ultraProcessed ? <p className="rounded-2xl bg-card-2 p-3 text-sm">{t('scan.ultraProcessed')}</p> : null}
+          <Button size="lg" block disabled={!grams} onClick={() => grams && onAdd(product, grams)}>
+            {t('manual.add')}
+          </Button>
+        </div>
+      ) : null}
     </Sheet>
   )
 }

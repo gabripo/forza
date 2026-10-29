@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 // VITE_BASE is "/forza/" when deployed to GitHub Pages (see .github/workflows/deploy-app.yml).
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
+  // The history importer in ../shared is used by the app and by Forza! Coach.
+  server: { fs: { allow: ['..'] } },
   plugins: [
     react(),
     tailwindcss(),
@@ -37,6 +39,12 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.includes('/exercises/'),
             handler: 'CacheFirst',
             options: { cacheName: 'exercise-photos', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+          {
+            // Barcode decoder for phones without a built-in one: downloaded the first time it is needed.
+            urlPattern: ({ url }) => url.pathname.endsWith('.wasm'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'decoders', expiration: { maxEntries: 4 } },
           },
         ],
       },

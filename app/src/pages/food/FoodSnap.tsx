@@ -8,24 +8,8 @@ import { round1, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, estimatePlate, uploadFoodPhoto, type AiPlate } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { FoodItem, Meal } from '../../lib/types'
+import { compressPhoto as compress } from '../../lib/image'
 import { useEnergy } from '../../lib/useEnergy'
-
-/** Resizes the photo to max 1024 px JPEG: fast to upload, enough detail for the AI. */
-async function compress(file: File): Promise<{ blob: Blob; base64: string; url: string }> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.82))
-  const base64 = await new Promise<string>((resolve) => {
-    const r = new FileReader()
-    r.onload = () => resolve(String(r.result).split(',')[1])
-    r.readAsDataURL(blob)
-  })
-  return { blob, base64, url: URL.createObjectURL(blob) }
-}
 
 export function FoodSnap() {
   const { t, locale } = useI18n()

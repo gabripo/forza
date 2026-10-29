@@ -1,7 +1,8 @@
-import { CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, PenLine, Trash2 } from 'lucide-react'
+import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, PenLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
+import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand } from '../../lib/calc'
@@ -64,11 +65,14 @@ export function FoodHome() {
     <div className="grid gap-4">
       <PageHeader title={t('food.title')} subtitle={t(`goal.${goal}`)} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button size="lg" className="h-auto flex-col py-3 leading-tight" onClick={() => navigate('/food/snap')}>
+      <div className="grid grid-cols-3 gap-2">
+        <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>
           <Camera className="size-6" aria-hidden /> {t('food.snap')}
         </Button>
-        <Button size="lg" variant="secondary" className="h-auto flex-col py-3 leading-tight" onClick={() => navigate('/food/add')}>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add?scan=1')}>
+          <Barcode className="size-6 text-brand" aria-hidden /> {t('food.barcode')}
+        </Button>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add')}>
           <PenLine className="size-6 text-brand" aria-hidden /> {t('food.manual')}
         </Button>
       </div>
@@ -202,62 +206,7 @@ export function FoodHome() {
       </Card>
 
       <Sheet open={explain} onClose={() => setExplain(false)} title={t('food.how')}>
-        <div className="grid gap-3">
-          <p>{t('food.explain.intro')}</p>
-          <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 tabular">
-            <li className="flex justify-between">
-              <span>{t('food.explain.bmr')}</span>
-              <b>{num(energy.tdee.bmr)} kcal</b>
-            </li>
-            {energy.tdee.method !== 'activity_level' ? (
-              <>
-                <li className="flex justify-between">
-                  <span>{t('food.explain.daily')}</span>
-                  <b>+{num(Math.round(energy.tdee.bmr * 0.2))} kcal</b>
-                </li>
-                <li className="flex justify-between">
-                  <span>{t('food.explain.steps', { n: num(energy.avgSteps ?? 0) })}</span>
-                  <b>+{num(energy.tdee.stepsKcal)} kcal</b>
-                </li>
-                <li className="flex justify-between">
-                  <span>{t('food.explain.training', { n: num(energy.workoutsPerWeek, 1) })}</span>
-                  <b>+{num(energy.tdee.trainingKcal)} kcal</b>
-                </li>
-              </>
-            ) : (
-              <li className="flex justify-between">
-                <span>{t('food.explain.activity', { level: t(`activity.${profile.activity_level ?? 'light'}`) })}</span>
-                <b>= {num(energy.tdee.formula)} kcal</b>
-              </li>
-            )}
-            {energy.tdee.adaptive ? (
-              <li className="flex justify-between">
-                <span>{t('food.explain.adaptive', { days: energy.loggedFoodDays })}</span>
-                <b>{num(energy.tdee.adaptive)} kcal</b>
-              </li>
-            ) : null}
-            {profile.kcal_adjust ? (
-              <li className="flex justify-between">
-                <span>{t('food.explain.checkins')}</span>
-                <b>
-                  {profile.kcal_adjust > 0 ? '+' : '−'}
-                  {num(Math.abs(profile.kcal_adjust))} kcal
-                </b>
-              </li>
-            ) : null}
-            <li className="flex justify-between border-t border-line pt-2">
-              <span className="font-bold">{t('food.explain.tdee')}</span>
-              <b>{num(energy.tdee.tdee)} kcal</b>
-            </li>
-            <li className="flex justify-between">
-              <span className="font-bold">{t('food.explain.target', { goal: t(`goal.${goal}`) })}</span>
-              <b>{num(tg.kcal)} kcal</b>
-            </li>
-          </ul>
-          <p className="text-sm text-ink-2">{t('food.explain.protein', { g: tg.protein_g })}</p>
-          {!energy.tdee.adaptive ? <p className="text-sm text-ink-2">{t('food.explain.moreData')}</p> : null}
-          <p className="text-sm text-ink-3">{t('onb.disclaimer')}</p>
-        </div>
+        <EnergyExplainer energy={energy} profile={profile} />
       </Sheet>
     </div>
   )

@@ -1,15 +1,19 @@
-// Forza! admin UI (vanilla JS). Every value coming from the database is escaped with esc().
+// Forza! Coach UI (vanilla JS). Every value coming from the database is escaped with esc().
 
 // The per-launch token arrives in the URL fragment; keep it for reloads, then hide it.
 const fromHash = new URLSearchParams(location.hash.slice(1)).get('token')
 if (fromHash) {
-  sessionStorage.setItem('forza-admin-token', fromHash)
+  sessionStorage.setItem('forza-coach-token', fromHash)
   history.replaceState(null, '', location.pathname)
 }
-const TOKEN = sessionStorage.getItem('forza-admin-token')
+const TOKEN = sessionStorage.getItem('forza-coach-token')
 
 const app = document.getElementById('app')
 const state = {
+  status: null,
+  setup: { projects: null, organizations: [], choice: null, job: null },
+  bws: { devices: null, job: null },
+  signin: null,
   view: 'people',
   users: [],
   selected: null,
@@ -78,7 +82,15 @@ async function selectUser(id) {
 function render() {
   document.querySelectorAll('.top nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === state.view))
   if (!TOKEN) {
-    app.innerHTML = '<p class="pad">Missing access token. Start the dashboard with <code>npm start</code> in the admin folder.</p>'
+    app.innerHTML = '<p class="pad">Missing access token. Start Forza! Coach again with its start file (or <code>npm start</code> in the coach folder).</p>'
+    return
+  }
+  if (!state.status) {
+    app.innerHTML = '<p class="pad muted">Loading…</p>'
+    return
+  }
+  if (!state.status.configured || state.view === 'setup') {
+    app.innerHTML = setupView()
     return
   }
   app.innerHTML = state.view === 'exercises' ? exercisesView() : peopleView()
@@ -91,24 +103,23 @@ function peopleView() {
       const active = u.workouts_28d >= 8 ? 'good' : u.workouts_28d >= 4 ? 'info' : 'warn'
       return `<li><button data-action="select" data-id="${esc(u.id)}" class="${u.id === state.selected ? 'active' : ''}">
         <div class="name">${esc(p?.display_name || '(no name yet)')}</div>
-        <div class="muted small">${esc(u.email)}</div>
+        <div class="muted small">${u.no_email ? 'signs in with a QR code' : esc(u.email)}</div>
         <div class="small">${p?.onboarded_at ? `<span class="pill ${active}">${u.workouts_28d} workouts / 4 wk</span>` : '<span class="pill info">setup not done</span>'}
-        ${u.last_weight ? `<span class="muted"> · ${fmtNum(u.last_weight.weight_kg, 1)} kg</span>` : ''}</div>
+        ${u.last_weight ? `<span class="muted"> · ${fmtNum(u.last_weight.weight_kg, 2)} kg</span>` : ''}</div>
       </button></li>`
     })
     .join('')
   return `<div class="layout">
-    <aside>
+    <aside class="no-print">
       <div class="card"><h2>People</h2><ul class="users">${list || '<li class="muted">No accounts yet.</li>'}</ul></div>
       <div class="card">
-        <h2>New account</h2>
+        <h2>Add a person</h2>
         <form class="stack" data-form="create-user">
-          <label class="field">Name<input name="display_name" required></label>
-          <label class="field">Email<input name="email" type="email" required></label>
-          <label class="field">Password (min 8)<input name="password" type="text" minlength="8" required autocomplete="off"></label>
+          <label class="field">Name<input name="display_name" required placeholder="e.g. Maria"></label>
           <label class="field">Language<select name="locale"><option value="it">Italiano</option><option value="en">English</option></select></label>
+          <label class="field">Email (optional)<input name="email" type="email" placeholder="not needed"></label>
           <button class="btn">Create account</button>
-          <p class="muted small">Sign-ups are closed: only you can create accounts. Give the email and password to the person (or set up their phone), they sign in once and stay signed in.</p>
+          <p class="muted small">Only you can create accounts. Next, you get a QR code: they scan it with their phone and are signed in, no email or password to remember.</p>
         </form>
       </div>
     </aside>
@@ -121,13 +132,13 @@ function detailView() {
   if (!d) return '<div class="card muted">Loading…</div>'
   const p = d.profile ?? {}
   const user = state.users.find((u) => u.id === state.selected)
-  const tabs = ['overview', 'plan', 'workouts', 'food', 'checkins', 'account']
-  const labels = { overview: 'Overview', plan: 'Workout plan', workouts: 'Workouts', food: 'Food', checkins: 'Check-ins', account: 'Account' }
+  const tabs = ['overview', 'plan', 'workouts', 'food', 'checkins', 'phone', 'profile', 'import', 'account']
+  const labels = { overview: 'Overview', plan: 'Workout plan', workouts: 'Workouts', food: 'Food', checkins: 'Check-ins', phone: 'Sign in a phone', profile: 'Profile', import: 'Import', account: 'Account' }
   const age = p.birth_year ? new Date().getFullYear() - p.birth_year : '—'
-  const body = { overview, plan: planView, workouts: workoutsView, food: foodView, checkins: checkinsView, account: accountView }[state.tab](d)
-  return `<div class="card">
+  const body = { overview, plan: planView, workouts: workoutsView, food: foodView, checkins: checkinsView, phone: phoneView, profile: profileView, import: importView, account: accountView }[state.tab](d)
+  return `<div class="card no-print">
       <div class="row"><h2 style="margin:0">${esc(p.display_name || user?.email)}</h2>
-      <span class="muted">${esc(user?.email)} · ${esc(p.goal?.replace('_', ' ') ?? 'no goal')} · ${age} y · ${fmtNum(p.height_cm)} cm · ${esc(p.activity_level ?? '')} · ${esc(p.locale ?? '')}</span></div>
+      <span class="muted">${user?.no_email ? 'no email' : esc(user?.email)} · ${esc(p.goal?.replace('_', ' ') ?? 'no goal')} · ${age} y · ${fmtNum(p.height_cm)} cm · ${esc(p.activity_level ?? '')} · ${esc(p.locale ?? '')}</span></div>
       <div class="tabs">${tabs.map((t) => `<button data-action="tab" data-tab="${t}" class="${t === state.tab ? 'active' : ''}">${labels[t]}</button>`).join('')}</div>
     </div>${body}`
 }
@@ -161,8 +172,8 @@ function overview(d) {
   const avgPct = strengthRows.length ? strengthRows.reduce((a, r) => a + r.pct, 0) / strengthRows.length : null
 
   return `<div class="card"><div class="tiles">
-      <div class="tile"><div class="label">Weight now</div><div class="value">${fmtNum(last, 1)} kg</div><div class="small muted">${first != null ? `${last - first >= 0 ? '+' : ''}${fmtNum(last - first, 1)} kg in 12 months` : ''}</div></div>
-      <div class="tile"><div class="label">Target</div><div class="value">${fmtNum(p(d).target_weight_kg, 1)} kg</div></div>
+      <div class="tile"><div class="label">Weight now</div><div class="value">${fmtNum(last, 2)} kg</div><div class="small muted">${first != null ? `${last - first >= 0 ? '+' : ''}${fmtNum(last - first, 2)} kg in 12 months` : ''}</div></div>
+      <div class="tile"><div class="label">Target</div><div class="value">${fmtNum(p(d).target_weight_kg, 2)} kg</div></div>
       <div class="tile"><div class="label">Workouts, last 4 weeks</div><div class="value">${recentSessions.length}</div><div class="small muted">goal ${p(d).workouts_per_week * 4}</div></div>
       <div class="tile"><div class="label">Avg steps (14 d)</div><div class="value">${fmtNum(avgSteps)}</div><div class="small muted">goal ${fmtNum(p(d).steps_goal)}</div></div>
       <div class="tile"><div class="label">Strength change</div><div class="value">${avgPct == null ? '—' : `${avgPct >= 0 ? '+' : ''}${fmtNum(avgPct)}%`}</div></div>
@@ -329,12 +340,10 @@ function checkinsView(d) {
 
 function accountView() {
   const user = state.users.find((u) => u.id === state.selected)
-  return `<div class="card"><h2>Reset password</h2>
+  return `<div class="card"><h2>Password</h2>
+      <p class="muted small">Not needed with the QR code. Set one if they also want to sign in with ${user?.no_email ? 'an email and password (add a real email first)' : `<b>${esc(user?.email)}</b> and a password`}.</p>
       <form class="row" data-form="password"><input name="password" type="text" minlength="8" required placeholder="new password" autocomplete="off"><button class="btn">Set password</button></form>
       <p class="muted small">Last sign-in: ${fmtDate(user?.last_sign_in_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · created ${fmtDate(user?.created_at)}</p></div>
-    <div class="card"><h2>Import history</h2>
-      <p class="muted">Upload a <code>forza-history-v1</code> JSON file (workouts with every set, a plan and weigh-ins), for example converted from another app. Importing the same file again does not create duplicates.</p>
-      <form class="row" data-form="import"><input name="file" type="file" accept="application/json,.json" required><button class="btn">Import</button></form></div>
     <div class="card"><h2>Delete account</h2>
       <p class="muted">Permanently deletes the account and all of its data (weights, workouts, food, photos). This cannot be undone.</p>
       <form class="row" data-form="delete"><input name="confirm" placeholder="type the email to confirm" style="min-width:260px"><button class="btn danger">Delete forever</button></form></div>`
@@ -375,6 +384,214 @@ function exercisesView() {
 }
 
 // ---------------------------------------------------------------------------
+// Setup: Supabase project, food AI, app address
+// ---------------------------------------------------------------------------
+
+function jobLog(job) {
+  if (!job) return ''
+  const head = job.status === 'running' ? '<p class="muted">Working… keep this page open.</p>' : job.status === 'done' ? '<p class="ok">Done.</p>' : `<p class="pill warn">${esc(job.error ?? 'Stopped')}</p>`
+  return `${head}<div class="log" id="job-log">${esc(job.log.join('\n'))}</div>${job.status === 'running' ? `<button class="btn secondary small no-print" data-action="job-stop" data-job="${esc(job.id)}" style="margin-top:8px">Stop</button>` : ''}`
+}
+
+function setupView() {
+  const st = state.status
+  const su = state.setup
+  if (st.configured && state.view === 'setup') return serverView()
+  const step = (n, title, status, body) => `<div class="card step ${status}"><div class="num">${status === 'done' ? '✓' : n}</div><div><h2>${title}</h2>${body}</div></div>`
+  const tokenDone = st.accessToken && su.projects
+  const projectList = (su.projects ?? [])
+    .map((p) => `<label class="row"><input type="radio" name="project" value="${esc(p.ref ?? p.id)}" ${su.choice === (p.ref ?? p.id) ? 'checked' : ''}> <b>${esc(p.name)}</b> <span class="muted small">${esc(p.region)} · ${esc(p.status)}</span></label>`)
+    .join('')
+  const orgs = su.organizations.map((o) => `<option value="${esc(o.slug ?? o.id)}">${esc(o.name)}</option>`).join('')
+  return `<div class="wizard">
+    <div class="card"><h2>Welcome to Forza! Coach 👋</h2>
+      <p>This sets up Forza! for your family in about 10 minutes. You need a computer (this one), an internet connection and, later, the phone of the person you are helping.</p>
+      <p class="muted small">Everything stays in a free database that belongs to you (Supabase). The keys are kept in this computer's password store (${esc({ keychain: 'macOS Keychain', 'credential-manager': 'Windows Credential Manager', 'secret-service': 'the system keyring', file: 'a private file' }[st.store] ?? st.store)}).</p>
+      <p class="muted small">Step-by-step guide with pictures: <a href="https://github.com/gabripo/forza/blob/main/docs/coach-guide.md" target="_blank" rel="noreferrer">Coach guide</a>.</p>
+    </div>
+    ${step(1, 'Create a free Supabase account and an access token', tokenDone ? 'done' : 'current', `
+      <ol>
+        <li>Open <a href="https://supabase.com/dashboard/sign-up" target="_blank" rel="noreferrer">supabase.com</a> and create a free account (you can use "Continue with GitHub" or your email).</li>
+        <li>Open <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer">Account → Access Tokens</a>, click <b>Generate new token</b>, name it "Forza Coach", and copy it.</li>
+        <li>Paste it here. It lets Forza! Coach install Forza! in your database; it is stored only on this computer.</li>
+      </ol>
+      <form class="row" data-form="setup-token"><input name="token" type="password" placeholder="sbp_…" required autocomplete="off" style="min-width:280px"><button class="btn">${st.accessToken ? 'Replace token' : 'Save token'}</button></form>
+      ${st.accessToken && !su.projects ? '<p class="small"><button class="btn secondary small" data-action="setup-projects">Use the saved token</button></p>' : ''}`)}
+    ${step(2, 'Choose where Forza! lives', su.choice ? 'done' : tokenDone ? 'current' : '', tokenDone ? `
+      ${projectList ? `<p>Your projects:</p><div class="stack">${projectList}</div>` : '<p class="muted">You have no projects yet.</p>'}
+      <details ${projectList ? '' : 'open'} style="margin-top:10px"><summary>Create a new free project</summary>
+        <form class="row" data-form="setup-create" style="margin-top:8px">
+          <input name="name" value="forza" required>
+          <select name="organization">${orgs}</select>
+          <select name="region"><option value="emea" ${st.region === 'emea' ? 'selected' : ''}>Europe</option><option value="americas" ${st.region === 'americas' ? 'selected' : ''}>Americas</option><option value="apac" ${st.region === 'apac' ? 'selected' : ''}>Asia-Pacific</option></select>
+          <button class="btn">Create project</button>
+        </form>
+        <p class="muted small">The free plan allows 2 projects. A new project takes about 2 minutes to start.</p>
+      </details>` : '<p class="muted">After step 1.</p>')}
+    ${step(3, 'Food photos (optional, free)', '', `
+      <p>To estimate calories from a photo, Forza! uses Google Gemini. Its free tier is enough for a family.</p>
+      <ol><li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio → API keys</a> (sign in with a Google account).</li><li>Click <b>Create API key</b>, copy it and paste it here. You can also add it later in Setup.</li></ol>
+      <input id="gemini-key" type="password" placeholder="AIza…" autocomplete="off" style="min-width:280px">`)}
+    ${step(4, 'Install', state.setup.job?.status === 'done' ? 'done' : su.choice ? 'current' : '', `
+      <details><summary class="small">Advanced: the app's address</summary>
+        <p class="muted small">Everyone can use the shared app at ${esc(st.appUrl)}: your data still goes only to your own database. If you publish your own copy (see docs/advanced-setup.md), put its address here.</p>
+        <input id="app-url" value="${esc(st.appUrl)}" style="min-width:320px">
+      </details>
+      <p>Forza! Coach prepares the database, the server functions and the sign-in settings. It takes about a minute.</p>
+      <button class="btn" data-action="setup-install" ${su.choice ? '' : 'disabled'}>Install Forza!</button>
+      ${jobLog(state.setup.job)}`)}
+  </div>`
+}
+
+function serverView() {
+  const st = state.status
+  return `<div class="wizard">
+    <div class="card"><h2>Your Forza! server</h2>
+      <p>Database: <b>${esc(st.url)}</b>${st.local ? ' (local development stack)' : ''}<br>App: <a href="${esc(st.appUrl)}" target="_blank" rel="noreferrer">${esc(st.appUrl)}</a><br>
+      <span class="muted small">Keys stored in: ${esc(st.store)}${st.store === 'file' ? ' — no system password store found, so they are in a private file in your user folder' : ''}</span></p>
+    </div>
+    <div class="card"><h2>Update Forza!</h2>
+      <p>After downloading a newer version of Forza!, run this once: it brings the database and the server functions up to date. Nothing is deleted.</p>
+      ${st.accessToken
+        ? `<button class="btn" data-action="setup-update" ${st.ref ? '' : 'disabled'}>Update the server</button>`
+        : `<p class="muted small">Needs a Supabase access token: <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer">Account → Access Tokens</a> → Generate new token, then paste it here.</p>
+          <form class="row" data-form="setup-token"><input name="token" type="password" placeholder="sbp_…" required autocomplete="off" style="min-width:280px"><button class="btn">Save token</button></form>`}
+      ${jobLog(state.setup.job)}
+    </div>
+    <div class="card"><h2>Food photo AI</h2>
+      <form class="row" data-form="ai-key"><input name="key" type="password" placeholder="new Gemini API key (AIza…)" required autocomplete="off" style="min-width:280px"><button class="btn secondary" ${st.accessToken ? '' : 'disabled'}>Save key</button></form>
+      <p class="muted small">Test it with a photo of a meal or of a nutrition label: the answer shows the model and how long it took.</p>
+      <form class="row" data-form="ai-test"><input name="photo" type="file" accept="image/*" required><select name="mode"><option value="plate">Plate</option><option value="label">Nutrition label</option></select><button class="btn">Test</button></form>
+      <div id="ai-result"></div>
+    </div>
+    <div class="card"><h2>App address</h2>
+      <form class="row" data-form="app-url"><input name="appUrl" value="${esc(st.appUrl)}" style="min-width:320px"><button class="btn secondary">Save</button></form>
+      <p class="muted small">Used in sign-in QR codes. Keep the shared address unless you publish your own copy of the app.</p>
+    </div>
+  </div>`
+}
+
+// ---------------------------------------------------------------------------
+// One person: phone sign-in, profile, imports
+// ---------------------------------------------------------------------------
+
+function phoneView() {
+  const sc = state.signin
+  const p = state.data?.profile ?? {}
+  const it = (p.locale ?? 'it') === 'it'
+  return `<div class="card no-print"><h2>Sign in their phone with a QR code</h2>
+      <p>On their phone, open the <b>camera</b> and point it at the code (or, in the Forza! app, tap <b>Scan my code</b>). Forza! opens already signed in; they stay signed in.</p>
+      <p class="muted small">Each code works once, for 24 hours. Make a new one any time, e.g. for a new phone.</p>
+      <button class="btn" data-action="signin-code">${sc ? 'Make a new code' : 'Make a sign-in code'}</button>
+      ${sc ? '<button class="btn secondary" data-action="print">Print a welcome card</button>' : ''}
+    </div>
+    ${sc ? `<div class="card">
+      <div class="row" style="align-items:flex-start;gap:24px">
+        <div class="qr">${sc.svg}</div>
+        <div style="flex:1;min-width:240px">
+          <h2 style="font-size:24px">${it ? `Ciao ${esc(sc.name)}! 💪` : `Hi ${esc(sc.name)}! 💪`}</h2>
+          <ol style="font-size:17px;line-height:1.5">
+            ${it
+              ? `<li>Apri la <b>fotocamera</b> del telefono e inquadra il codice, poi tocca il link: si apre <b>Forza!</b>.</li><li><b>Android</b>: tocca <b>Inizia</b>, poi menu ⋮ → <b>Installa app</b>.</li><li><b>iPhone</b>: prima Condividi → <b>Aggiungi alla schermata Home</b>; apri Forza! dalla nuova icona, tocca <b>Inquadra il mio codice</b>, inquadra di nuovo questo codice e tocca <b>Inizia</b>.</li><li>Rispondi a poche domande: fatto!</li>`
+              : `<li>Open your phone's <b>camera</b>, point it at the code and tap the link: <b>Forza!</b> opens.</li><li><b>Android</b>: tap <b>Start</b>, then menu ⋮ → <b>Install app</b>.</li><li><b>iPhone</b>: first Share → <b>Add to Home Screen</b>; open Forza! from the new icon, tap <b>Scan my code</b>, scan this code again and tap <b>Start</b>.</li><li>Answer a few questions: done!</li>`}
+          </ol>
+          <p class="muted small">${it ? 'Codice valido fino a' : 'Code valid until'} ${fmtDate(sc.expires_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+        </div>
+      </div>
+      <details class="no-print"><summary class="small">Link (to send in a private message instead)</summary><p class="small" style="word-break:break-all"><code>${esc(sc.url)}</code></p><button class="btn secondary small" data-action="copy-link">Copy link</button></details>
+    </div>` : ''}`
+}
+
+function profileView(d) {
+  const p = d.profile ?? {}
+  const opt = (name, values, labels) => `<select name="${name}">${['', ...values].map((v, i) => `<option value="${esc(v)}" ${String(p[name] ?? '') === String(v) ? 'selected' : ''}>${i ? labels[i - 1] : '—'}</option>`).join('')}</select>`
+  return `<div class="card"><h2>Profile</h2>
+    <p class="muted">Fill this in for them if you like: the app then skips the first questions${p.onboarded_at ? '' : ' (tick "set-up done" below)'}. They can change everything later in the app's Settings.</p>
+    <form class="stack" data-form="profile">
+      <div class="grid2">
+        <label class="field">Name<input name="display_name" value="${esc(p.display_name ?? '')}"></label>
+        <label class="field">Language${opt('locale', ['it', 'en'], ['Italiano', 'English'])}</label>
+        <label class="field">Sex (for the energy formula)${opt('sex', ['female', 'male'], ['Female', 'Male'])}</label>
+        <label class="field">Year of birth<input name="birth_year" inputmode="numeric" value="${esc(p.birth_year ?? '')}"></label>
+        <label class="field">Height (cm)<input name="height_cm" inputmode="decimal" value="${esc(p.height_cm ?? '')}"></label>
+        <label class="field">Weight at start (kg)<input name="start_weight_kg" inputmode="decimal" value="${esc(p.start_weight_kg ?? '')}"></label>
+        <label class="field">Target weight (kg)<input name="target_weight_kg" inputmode="decimal" value="${esc(p.target_weight_kg ?? '')}"></label>
+        <label class="field">Goal${opt('goal', ['fat_loss', 'muscle_gain', 'maintain'], ['Lose fat', 'Build muscle', 'Stay healthy'])}</label>
+        <label class="field">Activity${opt('activity_level', ['sedentary', 'light', 'moderate', 'active', 'very_active'], ['Sedentary', 'Light', 'Moderate', 'Active', 'Very active'])}</label>
+        <label class="field">Experience${opt('experience', ['beginner', 'intermediate'], ['Beginner', 'Some experience'])}</label>
+        <label class="field">Workouts a week<input name="workouts_per_week" inputmode="numeric" value="${esc(p.workouts_per_week ?? 3)}"></label>
+        <label class="field">Daily steps goal<input name="steps_goal" inputmode="numeric" value="${esc(p.steps_goal ?? 7000)}"></label>
+      </div>
+      ${p.onboarded_at ? `<p class="muted small">Set-up done on ${fmtDate(p.onboarded_at)}.</p>` : '<label class="row small"><input type="checkbox" name="finish_setup" value="1"> Set-up done: they go straight to the home screen</label>'}
+      <div><button class="btn">Save profile</button></div>
+    </form></div>`
+}
+
+function importView() {
+  const b = state.bws
+  const dev = b.devices
+  const devices = dev?.devices ?? []
+  const ready = devices.filter((x) => x.state === 'device')
+  return `<div class="card"><h2>Import from Build With Science</h2>
+      <p>Brings over their past workouts (every set, with effort), the weekly plan (days, supersets) and their goal. Weigh-ins come by themselves through Health Connect once the Forza! helper app is set up.</p>
+      <ol>
+        <li>On their Android phone: Settings → About phone → tap <b>Build number</b> 7 times; then Settings → System → Developer options → turn on <b>USB debugging</b>.</li>
+        <li>Connect the phone to this computer with a USB cable and tap <b>Allow</b> on the phone.</li>
+        <li>Unlock the phone, keep it unlocked (set the screen timeout to 30 minutes) and don't touch it while it works: Forza! Coach opens Build With Science and reads the screens. About 30 seconds per workout.</li>
+      </ol>
+      <div class="row">
+        <button class="btn secondary" data-action="bws-devices">Check the phone</button>
+        ${dev && !dev.adb ? '<button class="btn secondary" data-action="bws-adb">Download Android tools (15 MB, from Google)</button>' : ''}
+      </div>
+      ${dev ? `<p class="small">${!dev.adb ? 'Android tools (adb) are not installed yet.' : !devices.length ? 'No phone found: check the cable and USB debugging.' : devices.map((x) => `${esc(x.model || x.serial)}: ${x.state === 'device' ? '<span class="ok">ready</span>' : x.state === 'unauthorized' ? 'tap Allow on the phone' : esc(x.state)}`).join('<br>')}</p>` : ''}
+      ${ready.length ? `<form class="stack" data-form="bws" style="margin-top:8px">
+        ${ready.length > 1 ? `<label class="field">Phone<select name="serial">${ready.map((x) => `<option value="${esc(x.serial)}">${esc(x.model || x.serial)}</option>`).join('')}</select></label>` : `<input type="hidden" name="serial" value="${esc(ready[0].serial)}">`}
+        <label class="row small"><input type="radio" name="since" value="new" checked> Only workouts not imported yet</label>
+        <label class="row small"><input type="radio" name="since" value="all"> Everything from the last 12 months</label>
+        <label class="row small"><input type="checkbox" name="plan" value="1" checked> Plan and weekly schedule</label>
+        <label class="row small"><input type="checkbox" name="profile" value="1" checked> Goal and settings</label>
+        <div><button class="btn">Start the import</button></div>
+      </form>` : ''}
+      ${b.job ? jobLog(b.job) : ''}
+      ${b.job?.status === 'done' ? '<p class="small"><button class="btn secondary small" data-action="bws-file">Download the file</button> <span class="muted">(to keep, or to import in the app: Settings → Connect Health & scale)</span></p>' : ''}
+    </div>
+    <div class="card"><h2>Import a history file</h2>
+      <p class="muted">A <code>forza-history-v1</code> JSON file (workouts with every set, a plan, weigh-ins, meals), for example converted from another app. Importing the same file again does not create duplicates.</p>
+      <form class="row" data-form="import"><input name="file" type="file" accept="application/json,.json" required><button class="btn">Import</button></form></div>`
+}
+
+async function pollJob(id, holder) {
+  for (;;) {
+    const job = await api(`/api/jobs/${id}`)
+    holder.job = job
+    render()
+    const log = document.getElementById('job-log')
+    if (log) log.scrollTop = log.scrollHeight
+    if (job.status !== 'running') return job
+    await new Promise((r) => setTimeout(r, 1500))
+  }
+}
+
+async function loadStatus() {
+  state.status = await api('/api/status')
+}
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height))
+      const c = document.createElement('canvas')
+      c.width = Math.round(img.width * scale)
+      c.height = Math.round(img.height * scale)
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1])
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+
+// ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
 
@@ -383,6 +600,13 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
   if (!view) return
   state.view = view
   render()
+})
+
+app.addEventListener('change', (e) => {
+  if (e.target.name === 'project') {
+    state.setup.choice = e.target.value
+    render()
+  }
 })
 
 app.addEventListener('input', (e) => {
@@ -400,7 +624,62 @@ app.addEventListener('click', async (e) => {
   const ti = Number(btn.dataset.plan)
   const ei = Number(btn.dataset.ex)
   try {
-    if (action === 'select') return selectUser(btn.dataset.id)
+    if (action === 'select') {
+      state.signin = null
+      return selectUser(btn.dataset.id)
+    }
+    if (action === 'setup-projects') {
+      Object.assign(state.setup, await api('/api/setup/projects'))
+      return render()
+    }
+    if (action === 'setup-install' || action === 'setup-update') {
+      const ref = action === 'setup-update' ? state.status.ref : state.setup.choice
+      const body = { ref, geminiKey: document.getElementById('gemini-key')?.value.trim() || null, appUrl: document.getElementById('app-url')?.value.trim() || state.status.appUrl }
+      const { id } = await api('/api/setup/install', { method: 'POST', body })
+      const job = await pollJob(id, state.setup)
+      await loadStatus()
+      if (job.status === 'done' && action === 'setup-install') {
+        toast('Forza! is installed')
+        state.view = 'people'
+        ;[state.catalogue] = await Promise.all([api('/api/catalogue'), loadUsers()])
+      }
+      return render()
+    }
+    if (action === 'setup-wizard') {
+      state.status = { ...state.status, configured: false }
+      return render()
+    }
+    if (action === 'job-stop') {
+      await api(`/api/jobs/${btn.dataset.job}/stop`, { method: 'POST' })
+      return toast('Stopping after the current step…')
+    }
+    if (action === 'signin-code') {
+      state.signin = await api(`/api/users/${state.selected}/signin-code`, { method: 'POST' })
+      return render()
+    }
+    if (action === 'print') return window.print()
+    if (action === 'copy-link') {
+      await navigator.clipboard.writeText(state.signin.url)
+      return toast('Link copied: send it only to them')
+    }
+    if (action === 'bws-devices') {
+      state.bws.devices = await api('/api/bws/devices')
+      return render()
+    }
+    if (action === 'bws-adb') {
+      const { id } = await api('/api/bws/download-adb', { method: 'POST' })
+      await pollJob(id, state.bws)
+      state.bws.devices = await api('/api/bws/devices')
+      return render()
+    }
+    if (action === 'bws-file') {
+      const file = await api(`/api/users/${state.selected}/bws-file`)
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }))
+      a.download = 'forza-history-build-with-science.json'
+      a.click()
+      return
+    }
     if (action === 'tab') {
       state.tab = btn.dataset.tab
       render()
@@ -485,7 +764,60 @@ app.addEventListener('submit', async (e) => {
       const { id } = await api('/api/users', { method: 'POST', body: data })
       toast('Account created')
       await loadUsers()
+      state.tab = 'phone'
+      state.signin = null
       return selectUser(id)
+    }
+    if (form.dataset.form === 'setup-token') {
+      Object.assign(state.setup, await api('/api/setup/token', { method: 'POST', body: data }))
+      await loadStatus()
+      toast('Token saved')
+      return render()
+    }
+    if (form.dataset.form === 'setup-create') {
+      const p = await api('/api/setup/create-project', { method: 'POST', body: data })
+      toast('Project created: it is starting, this takes about 2 minutes')
+      Object.assign(state.setup, await api('/api/setup/projects'))
+      state.setup.choice = p.ref ?? p.id
+      return render()
+    }
+    if (form.dataset.form === 'ai-key') {
+      await api('/api/setup/ai-key', { method: 'POST', body: data })
+      toast('Key saved: test it with a photo')
+      form.reset()
+      return
+    }
+    if (form.dataset.form === 'ai-test') {
+      const out = document.getElementById('ai-result')
+      out.innerHTML = '<p class="muted">Asking the AI…</p>'
+      const image = await fileToBase64(form.querySelector('input[type=file]').files[0])
+      const r = await api('/api/setup/test-ai', { method: 'POST', body: { image, mode: data.mode } })
+      const rows = r.items ?? [{ name: `${r.name} (per 100 g)`, grams: 100, kcal: r.kcal, protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g }]
+      out.innerHTML = `<p class="ok">It works: ${esc(r.model)}, ${fmtNum(r.ms / 1000, 1)} s</p><table><thead><tr><th>Food</th><th class="num">g</th><th class="num">kcal</th><th class="num">P / C / F</th></tr></thead><tbody>${rows.map((i) => `<tr><td>${esc(i.name)}</td><td class="num">${fmtNum(i.grams)}</td><td class="num">${fmtNum(i.kcal)}</td><td class="num">${fmtNum(i.protein_g, 1)} / ${fmtNum(i.carbs_g, 1)} / ${fmtNum(i.fat_g, 1)}</td></tr>`).join('')}</tbody></table>${r.tip ? `<p class="muted small">${esc(r.tip)}</p>` : ''}`
+      return
+    }
+    if (form.dataset.form === 'app-url') {
+      await api('/api/setup/app-url', { method: 'POST', body: data })
+      await loadStatus()
+      toast('Saved')
+      return render()
+    }
+    if (form.dataset.form === 'profile') {
+      const body = { ...data, finish_setup: Boolean(data.finish_setup) }
+      state.data.profile = await api(`/api/users/${state.selected}/profile`, { method: 'PUT', body })
+      await loadUsers()
+      toast('Profile saved')
+      return render()
+    }
+    if (form.dataset.form === 'bws') {
+      const body = { serial: data.serial, since: data.since, plan: Boolean(data.plan), profile: Boolean(data.profile) }
+      const { id } = await api(`/api/users/${state.selected}/bws`, { method: 'POST', body })
+      const job = await pollJob(id, state.bws)
+      if (job.status === 'done') {
+        toast(`Imported ${job.result.sessions ?? 0} workouts`)
+        return selectUser(state.selected)
+      }
+      return
     }
     if (form.dataset.form === 'password') {
       await api(`/api/users/${state.selected}/password`, { method: 'POST', body: data })
@@ -497,7 +829,7 @@ app.addEventListener('submit', async (e) => {
       const body = JSON.parse(await file.text())
       toast('Importing…')
       const r = await api(`/api/users/${state.selected}/import`, { method: 'POST', body })
-      toast(`Imported ${r.sessions} workouts (${r.sets} sets), ${r.templates} plan workouts, ${r.weights} weigh-ins${r.custom_exercises ? `, ${r.custom_exercises} new exercises` : ''}`)
+      toast(`Imported ${r.sessions} workouts (${r.sets} sets), ${r.templates} plan workouts, ${r.weights} weigh-ins, ${r.food} meals${r.custom_exercises ? `, ${r.custom_exercises} new exercises` : ''}`)
       return selectUser(state.selected)
     }
     if (form.dataset.form === 'delete') {
@@ -538,6 +870,12 @@ async function loadPhotos() {
   render()
   if (!TOKEN) return
   try {
+    await loadStatus()
+    render()
+    if (!state.status.configured) {
+      if (state.status.accessToken) Object.assign(state.setup, await api('/api/setup/projects').catch(() => ({})))
+      return render()
+    }
     ;[state.catalogue] = await Promise.all([api('/api/catalogue'), loadUsers()])
     render()
   } catch (err) {

@@ -61,7 +61,11 @@ export function Settings() {
           <Field label={t('settings.language')}>
             <Segmented<Locale>
               value={draft.locale}
-              onChange={(v) => set('locale', v)}
+              onChange={(v) => {
+                // The language changes straight away, without pressing Save.
+                setDraft({ ...draft, locale: v })
+                void saveProfile({ locale: v })
+              }}
               options={[
                 { value: 'it', label: '🇮🇹 Italiano' },
                 { value: 'en', label: '🇬🇧 English' },

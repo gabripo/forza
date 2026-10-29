@@ -1,4 +1,4 @@
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Loading } from './components/ui'
 import { AppProvider, useApp } from './lib/auth'
@@ -24,19 +24,14 @@ import { SessionDetail } from './pages/train/SessionDetail'
 import { TrainHome } from './pages/train/TrainHome'
 import { WorkoutEditor } from './pages/train/WorkoutEditor'
 import { Weights } from './pages/Weights'
+import { Welcome } from './pages/Welcome'
 
 function Gate() {
   const { session, profile, loading } = useApp()
-  if (!isConfigured) {
-    return (
-      <div className="mx-auto max-w-md p-6">
-        <h1 className="mb-2 text-2xl font-bold">Forza!</h1>
-        <p>
-          Missing configuration: set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_KEY</code> (see README).
-        </p>
-      </div>
-    )
-  }
+  const location = useLocation()
+  // A setup code from Forza! Coach: handled before anything else, even when signed out.
+  if (location.pathname === '/welcome') return <Welcome />
+  if (!isConfigured) return <Login />
   if (loading) return <Loading />
   if (!session) return <Login />
   if (!profile?.onboarded_at) return <Onboarding />

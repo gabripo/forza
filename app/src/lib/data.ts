@@ -332,19 +332,42 @@ export interface AiPlate {
   tip: string
 }
 
-export async function estimatePlate(input: { image: string; note: string; locale: string; goal: string; meal: string }): Promise<AiPlate> {
-  const { data, error } = await supabase.functions.invoke('food-estimate', { body: { ...input, mime: 'image/jpeg' } })
+async function invokeFoodAi<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('food-estimate', { body: { ...body, mime: 'image/jpeg' } })
   if (error) {
     let code = 'ai_failed'
     try {
-      const body = await (error as { context?: Response }).context?.json()
-      code = body?.error ?? code
+      const res = await (error as { context?: Response }).context?.json()
+      code = res?.error ?? code
     } catch {
       // keep default
     }
     throw new Error(code)
   }
-  return data as AiPlate
+  return data as T
+}
+
+export function estimatePlate(input: { image: string; note: string; locale: string; goal: string; meal: string }): Promise<AiPlate> {
+  return invokeFoodAi<AiPlate>(input)
+}
+
+export interface AiLabel {
+  is_label: boolean
+  name: string
+  brand: string
+  /** Per 100 g (or 100 ml). */
+  kcal: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  fiber_g: number
+  sugar_g: number
+  serving_g: number
+}
+
+/** Reads a nutrition facts label from a photo (for products not in the barcode database). */
+export function readLabel(input: { image: string; locale: string }): Promise<AiLabel> {
+  return invokeFoodAi<AiLabel>({ ...input, mode: 'label' })
 }
 
 // ---------------------------------------------------------------------------

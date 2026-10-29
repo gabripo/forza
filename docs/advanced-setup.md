@@ -1,0 +1,164 @@
+# Advanced set-up
+
+For developers and for anyone who prefers the command line. Most families only need the
+[Coach guide](coach-guide.md): Forza! Coach does everything below with a few clicks.
+
+## The pieces
+
+| Piece | Where it runs | Cost |
+|---|---|---|
+| The app (installable website, PWA) | GitHub Pages: the shared copy at `https://gabripo.github.io/forza/`, or your own fork | free |
+| Accounts and data | your own Supabase project (Postgres + Auth + Storage + Edge Functions) | free tier |
+| Food photo estimates | Google Gemini (default) or any OpenAI-compatible vision API, called by an Edge Function | free tier |
+| Barcodes | Open Food Facts, called from the phone | free, no key |
+| Forza! Coach (set-up, accounts, progress, plans) | only on the coach's computer: macOS, Windows or Linux | free |
+| Android step/weight sync | the *Forza! Health* helper APK (Health Connect) | free |
+| iPhone step/weight sync | an Apple Shortcut ([guide](apple-shortcut.md)) | free |
+
+One copy of the app serves every family: each phone is told which Supabase project to use by the
+setup QR code (server address + publishable key, which are public by design). The data of each family
+lives only in its own project.
+
+## Forza! Coach from the command line (all systems)
+
+Requirements: [Node.js](https://nodejs.org) 20 or newer, and a Supabase
+[access token](https://supabase.com/dashboard/account/tokens).
+
+```bash
+cd coach
+npm ci --omit=dev
+```
+
+Install or update Forza! on a project (database migrations, the two Edge Functions, sign-in settings,
+keys stored in the system password store):
+
+```bash
+# macOS / Linux
+SUPABASE_ACCESS_TOKEN=sbp_… GEMINI_API_KEY=AIza… node cli.mjs install <project-ref>
+```
+
+```powershell
+# Windows (PowerShell)
+$env:SUPABASE_ACCESS_TOKEN="sbp_…"; $env:GEMINI_API_KEY="AIza…"; node cli.mjs install <project-ref>
+```
+
+`<project-ref>` is the `abcd1234` in `https://abcd1234.supabase.co`. The Gemini key is optional.
+Then `node cli.mjs people`, `node cli.mjs bws <email>` (Build With Science import) or `npm start` for the
+dashboard. `node cli.mjs help` lists everything.
+
+What `install` does, through the [Supabase Management API](https://supabase.com/docs/reference/api)
+(no Supabase CLI or Docker needed):
+
+1. applies the files in `supabase/migrations/` that the project does not have yet, each one in a single
+   transaction, recording them in `supabase_migrations.schema_migrations` (the same table the Supabase CLI
+   uses, so both tools can manage one project);
+2. deploys `supabase/functions/food-estimate` and `health-ingest` with JWT verification off (both
+   functions check the caller themselves);
+3. closes public sign-ups, sets one-time sign-in links to last 24 hours, and adds the app address to the
+   allowed redirect URLs;
+4. stores the Gemini key as a function secret, if given;
+5. reads the project's publishable and secret keys and saves the secret one in the password store.
+
+Running it again is safe: it only applies what is missing.
+
+### Where Coach keeps its keys
+
+| System | Secret key and access token | Settings (`config.json`) and Build With Science cache |
+|---|---|---|
+| macOS | Keychain, service `forza-admin` (through Apple's `security` tool) | `~/Library/Application Support/Forza Coach/` |
+| Windows | Credential Manager, service `forza-admin` | `%APPDATA%\Forza Coach\` |
+| Linux | Secret Service (GNOME Keyring / KWallet) | `~/.config/forza-coach/` |
+
+Without a password store (e.g. a Linux server with no desktop session) the keys go to `secrets.json` in
+the same folder, readable only by your user, and the dashboard says so. `FORZA_COACH_HOME` overrides the
+folder.
+
+Coach listens only on `127.0.0.1` (port 4545, or the next free one), refuses other host names, and
+requires a random token generated at each launch (it is in the address that opens the browser).
+
+## Alternative: the Supabase CLI
+
+If you already use the [Supabase CLI](https://supabase.com/docs/guides/cli) (macOS, Windows, Linux):
+
+```bash
+supabase login
+supabase link --project-ref <project-ref>
+supabase db push --linked
+supabase functions deploy food-estimate --no-verify-jwt
+supabase functions deploy health-ingest --no-verify-jwt
+supabase secrets set GEMINI_API_KEY=AIza…
+```
+
+Then, in the Supabase dashboard, **Authentication → Sign In / Providers → turn off "Allow new users to
+sign up"**, and connect Forza! Coach (its set-up screen, or `node cli.mjs install <project-ref>`, which
+only applies what is missing). On macOS and Linux, `scripts/deploy-backend.sh <project-ref>` runs the CLI
+steps above and checks that sign-ups are closed.
+
+## Your own copy of the app (optional)
+
+The shared app works for everyone. To publish your own copy (your domain, your changes):
+
+1. Fork `gabripo/forza`. In the fork: **Settings → Pages → Source: GitHub Actions**.
+2. Optional **Settings → Secrets and variables → Actions → Variables**:
+   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`: a default server, used until a phone scans a setup code
+     (the publishable key is public by design);
+   - `VITE_IOS_SHORTCUT_URL`: iCloud link of the shortcut ([guide](apple-shortcut.md));
+   - `VITE_ANDROID_HELPER_URL`: your own helper APK (default: the latest release of `gabripo/forza`).
+3. Push to `main`. The app is published at `https://<you>.github.io/<repo>/`.
+4. In Forza! Coach → **Setup → App address**, enter that address: new sign-in codes open your copy.
+
+## Food photo AI
+
+Function secrets (Supabase → Edge Functions → Secrets, `supabase secrets set`, or Coach for the Gemini key):
+
+| Secret | Default | Meaning |
+|---|---|---|
+| `GEMINI_API_KEY` | – | Google AI Studio key |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | any Gemini model with image input |
+| `GEMINI_FALLBACK_MODELS` | `gemini-3.5-flash-lite` | tried when the main model is busy (503) or out of quota (429); comma-separated |
+| `FOOD_AI_DAILY_LIMIT` | `25` | photos per person per day |
+| `FOOD_AI_PROVIDER` | `gemini` | `openai` for any OpenAI-compatible API |
+| `FOOD_AI_BASE_URL`, `FOOD_AI_API_KEY`, `FOOD_AI_MODEL` | – | with `FOOD_AI_PROVIDER=openai` |
+
+Test results and free alternatives: [food-ai.md](food-ai.md).
+
+## Android helper (maintainers)
+
+The *Android Health helper* workflow builds the APK when a `helper-v*` tag is pushed. Without signing
+secrets it publishes a debug build. For updates that install over the previous version, create a keystore
+once and add two repository secrets:
+
+```bash
+keytool -genkeypair -v -keystore forza.keystore -alias forza -keyalg RSA -keysize 4096 -validity 10000
+base64 -i forza.keystore | gh secret set FORZA_KEYSTORE_B64
+gh secret set FORZA_KEYSTORE_PASSWORD
+git tag helper-v1.1 && git push --tags
+```
+
+Keep the keystore and its password safe (e.g. in your password manager): without them, a new helper
+cannot update the installed one.
+
+## Local development
+
+Requirements: Node 20+, Docker, the Supabase CLI.
+
+```bash
+supabase start                            # local Postgres/Auth/Storage
+supabase db reset                         # schema + demo user "Maria" with 10 weeks of history
+supabase functions serve --no-verify-jwt  # put GEMINI_API_KEY=… in supabase/functions/.env for photos
+cd app && npm install && npm run dev      # http://localhost:5173  (demo@forza.local / forza-demo-2026)
+cd coach && npm install && npm run local  # Forza! Coach against the local stack
+```
+
+`app/.env.local`:
+
+```
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_KEY=<publishable key printed by `supabase status`>
+```
+
+To try the app on a real phone over USB: `adb reverse tcp:5173 tcp:5173 && adb reverse tcp:54321 tcp:54321`,
+then open `http://localhost:5173` on the phone.
+
+Checks (also run by CI): `cd app && npx tsc -b && npm run lint && npm run build`, `cd coach && npm test`,
+`deno check supabase/functions/*/index.ts`.

@@ -45,13 +45,17 @@ export function LineChart({
   series,
   height = 210,
   formatY,
+  formatValue = formatY,
   formatX,
   emptyText,
   goal,
 }: {
   series: LineSeries[]
   height?: number
+  /** Axis labels. */
   formatY: (v: number) => string
+  /** Tooltip, table and screen-reader values (default: formatY). */
+  formatValue?: (v: number) => string
   formatX: (t: number) => string
   emptyText?: ReactNode
   goal?: { v: number; label: string }
@@ -113,7 +117,7 @@ export function LineChart({
         width={width}
         height={height}
         role="img"
-        aria-label={`${primary.label}: ${formatY(last.v)}`}
+        aria-label={`${primary.label}: ${formatValue(last.v)}`}
         onPointerMove={(e) => onMove(e.clientX, e.currentTarget.getBoundingClientRect())}
         onPointerDown={(e) => onMove(e.clientX, e.currentTarget.getBoundingClientRect())}
         onPointerLeave={() => setHover(null)}
@@ -192,7 +196,7 @@ export function LineChart({
               <div key={s.id} className="flex items-center gap-2">
                 <span className="inline-block h-2 w-3 rounded-full" style={{ background: s.color }} aria-hidden />
                 <span className="text-ink-2">{s.label}</span>
-                <span className="ml-auto font-semibold tabular">{formatY(p.v)}</span>
+                <span className="ml-auto font-semibold tabular">{formatValue(p.v)}</span>
               </div>
             ) : null
           })}
@@ -214,7 +218,7 @@ export function LineChart({
           {primary.points.map((p) => (
             <tr key={p.t}>
               <td>{formatX(p.t)}</td>
-              <td>{formatY(p.v)}</td>
+              <td>{formatValue(p.v)}</td>
             </tr>
           ))}
         </tbody>

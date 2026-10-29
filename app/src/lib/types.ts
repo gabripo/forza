@@ -120,7 +120,7 @@ export interface FoodLog {
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null
-  source: 'ai' | 'manual'
+  source: 'ai' | 'manual' | 'barcode' | 'import'
   ai_notes: string | null
 }
 

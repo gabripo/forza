@@ -1,6 +1,7 @@
 import { CheckCircle2, AlertTriangle, CircleDot, Loader2, X, ChevronLeft } from 'lucide-react'
-import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useI18n } from '../lib/i18n'
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
@@ -120,24 +121,61 @@ export function parseNum(v: string): number | null {
   return v.trim() === '' || Number.isNaN(n) ? null : n
 }
 
+/** Keeps digits and one decimal separator, with at most `maxDecimals` digits after it. */
+export function cleanNumberText(v: string, maxDecimals: number): string {
+  let out = ''
+  let sep = false
+  let after = 0
+  for (const ch of v) {
+    if (ch >= '0' && ch <= '9') {
+      if (sep && after >= maxDecimals) continue
+      if (sep) after++
+      out += ch
+    } else if ((ch === ',' || ch === '.') && !sep && maxDecimals > 0) {
+      sep = true
+      out += ch
+    }
+  }
+  return out
+}
+
+/**
+ * A number field that accepts "76,55" and "76.55". It keeps what the person types (so the
+ * comma does not vanish half-way) and reports the parsed number.
+ */
 export function NumberInput({
   value,
   onChange,
   decimals = true,
+  maxDecimals = 2,
   className,
   ...rest
 }: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
   value: number | null
   onChange: (v: number | null) => void
   decimals?: boolean
+  maxDecimals?: number
 }) {
+  const { locale } = useI18n()
+  const places = decimals ? maxDecimals : 0
+  const show = (v: number | null) => (v === null ? '' : locale === 'it' ? String(v).replace('.', ',') : String(v))
+  const [text, setText] = useState(() => show(value))
+  // Follow changes made from outside (a preset button, a reset), not our own echo.
+  useEffect(() => {
+    setText((current) => (parseNum(current) === value ? current : show(value)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
   return (
     <input
       {...rest}
       type="text"
       inputMode={decimals ? 'decimal' : 'numeric'}
-      value={value ?? ''}
-      onChange={(e) => onChange(parseNum(e.target.value))}
+      value={text}
+      onChange={(e) => {
+        const clean = cleanNumberText(e.target.value, places)
+        setText(clean)
+        onChange(parseNum(clean))
+      }}
       onFocus={(e) => e.target.select()}
       className={cx(
         'h-12 w-full rounded-2xl border border-line bg-card px-3 text-center text-lg font-semibold tabular outline-none focus:border-sky',

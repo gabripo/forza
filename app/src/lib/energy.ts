@@ -8,6 +8,7 @@ export interface Energy {
   targets: Targets
   avgSteps: number | null
   workoutsPerWeek: number
+  avgWorkoutMinutes: number
   loggedFoodDays: number
 }
 
@@ -61,6 +62,7 @@ export function computeEnergy(
     targets: dailyTargets(profile, weightKg, tdee.tdee),
     avgSteps,
     workoutsPerWeek,
+    avgWorkoutMinutes,
     loggedFoodDays: goodDays.length,
   }
 }

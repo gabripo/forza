@@ -20,15 +20,35 @@ export function adminClient(): SupabaseClient {
 }
 
 /** Legacy projects expose SUPABASE_SERVICE_ROLE_KEY; newer ones a JSON map in SUPABASE_SECRET_KEYS. */
-function serviceKey(): string {
+function serviceKeys(): string[] {
+  const keys: string[] = []
   const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (legacy) return legacy
+  if (legacy) keys.push(legacy)
   try {
-    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}') as Record<string, string>
-    return keys.default ?? Object.values(keys)[0] ?? ''
+    const map = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}') as Record<string, string>
+    if (map.default) keys.push(map.default)
+    keys.push(...Object.values(map).filter((k) => k !== map.default))
   } catch {
-    return ''
+    // no secret keys
   }
+  return keys.filter(Boolean)
+}
+
+function serviceKey(): string {
+  return serviceKeys()[0] ?? ''
+}
+
+/** True when the caller presents one of the project's secret keys (Forza! Coach). Constant-time compare. */
+export function isServiceKey(token: string): boolean {
+  if (!token) return false
+  const given = new TextEncoder().encode(token)
+  return serviceKeys().some((key) => {
+    const expected = new TextEncoder().encode(key)
+    if (expected.length !== given.length) return false
+    let diff = 0
+    for (let i = 0; i < given.length; i++) diff |= given[i] ^ expected[i]
+    return diff === 0
+  })
 }
 
 /** Returns the signed-in user's id from the request's bearer token, or null. */

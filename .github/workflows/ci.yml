@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths: ['app/**', 'admin/**', 'supabase/**']
+    paths: ['app/**', 'coach/**', 'shared/**', 'supabase/**']
 
 jobs:
   app:
@@ -26,6 +26,29 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_KEY: ci-placeholder
-      - name: Admin dashboard syntax
-        working-directory: admin
-        run: node --check server.mjs && node --check public/admin.js
+
+  coach:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coach
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: coach/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Syntax
+        run: for f in server.mjs cli.mjs lib/*.mjs public/coach.js ../shared/*.mjs; do node --check "$f" || exit 1; done
+
+  functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/*/index.ts

@@ -16,7 +16,7 @@ import { activityMinutes, nextTemplate } from '../lib/plan'
 import { TOPICS } from './learn/content'
 
 export function Dashboard() {
-  const { t, l, num, date } = useI18n()
+  const { t, l, num, kg, date } = useI18n()
   const { profile } = useApp()
   const navigate = useNavigate()
   const [logOpen, setLogOpen] = useState(false)
@@ -180,10 +180,10 @@ export function Dashboard() {
       >
         {view.nowKg !== null ? (
           <p className="mb-2 text-ink-2">
-            <b className="text-2xl text-ink">{num(view.nowKg, 1)} kg</b>{' '}
+            <b className="text-2xl text-ink">{kg(view.nowKg)} kg</b>{' '}
             {delta !== null && Math.abs(delta) >= 0.1 ? (
               <span>
-                {t('dash.sinceStart', { delta: `${delta > 0 ? '+' : '−'}${num(Math.abs(delta), 1)}` })}
+                {t('dash.sinceStart', { delta: `${delta > 0 ? '+' : '−'}${kg(Math.abs(delta))}` })}
               </span>
             ) : null}
           </p>

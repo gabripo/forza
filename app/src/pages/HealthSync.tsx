@@ -1,10 +1,12 @@
-import { Apple, Check, Copy, KeyRound, RefreshCw, Scale, Smartphone } from 'lucide-react'
-import { useState } from 'react'
+import { Apple, Check, Copy, Dumbbell, FileUp, KeyRound, RefreshCw, Scale, Smartphone } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { importHistory, type ImportResult } from '../../../shared/history-import.mjs'
 import { Link } from 'react-router-dom'
 import { Button, Card, PageHeader } from '../components/ui'
+import { useApp } from '../lib/auth'
 import { createSyncKey, hasSyncKey, savedSyncKey, useAsync } from '../lib/data'
 import { useI18n } from '../lib/i18n'
-import { functionsUrl } from '../lib/supabase'
+import { functionsUrl, supabase } from '../lib/supabase'
 
 const SHORTCUT_URL = import.meta.env.VITE_IOS_SHORTCUT_URL as string | undefined
 const ANDROID_APK_URL = (import.meta.env.VITE_ANDROID_HELPER_URL as string | undefined) ?? 'https://github.com/gabripo/forza/releases/latest/download/forza-health.apk'
@@ -136,6 +138,69 @@ export function HealthSync() {
           {t('health.eufyCsv')}
         </Link>
       </Card>
+
+      <ImportCard />
     </div>
+  )
+}
+
+/**
+ * Coming from Build With Science (or another app)? Forza! Coach reads the history from the phone
+ * with a USB cable and imports it; it can also save it as a file that the person imports here.
+ */
+function ImportCard() {
+  const { t, num } = useI18n()
+  const { session, refreshExercises } = useApp()
+  const file = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [done, setDone] = useState<ImportResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function onFile(f: File | undefined) {
+    if (!f || !session) return
+    setError(null)
+    setDone(null)
+    setBusy(t('import.reading'))
+    try {
+      const data = JSON.parse(await f.text())
+      const result = await importHistory(supabase, session.user.id, data, { onProgress: (text) => setBusy(text) })
+      await refreshExercises()
+      setDone(result)
+    } catch (e) {
+      setError(e instanceof SyntaxError ? t('import.notJson') : t('import.failed', { error: (e as Error).message }))
+    } finally {
+      setBusy(null)
+      if (file.current) file.current.value = ''
+    }
+  }
+
+  return (
+    <Card title={t('import.title')} action={<Dumbbell className="size-5 text-ink-3" aria-hidden />}>
+      <p className="mb-2 text-ink-2">{t('import.text')}</p>
+      <ul className="mb-3 grid list-disc gap-1 pl-5 text-ink-2">
+        <li>{t('import.what')}</li>
+        <li>{t('import.weights')}</li>
+        <li>{t('import.how')}</li>
+      </ul>
+      <a
+        href="https://github.com/gabripo/forza/blob/main/docs/coach-guide.md#import-from-build-with-science"
+        target="_blank"
+        rel="noreferrer"
+        className="mb-3 inline-block font-semibold text-brand-ink"
+      >
+        {t('import.guide')}
+      </a>
+      <input ref={file} type="file" accept="application/json,.json" className="hidden" onChange={(e) => void onFile(e.target.files?.[0])} />
+      <Button variant="secondary" block onClick={() => file.current?.click()} loading={Boolean(busy)}>
+        <FileUp className="size-5" aria-hidden /> {t('import.file')}
+      </Button>
+      {busy ? <p className="mt-2 text-sm text-ink-2">{busy}</p> : null}
+      {error ? <p className="mt-2 rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{error}</p> : null}
+      {done ? (
+        <p className="mt-2 rounded-2xl bg-leaf-soft p-3 font-semibold text-leaf">
+          {t('import.done', { sessions: num(done.sessions), sets: num(done.sets), templates: done.templates, food: num(done.food), weights: num(done.weights) })}
+        </p>
+      ) : null}
+    </Card>
   )
 }

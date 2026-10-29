@@ -33,6 +33,8 @@ interface I18n {
   /** Picks the right language from a bilingual text. */
   l: (text: L10n | undefined | null) => string
   num: (n: number, digits?: number) => string
+  /** Body weight: always two decimals (76,55), like smart scales show it. */
+  kg: (n: number) => string
   date: (d: string | Date, opts?: Intl.DateTimeFormatOptions) => string
 }
 
@@ -60,6 +62,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       l: (text) => (text ? text[locale] || text.en : ''),
       num: (n, digits = 0) =>
         new Intl.NumberFormat(tag, { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(n),
+      kg: (n) => new Intl.NumberFormat(tag, { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(n),
       date: (d, opts = { day: 'numeric', month: 'short' }) =>
         new Intl.DateTimeFormat(tag, opts).format(typeof d === 'string' ? new Date(d) : d),
     }

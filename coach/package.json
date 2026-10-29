@@ -1,0 +1,23 @@
+{
+  "name": "forza-coach",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Forza! Coach: sets up the family's Forza! server and follows everyone's progress. Runs only on your computer (macOS, Windows, Linux).",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "local": "node server.mjs --local",
+    "cli": "node cli.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "2.1.0",
+    "@supabase/supabase-js": "^2.109.0",
+    "pngjs": "7.0.0",
+    "qrcode": "1.5.4",
+    "ws": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

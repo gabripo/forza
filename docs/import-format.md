@@ -1,8 +1,15 @@
 # Importing history from another app
 
-The admin dashboard (person → **Account → Import history**) accepts a JSON file in the
-`forza-history-v1` format. Use it to bring over workouts logged in another app, so the
-dashboard and the automatic weight suggestions work from day one.
+A JSON file in the `forza-history-v1` format brings over workouts, a plan, weigh-ins, meals and profile
+details logged in another app, so the charts and the automatic weight suggestions work from day one.
+It can be imported:
+
+- by the coach: Forza! Coach → person → **Import → Import a history file**;
+- by the person: Forza! app → **Settings → Connect Health & scale → Import a history file**.
+
+Forza! Coach writes this format itself when it imports from Build With Science
+(see the [Coach guide](coach-guide.md#5-coming-from-build-with-science)). The same code
+(`shared/history-import.mjs`) runs in both places.
 
 ```jsonc
 {
@@ -37,12 +44,29 @@ dashboard and the automatic weight suggestions work from day one.
   ],
 
   // Optional: body weight
-  "weights": [{ "measured_at": "2026-10-28T07:30:00+01:00", "weight_kg": 77.0 }]
+  "weights": [{ "measured_at": "2026-10-28T07:30:00+01:00", "weight_kg": 77.05 }],
+
+  // Optional: meals. `id` must be a UUID, stable between imports (re-importing replaces the meal).
+  "food": [
+    {
+      "id": "0e5c2f1a-8f8e-5d2b-9a51-3c1d2e4f5a6b",
+      "eaten_at": "2026-10-28T13:00:00+01:00",
+      "meal": "lunch",
+      "title": "Pasta al pomodoro",
+      "items": [{ "name": "Pasta", "grams": 90, "kcal": 320, "protein_g": 11, "carbs_g": 65, "fat_g": 1.5, "fiber_g": 3, "sugar_g": 3 }],
+      "kcal": 410, "protein_g": 13, "carbs_g": 72, "fat_g": 8, "fiber_g": 5, "sugar_g": 8
+    }
+  ],
+
+  // Optional: profile. Before the person's first set-up it pre-fills the questions; afterwards it only
+  // fills fields that are still empty.
+  "profile": { "goal": "fat_loss", "start_weight_kg": 78, "steps_goal": 7000, "workouts_per_week": 3, "experience": "intermediate" }
 }
 ```
 
 Exercises that do not exist in Forza! can be declared once and referenced as `custom:<key>`; they are
-created as shared custom exercises (or reused if one with the same English name exists):
+created as custom exercises (shared with everyone when the coach imports, private when the person does),
+or reused if one with the same English name exists:
 
 ```jsonc
 "custom_exercises": [{ "key": "ground_sit", "name_en": "Ground sit", "name_it": "Ground sit", "kind": "time", "muscles": ["abs"] }]
@@ -50,4 +74,8 @@ created as shared custom exercises (or reused if one with the same English name 
 ```
 
 Otherwise `exercise_id` is an id from [`app/src/data/exercises.json`](../app/src/data/exercises.json) or a custom
-exercise id (`c_…`, see the admin dashboard → Exercises & videos).
+exercise id (`c_…`, see Forza! Coach → Exercises & videos).
+
+Profile fields: `sex` (`female`/`male`), `birth_year`, `height_cm`, `goal` (`fat_loss`/`muscle_gain`/`maintain`),
+`activity_level` (`sedentary`/`light`/`moderate`/`active`/`very_active`), `start_weight_kg`, `target_weight_kg`,
+`steps_goal`, `workouts_per_week`, `experience` (`beginner`/`intermediate`).

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Deploys the Forza! backend to your Supabase project: database schema, server functions, secrets.
-# Requirements: Supabase CLI (brew install supabase/tap/supabase) and `supabase login` done once.
+# Requirements: Supabase CLI (https://supabase.com/docs/guides/cli) and `supabase login` done once.
+# Forza! Coach does the same without the CLI, on macOS, Windows and Linux (docs/advanced-setup.md).
 #
 #   ./scripts/deploy-backend.sh <project-ref>
 #
@@ -51,8 +52,5 @@ else
 fi
 
 echo
-echo "Backend ready. Next:"
-echo "  1. GitHub → Settings → Secrets and variables → Actions → Variables:"
-echo "       VITE_SUPABASE_URL = $URL"
-echo "       VITE_SUPABASE_KEY = $ANON"
-echo "  2. ./scripts/admin-setup.sh   (stores the service key in your Keychain)"
+echo "Backend ready. Next: start Forza! Coach (double-click the launcher in the forza folder,"
+echo "or: cd coach && npm start) and connect it to project $REF in its Setup screen."

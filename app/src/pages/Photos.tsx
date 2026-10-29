@@ -19,7 +19,7 @@ async function shrink(file: File): Promise<Blob> {
 }
 
 export function Photos() {
-  const { t, num, date } = useI18n()
+  const { t, kg, date } = useI18n()
   const { session } = useApp()
   const { data, loading, reload } = useAsync(() => Promise.all([getPhotos(), getWeights(30)]), [])
   const [urls, setUrls] = useState<Map<string, string>>(new Map())
@@ -80,7 +80,7 @@ export function Photos() {
                 {urls.get(p.path) ? <img src={urls.get(p.path)} alt="" className="aspect-[3/4] w-full rounded-2xl object-cover" /> : <div className="aspect-[3/4] rounded-2xl bg-card-2" />}
                 <figcaption className="mt-1 text-center text-sm">
                   <b>{date(p.taken_at, { day: 'numeric', month: 'short', year: 'numeric' })}</b>
-                  {p.weight_kg ? <span className="block text-ink-2">{num(Number(p.weight_kg), 1)} kg</span> : null}
+                  {p.weight_kg ? <span className="block text-ink-2">{kg(Number(p.weight_kg))} kg</span> : null}
                 </figcaption>
               </figure>
             ))}
