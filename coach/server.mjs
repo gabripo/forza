@@ -375,7 +375,7 @@ async function testFoodAi(body) {
   const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.key}`, apikey: ctx.key },
-    body: JSON.stringify({ image: body.image, mime: body.mime ?? 'image/jpeg', mode: body.mode ?? 'plate', locale: body.locale ?? 'en', goal: 'maintain', meal: 'a meal', note: body.note ?? '', ...(Number.isInteger(body.only) ? { only: body.only } : {}) }),
+    body: JSON.stringify({ image: body.image, mime: body.mime ?? 'image/jpeg', mode: body.mode ?? 'plate', locale: body.locale ?? 'en', goal: 'maintain', meal: 'a meal', note: body.note ?? '', ...(body.text ? { text: body.text } : {}), ...(Number.isInteger(body.only) ? { only: body.only } : {}) }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error(data.detail ?? data.error ?? `HTTP ${res.status}`), { status: 502 })
