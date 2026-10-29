@@ -14,6 +14,10 @@
 //   meals        [{ day, meal, origin, at, items: [{ name, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g }] }]
 //   meals_since  ISO start of the window the meals cover: synced meals in it that are no longer sent
 //                were deleted in the food app, and are deleted here too
+//   report       what the phone found, per kind of data (Android helper): kept for the family coach
+//
+// The answer has a `message` in the person's language ("Forza! ✓ 7 giorni di passi, 2 pesate"), which
+// the iPhone Shortcut shows as its notification; errors explain what to fix.
 import { adminClient, corsHeaders, json, sha256Hex } from '../_shared/util.ts'
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -78,6 +82,48 @@ function parseDecimal(value: string): number {
   return Number(value.replace(/\s/g, '').replace(/[^\d.,-]/g, '').replace(',', '.'))
 }
 
+/** Why a request has no usable key, in both languages: the Shortcut shows it as a notification. */
+const KEY_PROBLEMS = {
+  missing:
+    'Forza!: il comando rapido non invia la chiave. In "Ottieni contenuti dell\'URL", il valore di x-forza-token deve essere la variabile blu Key, non la parola. / ' +
+    'Forza!: the shortcut sends no sync key. In "Get Contents of URL", the value of x-forza-token must be the blue Key variable, not the word.',
+  incomplete:
+    'Forza!: la chiave è incompleta (copiata a metà?). In Forza! → Impostazioni → Collega Salute e bilancia tocca "Copia" e incollala di nuovo. / ' +
+    'Forza!: the sync key is cut short. In Forza! → Settings → Connect Health & scale, tap "Copy" and paste it again.',
+  unknown:
+    'Forza!: questa chiave non è più valida (ne è stata creata una nuova?). Copiala di nuovo da Forza! → Impostazioni → Collega Salute e bilancia. / ' +
+    'Forza!: this sync key is no longer valid (was a new one created?). Copy it again from Forza! → Settings → Connect Health & scale.',
+}
+
+/**
+ * The sync key wherever it arrives (x-forza-token, "Authorization: Bearer", or the body) and however it
+ * was pasted: quotes, spaces or words around it do not matter.
+ */
+function syncKey(req: Request, body: Record<string, unknown>): { key: string } | { problem: keyof typeof KEY_PROBLEMS } {
+  const raw = [req.headers.get('x-forza-token'), req.headers.get('authorization'), body.token, body.key].map((v) => String(v ?? '')).join(' ')
+  const key = /fz_[0-9a-f]{48}/i.exec(raw)?.[0]
+  if (key) return { key: key.toLowerCase() }
+  return { problem: /fz_/i.test(raw) ? 'incomplete' : 'missing' }
+}
+
+/** "Forza! ✓ 7 giorni di passi, 2 pesate", with a hint when nothing arrived. */
+function summary(locale: string, source: string, n: { steps: number; weights: number; activities: number; meals: number }): string {
+  const it = locale === 'it'
+  const parts = [
+    it ? `${n.steps} giorni di passi` : `${n.steps} days of steps`,
+    it ? `${n.weights} pesate` : `${n.weights} weigh-ins`,
+    ...(n.activities ? [it ? `${n.activities} attività` : `${n.activities} activities`] : []),
+    ...(n.meals ? [it ? `${n.meals} pasti` : `${n.meals} meals`] : []),
+  ]
+  let text = `Forza! ✓ ${parts.join(', ')}`
+  if (!n.steps && !n.weights && source === 'apple_health') {
+    text += it
+      ? '. Nessun dato da Salute: apri Salute → profilo → App (Condivisione) → Comandi e attiva Passi e Peso.'
+      : '. No data from Health: open Health → profile → Apps (Sharing) → Shortcuts and turn on Steps and Weight.'
+  }
+  return text
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
@@ -89,13 +135,13 @@ Deno.serve(async (req) => {
     return json({ error: 'bad_request' }, 400)
   }
 
-  const token = String(req.headers.get('x-forza-token') ?? body.token ?? '').trim()
-  if (token.length < 20) return json({ error: 'unauthorized' }, 401)
+  const found = syncKey(req, body)
+  if ('problem' in found) return json({ error: 'unauthorized', reason: found.problem, message: KEY_PROBLEMS[found.problem] }, 401)
 
   const admin = adminClient()
-  const hash = await sha256Hex(token)
+  const hash = await sha256Hex(found.key)
   const { data: owner } = await admin.from('sync_tokens').select('user_id').eq('token_hash', hash).maybeSingle()
-  if (!owner) return json({ error: 'unauthorized' }, 401)
+  if (!owner) return json({ error: 'unauthorized', reason: 'unknown', message: KEY_PROBLEMS.unknown }, 401)
   const userId: string = owner.user_id
 
   const source = SOURCES.has(String(body.source)) ? String(body.source) : 'apple_health'
@@ -228,6 +274,17 @@ Deno.serve(async (req) => {
     meals = rows.length
   }
 
-  await admin.from('sync_tokens').update({ last_used_at: new Date().toISOString() }).eq('user_id', userId)
-  return json({ ok: true, steps: perDay.size, weights: validWeights.length, activities: byStart.size, meals })
+  const received = { steps: perDay.size, weights: validWeights.length, activities: byStart.size, meals }
+  // What the phone found (Android helper) or at least what arrived (iPhone Shortcut), for the coach.
+  const sent = JSON.stringify(body.report ?? {})
+  const report = {
+    ...(sent.length < 4000 && body.report && typeof body.report === 'object' ? (body.report as Record<string, unknown>) : {}),
+    source,
+    client: (req.headers.get('user-agent') ?? '').slice(0, 120),
+    received,
+  }
+  const now = new Date().toISOString()
+  await admin.from('sync_tokens').update({ last_used_at: now, last_report: report }).eq('user_id', userId)
+  const { data: person } = await admin.from('profiles').select('locale').eq('id', userId).maybeSingle()
+  return json({ ok: true, ...received, message: summary(person?.locale ?? 'it', source, received) })
 })

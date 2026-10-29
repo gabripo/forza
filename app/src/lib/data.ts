@@ -397,9 +397,17 @@ async function sha256Hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function hasSyncKey(): Promise<{ exists: boolean; lastUsed: string | null }> {
-  const row = check(await supabase.from('sync_tokens').select('last_used_at').maybeSingle()) as { last_used_at: string | null } | null
-  return { exists: Boolean(row), lastUsed: row?.last_used_at ?? null }
+/** What the phone found on its last sync, per kind of data (see health-ingest). */
+export interface SyncReport {
+  app?: 'android'
+  source?: string
+  types?: Record<string, { allowed: boolean; found: number; sources: string[] }>
+  received?: { steps: number; weights: number; activities: number; meals: number }
+}
+
+export async function hasSyncKey(): Promise<{ exists: boolean; lastUsed: string | null; report: SyncReport | null }> {
+  const row = check(await supabase.from('sync_tokens').select('last_used_at, last_report').maybeSingle()) as { last_used_at: string | null; last_report: SyncReport | null } | null
+  return { exists: Boolean(row), lastUsed: row?.last_used_at ?? null, report: row?.last_report ?? null }
 }
 
 /** Creates a new personal sync key. The old one stops working. */

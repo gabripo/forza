@@ -189,6 +189,7 @@ function overview(d) {
       <div class="tile"><div class="label">Calorie check-ins</div><div class="value" style="font-size:18px">${p(d).kcal_adjust ? `${p(d).kcal_adjust > 0 ? '+' : ''}${p(d).kcal_adjust} kcal` : 'no change'}</div><div class="small muted">${p(d).kcal_checkin_at ? 'last ' + fmtDate(p(d).kcal_checkin_at) : ''}</div></div>
       <div class="tile"><div class="label">Health sync</div><div class="value" style="font-size:15px">${d.sync?.last_used_at ? fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not connected'}</div></div>
     </div></div>
+    ${syncReportView(d)}
     <div class="card"><h2>Weight</h2><div class="chart">${lineChart(weights, (v) => `${fmtNum(v, 1)}`)}</div></div>
     <div class="card"><h2>Steps (90 days)</h2><div class="chart">${barChart(d.steps.map((s) => ({ label: s.day.slice(5), v: s.steps })), p(d).steps_goal)}</div></div>
     ${d.photos.length ? `<div class="card"><h2>Progress photos (${d.photos.length})</h2><p class="muted small">Private photos: open them only if the person is happy to share them with you.</p><button class="btn secondary" data-action="show-photos">Show photos</button><div id="photo-grid" class="row" style="margin-top:10px"></div></div>` : ''}
@@ -506,6 +507,35 @@ function phoneView() {
       </div>
       <details class="no-print"><summary class="small">Link (to send in a private message instead)</summary><p class="small" style="word-break:break-all"><code>${esc(sc.url)}</code></p><button class="btn secondary small" data-action="copy-link">Copy link</button></details>
     </div>` : ''}`
+}
+
+/**
+ * What their phone sent on its last sync, per kind of data: allowed in Health Connect? How many? From
+ * which apps? So "no weight" can be told apart from "weight not allowed" without holding the phone.
+ */
+function syncReportView(d) {
+  const r = d.sync?.last_report
+  if (!r) return ''
+  const NAMES = { steps: 'Steps', weight: 'Weigh-ins', body_fat: 'Body fat', exercise: 'Walks & workouts', meals: 'Meals' }
+  const APPS = { 'com.google.android.apps.fitness': 'Google Fit', 'com.eufylife.smarthome': 'EufyLife', 'com.sec.android.app.shealth': 'Samsung Health', 'com.mi.health': 'Mi Fitness', 'com.xiaomi.wearable': 'Mi Fitness', 'com.bws.appv2': 'Build With Science' }
+  const HINTS = {
+    steps: 'No app writes steps into Health Connect on this phone: in Health Connect → Data and access → Steps, a fitness app (Google Fit, the phone maker\'s app) must be a source.',
+    weight: 'Nothing from the scale yet. EufyLife (Android): Me → link Google Fit, on their own EufyLife account (only the main user is synced); then a new weigh-in. Older weigh-ins are not sent.',
+  }
+  const rows = r.types
+    ? Object.entries(r.types)
+        .map(([k, t]) => {
+          const state = !t.allowed ? '<span class="warn">not allowed in the helper</span>' : t.found ? `<span class="ok">${t.found}</span>` : '<span class="warn">none in Health Connect</span>'
+          const apps = (t.sources ?? []).map((s) => APPS[s] ?? s).join(', ')
+          const hint = t.allowed && !t.found && HINTS[k] ? `<div class="small muted">${esc(HINTS[k])}</div>` : !t.allowed && (k === 'steps' || k === 'weight') ? '<div class="small muted">On their phone: Forza! Health → Allow access → turn it on.</div>' : ''
+          return `<tr><td>${esc(NAMES[k] ?? k)}</td><td>${state}${hint}</td><td class="small">${esc(apps)}</td></tr>`
+        })
+        .join('')
+    : Object.entries(r.received ?? {}).map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n ? `<span class="ok">${n}</span>` : '<span class="warn">0</span>'}</td><td></td></tr>`).join('')
+  const device = r.app === 'android' ? `Android ${esc(r.android ?? '')} · ${esc(r.device ?? '')} · helper ${esc(r.helper ?? '?')}` : r.source === 'apple_health' ? 'iPhone (Shortcut)' : esc(r.source ?? '')
+  return `<div class="card"><h2>Last health sync</h2>
+    <p class="small muted">${device} · ${fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${r.app === 'android' && r.history === false ? ' · history permission not given (only the last 30 days are readable)' : ''}</p>
+    <table><thead><tr><th>Data</th><th>Found</th><th>From</th></tr></thead><tbody>${rows}</tbody></table></div>`
 }
 
 function profileView(d) {

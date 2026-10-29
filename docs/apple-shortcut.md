@@ -16,8 +16,8 @@ can then share it with the rest of the family as an iCloud link.
 
 Open the **Shortcuts** app [*Comandi*] → **+** → name it exactly **`Forza Sync`**. Add these actions in order:
 
-1. **Text** [*Testo*] → paste your **sync key**. Rename the variable to `Key`
-   (tap the action's output → *Rename*).
+1. **Text** [*Testo*] → paste your **sync key** (in Forza! tap **Copy**: the key is long, starts with `fz_`
+   and must be pasted whole). Rename the variable to `Key` (tap the action's output → *Rename*).
 2. **Find Health Samples** [*Trova campioni Salute*]
    - Type: **Steps** [*Passi*]
    - Filter: *Start Date* **is in the last 7 days**
@@ -37,12 +37,16 @@ Open the **Shortcuts** app [*Comandi*] → **+** → name it exactly **`Forza Sy
 8. **Get Contents of URL** [*Ottieni contenuti dell'URL*]
    - URL: the **address** from Forza!
    - Method: **POST**
-   - Headers: `x-forza-token` = `Key`
+   - Headers: `x-forza-token` = the **Key variable**: tap the value field, then pick **Key** from the
+     variables shown above the keyboard (it appears as a blue bubble). Typing the letters K-e-y sends the
+     word "Key" instead of your key, and Forza! refuses it.
    - Request Body: **JSON** with three text fields:
      - `source` = `apple_health`
      - `steps_text` = `Steps`
      - `weights_text` = `Weights`
-9. **Show Notification** [*Mostra notifica*] → `Forza! ✓`
+9. **Get Dictionary Value** [*Ottieni valore dizionario*] → key `message` in *Contents of URL*.
+10. **Show Notification** [*Mostra notifica*] → *Dictionary Value*. Forza! answers in your language, for example
+    *Forza! ✓ 7 giorni di passi, 2 pesate*, or says exactly what to fix.
 
 **Optional: walks and other workouts.** Before step 8, add **Find Health Samples** (or **Find Workouts**,
 depending on your iOS version) for *Workouts* in the last 7 days, and build lines like
@@ -54,6 +58,21 @@ In Forza! the *Last sync* time appears under your sync key.
 
 > Decimal commas (`72,5`) and thousands separators (`8.432`) are handled by the server,
 > so it works with Italian and English iPhone settings alike.
+
+## If nothing arrives
+
+Run the shortcut with ▶︎ and read the notification:
+
+| Notification | What to do |
+|---|---|
+| *the shortcut sends no sync key* | In step 8, the value of `x-forza-token` is not the blue **Key** variable: delete it and pick **Key** from the variables. |
+| *the sync key is cut short* | The key was copied partly. In Forza! tap **Copy** and paste it again in step 1. |
+| *this sync key is no longer valid* | A new key was created in Forza! after the shortcut was built. Paste the current one in step 1. |
+| *✓ 0 days of steps, 0 weigh-ins* | The key works, but Health gives the shortcut nothing: open **Health** → your picture (top right) → **Apps** → **Shortcuts** [*Comandi*] and turn on **Steps** and **Weight**. |
+| no notification, or an error from Shortcuts | Check the address in step 8: it must end with `/functions/v1/health-ingest`. |
+
+In Forza! (Settings → Connect Health & scale) and in Forza! Coach (the person's Overview, *Last health sync*)
+you can see what arrived last time.
 
 ## Make it automatic
 

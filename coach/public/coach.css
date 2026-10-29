@@ -360,6 +360,10 @@ details summary {
   color: var(--leaf);
   font-weight: 700;
 }
+.warn {
+  color: var(--brand);
+  font-weight: 700;
+}
 @media print {
   .top,
   .no-print,

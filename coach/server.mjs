@@ -149,7 +149,7 @@ async function userData(id) {
     db.from('food_logs').select('*').eq('user_id', id).gte('eaten_at', month).order('eaten_at', { ascending: false }),
     db.from('checkins').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(30),
     db.from('workout_templates').select('*').eq('user_id', id).eq('archived', false).order('position'),
-    db.from('sync_tokens').select('last_used_at, created_at').eq('user_id', id).maybeSingle(),
+    db.from('sync_tokens').select('last_used_at, created_at, last_report').eq('user_id', id).maybeSingle(),
     db.from('activities').select('*').eq('user_id', id).gte('started_at', month).order('started_at', { ascending: false }),
     db.from('progress_photos').select('*').eq('user_id', id).order('taken_at', { ascending: false }),
     db.from('lesson_progress').select('*').eq('user_id', id),

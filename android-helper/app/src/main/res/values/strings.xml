@@ -51,4 +51,13 @@
     <string name="bws_reminder_text">Tap, then leave the phone unlocked for a couple of minutes: Forza! reads your new Build With Science workouts.</string>
     <string name="bws_service_label">Forza! Health: Build With Science workouts</string>
     <string name="bws_service_description">Forza! Health reads your workout history in the Build With Science app, only when you start a sync, so it can show your workouts in Forza! without a computer. It opens Build With Science, taps rows to open them, reads the sets and scrolls, then goes back to the home screen. It never changes anything in Build With Science and reads no other app.</string>
+    <string name="found_steps">Steps: %1$d days ✓ (%2$s)</string>
+    <string name="none_steps">Steps: none in Health Connect yet. An app must count them into it: open Health Connect → Data and access → Steps, and check that Google Fit (or your phone\'s fitness app) is a source.</string>
+    <string name="denied_steps">Steps: not allowed. Tap \"Allow access\" and turn on Steps.</string>
+    <string name="found_weight">Weigh-ins: %1$d ✓ (%2$s)</string>
+    <string name="none_weight">Weigh-ins: none in Health Connect. In EufyLife: Me → link Google Fit (it goes through Health Connect), weigh in on your own EufyLife account (only its main user is synced), then step on the scale once: only new weigh-ins are sent.</string>
+    <string name="denied_weight">Weigh-ins: not allowed. Tap \"Allow access\" and turn on Weight.</string>
+    <string name="found_meals">Meals: %1$d entries ✓ (%2$s)</string>
+    <string name="none_meals">Meals: none in Health Connect (fine if you log them in Forza!).</string>
+    <string name="denied_meals">Meals: not allowed (optional: only for food apps such as Build With Science).</string>
 </resources>

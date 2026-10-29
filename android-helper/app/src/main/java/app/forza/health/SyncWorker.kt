@@ -1,6 +1,7 @@
 package app.forza.health
 
 import android.content.Context
+import android.os.Build
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
@@ -54,6 +55,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         }
         val client = HealthConnectClient.getOrCreate(applicationContext)
         val granted = client.permissionController.getGrantedPermissions()
+        // What this sync finds, per kind of data: shown here and sent to Forza!, so a family coach can
+        // tell "not allowed" from "nothing in Health Connect" without holding the phone.
+        fun kind(record: kotlin.reflect.KClass<out androidx.health.connect.client.records.Record>) = Found(HealthPermission.getReadPermission(record) in granted)
+        val found = linkedMapOf(
+            "steps" to kind(StepsRecord::class),
+            "weight" to kind(WeightRecord::class),
+            "body_fat" to kind(BodyFatRecord::class),
+            "exercise" to kind(ExerciseSessionRecord::class),
+            "meals" to kind(NutritionRecord::class),
+        )
 
         val steps = JSONArray()
         if (HealthPermission.getReadPermission(StepsRecord::class) in granted) {
@@ -68,6 +79,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             for (bucket in buckets) {
                 val count = bucket.result[StepsRecord.COUNT_TOTAL] ?: continue
                 steps.put(JSONObject().put("date", bucket.startTime.toLocalDate().toString()).put("steps", count))
+                found.getValue("steps").add(bucket.result.dataOrigins.map { it.packageName })
             }
         }
 
@@ -82,7 +94,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             } else {
                 emptyList()
             }
+            if (fatRecords.isNotEmpty()) found.getValue("body_fat").add(fatRecords.map { it.metadata.dataOrigin.packageName }, fatRecords.size)
             for (w in weightRecords) {
+                found.getValue("weight").add(listOf(w.metadata.dataOrigin.packageName))
                 val item = JSONObject().put("at", w.time.toString()).put("kg", w.weight.inKilograms)
                 // Smart scales write body fat a few seconds apart from the weight.
                 fatRecords.firstOrNull { abs(Duration.between(it.time, w.time).seconds) < 300 }
@@ -96,6 +110,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         if (HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted) {
             val range = TimeRangeFilter.after(Instant.now().minus(Duration.ofDays(14)))
             for (s in client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class, range, pageSize = 500)).records) {
+                found.getValue("exercise").add(listOf(s.metadata.dataOrigin.packageName))
                 activities.put(
                     JSONObject()
                         .put("start", s.startTime.toString())
@@ -123,6 +138,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                     ReadRecordsRequest(NutritionRecord::class, TimeRangeFilter.after(since), pageSize = 1000, pageToken = page),
                 )
                 for (r in response.records) {
+                    found.getValue("meals").add(listOf(r.metadata.dataOrigin.packageName))
                     val day = r.startTime.atZone(r.startZoneOffset ?: zone.rules.getOffset(r.startTime)).toLocalDate()
                     val meal = mealOf(r.mealType)
                     val origin = r.metadata.dataOrigin.packageName
@@ -147,7 +163,14 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             groups.values.forEach { meals.put(it) }
         }
 
-        val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights).put("activities", activities)
+        val report = JSONObject()
+            .put("app", "android")
+            .put("android", Build.VERSION.SDK_INT)
+            .put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
+            .put("helper", runCatching { applicationContext.packageManager.getPackageInfo(applicationContext.packageName, 0).versionName }.getOrNull() ?: JSONObject.NULL)
+            .put("history", HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY in granted)
+            .put("types", JSONObject().apply { found.forEach { (name, f) -> put(name, f.toJson()) } })
+        val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights).put("activities", activities).put("report", report)
         if (mealsSince != null) body.put("meals", meals).put("meals_since", mealsSince.toString())
         return withContext(Dispatchers.IO) {
             try {
@@ -166,7 +189,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                     200 -> {
                         prefs.lastSync = System.currentTimeMillis()
                         if (mealsSince != null) prefs.mealsSynced = true
-                        prefs.lastMessage = applicationContext.getString(R.string.synced, steps.length(), weights.length(), meals.length())
+                        prefs.lastMessage = summary(applicationContext, found)
                         Result.success()
                     }
                     401 -> {
@@ -223,4 +246,50 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.REPLACE, request)
         }
     }
+}
+
+/** One kind of data in one sync: allowed in Health Connect? How many found, written by which apps? */
+private class Found(val allowed: Boolean) {
+    var count = 0
+    val sources = linkedSetOf<String>()
+
+    fun add(origins: Collection<String>, n: Int = 1) {
+        count += n
+        sources += origins
+    }
+
+    fun toJson(): JSONObject = JSONObject().put("allowed", allowed).put("found", count).put("sources", JSONArray(sources.toList()))
+}
+
+/** Apps that often write to Health Connect, by their package name. */
+private val APP_NAMES = mapOf(
+    "com.google.android.apps.fitness" to "Google Fit",
+    "com.eufylife.smarthome" to "EufyLife",
+    "com.sec.android.app.shealth" to "Samsung Health",
+    "com.mi.health" to "Mi Fitness",
+    "com.xiaomi.wearable" to "Mi Fitness",
+    "com.huawei.health" to "Huawei Health",
+    "com.fitbit.FitbitMobile" to "Fitbit",
+    "com.bws.appv2" to "Build With Science",
+    "com.google.android.healthconnect.controller" to "Health Connect",
+    "com.android.healthconnect.controller" to "Health Connect",
+    "android" to "Android",
+)
+
+/** "Steps: 15 days (Google Fit) · Weigh-ins: none…", one line per kind, with what to do when something is missing. */
+private fun summary(context: Context, found: Map<String, Found>): String {
+    fun apps(f: Found) = f.sources.joinToString(", ") { APP_NAMES[it] ?: it }
+    fun line(name: String, ok: Int, none: Int, denied: Int): String {
+        val f = found.getValue(name)
+        return when {
+            !f.allowed -> context.getString(denied)
+            f.count == 0 -> context.getString(none)
+            else -> context.getString(ok, f.count, apps(f))
+        }
+    }
+    return listOf(
+        line("steps", R.string.found_steps, R.string.none_steps, R.string.denied_steps),
+        line("weight", R.string.found_weight, R.string.none_weight, R.string.denied_weight),
+        line("meals", R.string.found_meals, R.string.none_meals, R.string.denied_meals),
+    ).joinToString("\n")
 }

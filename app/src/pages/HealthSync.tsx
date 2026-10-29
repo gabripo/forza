@@ -4,7 +4,7 @@ import { importHistory, type ImportResult } from '../../../shared/history-import
 import { Link } from 'react-router-dom'
 import { Button, Card, PageHeader } from '../components/ui'
 import { useApp } from '../lib/auth'
-import { createSyncKey, hasSyncKey, savedSyncKey, useAsync } from '../lib/data'
+import { createSyncKey, hasSyncKey, savedSyncKey, useAsync, type SyncReport } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 import { functionsUrl, supabase } from '../lib/supabase'
 
@@ -82,7 +82,10 @@ export function HealthSync() {
           <RefreshCw className="size-4" aria-hidden /> {status.data?.exists ? t('health.newKey') : t('health.createKey')}
         </Button>
         {status.data?.lastUsed ? (
-          <p className="mt-2 text-sm text-leaf">{t('health.lastSync', { date: date(status.data.lastUsed, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</p>
+          <>
+            <p className="mt-2 text-sm text-leaf">{t('health.lastSync', { date: date(status.data.lastUsed, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</p>
+            {status.data.report ? <ReportLines report={status.data.report} /> : null}
+          </>
         ) : status.data?.exists ? (
           <p className="mt-2 text-sm text-ink-3">{t('health.neverUsed')}</p>
         ) : null}
@@ -163,6 +166,32 @@ export function HealthSync() {
  * Science workouts are synced by Forza! Coach, which picks the request up within a minute when
  * this phone is connected to its computer.
  */
+/**
+ * What the phone sent last time, in plain words: "Weigh-ins: none — in EufyLife…". Tells "not allowed"
+ * from "nothing to send", which is what someone helping from far away needs to know.
+ */
+function ReportLines({ report }: { report: SyncReport }) {
+  const { t } = useI18n()
+  const kinds = [
+    ['steps', report.types?.steps?.found ?? report.received?.steps ?? 0],
+    ['weight', report.types?.weight?.found ?? report.received?.weights ?? 0],
+  ] as const
+  return (
+    <ul className="mt-2 grid gap-1 text-sm">
+      {kinds.map(([kind, n]) => {
+        const allowed = report.types?.[kind]?.allowed ?? true
+        const text = !allowed ? t(`report.${kind}Denied`) : n ? t(`report.${kind}Found`, { n }) : t(`report.${kind}None${report.app === 'android' ? 'Android' : 'Iphone'}`)
+        return (
+          <li key={kind} className={n && allowed ? 'text-ink-2' : 'rounded-xl bg-sun-soft p-2'}>
+            {n && allowed ? '✓ ' : '⚠️ '}
+            {text}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function SyncNow({ helperReady, lastSync }: { helperReady: boolean; lastSync: string | null }) {
   const { t, date } = useI18n()
   const { profile, saveProfile, refreshProfile } = useApp()
