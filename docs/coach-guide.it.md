@@ -91,6 +91,8 @@ impostazioni di accesso. Quando compare **Forza! is ready**, la configurazione �
 4. La persona risponde a poche domande semplici (oppure compila prima il suo **Profile** in Coach: andrà
    direttamente alla schermata principale).
 
+<p><img src="screenshots/coach-signin.jpg" width="480" alt="Un codice di accesso in Forza! Coach"> <img src="screenshots/welcome.jpg" width="200" alt="La schermata di benvenuto sul telefono"></p>
+
 Ogni codice funziona **una sola volta**, per **24 ore**. Creane uno nuovo quando serve (telefono nuovo,
 reset). L'accesso resta attivo: nessuna password da ricordare.
 
@@ -125,6 +127,8 @@ i passi giornalieri. Le pesate arrivano da sole tramite Connessione Salute (punt
    una persona. Servono circa 30 secondi per allenamento (un'ora per un anno di allenamenti); puoi fermarlo
    quando vuoi: la volta dopo riprende da dove si era fermato.
 5. In seguito, **Only workouts not imported yet** importa solo quelli nuovi.
+
+<p><img src="screenshots/coach-import.jpg" width="560" alt="Importazione da Build With Science in Forza! Coach"></p>
 
 Coach può anche salvare il risultato come file (**Download the file**), che la persona può importare da
 sola in Forza!: **Impostazioni → Collega Salute e bilancia → Importa un file di storico**.

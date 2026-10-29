@@ -27,6 +27,8 @@ const esc = (v) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const fmtDate = (d, opts = { day: 'numeric', month: 'short', year: 'numeric' }) => (d ? new Date(d).toLocaleDateString('en-GB', opts) : '—')
 const fmtNum = (n, digits = 0) => (n == null || Number.isNaN(Number(n)) ? '—' : Number(n).toLocaleString('en-GB', { maximumFractionDigits: digits }))
+// Body weight: always two decimals, as smart scales measure it.
+const fmtKg = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 const e1rm = (w, r) => (w > 0 && r > 0 ? (r === 1 ? w : w * (1 + Math.min(r, 15) / 30)) : 0)
 
 async function api(path, { method = 'GET', body } = {}) {
@@ -105,7 +107,7 @@ function peopleView() {
         <div class="name">${esc(p?.display_name || '(no name yet)')}</div>
         <div class="muted small">${u.no_email ? 'signs in with a QR code' : esc(u.email)}</div>
         <div class="small">${p?.onboarded_at ? `<span class="pill ${active}">${u.workouts_28d} workouts / 4 wk</span>` : '<span class="pill info">setup not done</span>'}
-        ${u.last_weight ? `<span class="muted"> · ${fmtNum(u.last_weight.weight_kg, 2)} kg</span>` : ''}</div>
+        ${u.last_weight ? `<span class="muted"> · ${fmtKg(u.last_weight.weight_kg)} kg</span>` : ''}</div>
       </button></li>`
     })
     .join('')
@@ -172,8 +174,8 @@ function overview(d) {
   const avgPct = strengthRows.length ? strengthRows.reduce((a, r) => a + r.pct, 0) / strengthRows.length : null
 
   return `<div class="card"><div class="tiles">
-      <div class="tile"><div class="label">Weight now</div><div class="value">${fmtNum(last, 2)} kg</div><div class="small muted">${first != null ? `${last - first >= 0 ? '+' : ''}${fmtNum(last - first, 2)} kg in 12 months` : ''}</div></div>
-      <div class="tile"><div class="label">Target</div><div class="value">${fmtNum(p(d).target_weight_kg, 2)} kg</div></div>
+      <div class="tile"><div class="label">Weight now</div><div class="value">${fmtKg(last)} kg</div><div class="small muted">${first != null ? `${last - first >= 0 ? '+' : ''}${fmtKg(last - first)} kg in 12 months` : ''}</div></div>
+      <div class="tile"><div class="label">Target</div><div class="value">${fmtKg(p(d).target_weight_kg)} kg</div></div>
       <div class="tile"><div class="label">Workouts, last 4 weeks</div><div class="value">${recentSessions.length}</div><div class="small muted">goal ${p(d).workouts_per_week * 4}</div></div>
       <div class="tile"><div class="label">Avg steps (14 d)</div><div class="value">${fmtNum(avgSteps)}</div><div class="small muted">goal ${fmtNum(p(d).steps_goal)}</div></div>
       <div class="tile"><div class="label">Strength change</div><div class="value">${avgPct == null ? '—' : `${avgPct >= 0 ? '+' : ''}${fmtNum(avgPct)}%`}</div></div>
@@ -729,7 +731,7 @@ app.addEventListener('click', async (e) => {
         if (!url) continue
         const fig = document.createElement('figure')
         fig.style.margin = '0'
-        fig.innerHTML = `<img src="${esc(url)}" alt="" style="width:120px;height:160px;object-fit:cover;border-radius:10px"><figcaption class="small muted">${fmtDate(ph.taken_at)}${ph.weight_kg ? ' · ' + fmtNum(ph.weight_kg, 1) + ' kg' : ''}</figcaption>`
+        fig.innerHTML = `<img src="${esc(url)}" alt="" style="width:120px;height:160px;object-fit:cover;border-radius:10px"><figcaption class="small muted">${fmtDate(ph.taken_at)}${ph.weight_kg ? ' · ' + fmtKg(ph.weight_kg) + ' kg' : ''}</figcaption>`
         grid.append(fig)
       }
       return

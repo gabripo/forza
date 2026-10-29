@@ -515,7 +515,8 @@ function openBrowser(link) {
   const [cmd, args] =
     platform() === 'darwin' ? ['open', [link]] : platform() === 'win32' ? ['cmd', ['/c', 'start', '""', link.replaceAll('&', '^&')]] : ['xdg-open', [link]]
   try {
-    spawn(cmd, args, { stdio: 'ignore', detached: true }).unref()
+    // A missing opener (e.g. no xdg-open) is reported as an 'error' event, not an exception.
+    spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => {}).unref()
   } catch {
     // no browser: the link is printed below
   }

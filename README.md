@@ -2,121 +2,92 @@
 
 <h1 align="center">Forza!</h1>
 <p align="center"><b>Help the people you love get stronger and healthier, one small step at a time.</b></p>
-<p align="center">Free · open source · English &amp; Italian · works on any phone<br><a href="README.it.md">🇮🇹 Leggi in italiano</a></p>
+<p align="center">Free · open source · English and Italian · works on any phone<br><a href="README.it.md">🇮🇹 Leggi in italiano</a></p>
 
 ---
 
 Our parents are getting older. We know that **strength training, enough protein, walking and good sleep**
-can keep them independent and healthy for many more years, but "go to the gym and eat better" is not
-advice anyone can follow.
+keep them independent and healthy for many more years, but "go to the gym and eat better" is not advice
+anyone can follow.
 
-**Forza!** is a simple, friendly app that you set up *for* a parent or relative. It guides them through
-beginner-friendly workouts, shows their progress in plain language, estimates their meals from a photo, and
-explains the basics of health with printable infographics. You, the family "coach", follow along and adjust
-their plan from a private dashboard on your computer.
+**Forza!** is a simple, friendly app that you set up *for* a parent or a relative. It guides them through
+beginner-friendly workouts, explains their progress in plain words, estimates meals from a photo or a
+barcode, and teaches the basics with printable infographics. You, the family "coach", follow their progress
+and adjust their plan from your own computer.
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.jpg" width="200" alt="Dashboard">
-  <img src="docs/screenshots/workout.jpg" width="200" alt="Workout with rest timer">
-  <img src="docs/screenshots/progress.jpg" width="200" alt="Progress check">
-  <img src="docs/screenshots/food.jpg" width="200" alt="Food and calories">
-  <img src="docs/screenshots/learn.jpg" width="200" alt="Infographic">
+  <img src="docs/screenshots/dashboard.jpg" width="190" alt="Home: daily checklist and today's workout">
+  <img src="docs/screenshots/workout.jpg" width="190" alt="Workout with pre-filled weights and warm-up sets">
+  <img src="docs/screenshots/strength.jpg" width="190" alt="Exercise history and personal records">
+  <img src="docs/screenshots/progress.jpg" width="190" alt="Progress in plain words">
 </p>
 
-## What it does
+*Screenshots from a real phone with real training history (imported from Build With Science).*
 
-**🏠 Dashboard.** Weight trend (a smoothed line, so daily ups and downs don't discourage anyone),
-strength gains per exercise, workouts this week, steps, today's food, and a daily tip.
+## For the person training
 
-**🏋️ Training mode, made for beginners.**
-- Every exercise has start/end photos, three plain steps, a key tip and a video link.
-- Weights are **pre-filled and progression is automatic**: *"Last time you did all your reps: try 18 kg today."*
-- One tap per set, an "how hard was it?" scale (Easy · Good · Hard · Max), and a **rest timer** with sound and vibration.
-- The screen stays on, and workouts are saved on the phone first, so a weak gym signal never loses a set.
-- **Supersets** (alternate two exercises, one rest), automatic **warm-up sets** for big lifts, and a
-  **weekday schedule** (e.g. Thursday A, Saturday B) with this week's plan, done workouts and synced walks.
-- Every exercise has a **history** of past sets and personal records (heaviest lift, best set).
-- Create your own workouts, or let the family coach prepare the plan remotely.
-
-**✅ Daily checklist.** Today's workout (or rest day), weigh-in, meals and steps, with "3 of 4 done".
-
-**📈 Progress check.** Weight speed vs. goal, strength change, consistency, steps and nutrition, each as a
-clear verdict (*Good / OK / Needs attention*) with one concrete suggestion. Weekly check-ins for energy,
-sleep, mood and waist. Week **streak**, all-time workouts, recent **personal records**, private **progress photos**
-(first vs latest), and a **"Share with family"** progress card.
-
-**📸 Calories from a photo.** Snap the plate; Google Gemini estimates every item and its macros. The portions
-can be corrected, and the plate is **scored for fat loss and for muscle gain** against the person's own energy
-needs (TDEE). The TDEE starts from profile and activity level, then adapts to logged steps, workouts and, after
-two weeks of food logging, to what the scale actually did. A **weekly check-in** compares the weight trend with
-the goal pace and suggests a small calorie change (±100–150 kcal). Manual entry with 60+ common foods is always available.
-
-**📚 Learn.** A short **guided course** (with a "Next lesson" card on Home) of twelve beginner infographics,
-printable on A4 or saved as images, in Italian or English:
-why strength matters with age · macronutrients · the balanced plate (and hand portions) · protein ·
-where to find each nutrient · fibre · insulin sensitivity · what to eat before/after training · meal ideas ·
-more movement with little effort · sleep · 10 small habits.
-
-**🔄 Automatic steps and weight.** iPhone via an Apple Shortcut, Android via a tiny Health Connect helper app.
-Walks and other workouts show up as activities. A **Eufy** (or any) smart scale works through Apple Health /
-Health Connect, and old weigh-ins can be imported from CSV.
-
-**🔒 Private by design.**
-- Accounts are created **only by you** (public sign-up is closed).
-- Each person sees only their own data (Postgres row-level security).
-- The admin dashboard runs **only on your Mac**, with the master key stored in the macOS Keychain.
-
-## How it fits together
-
-```
- Phones (installable web app)                 Your Mac
- ┌──────────────────────────┐                ┌────────────────────────────┐
- │ Forza! PWA (GitHub Pages)│                │ Admin dashboard (localhost)│
- │  React · offline-first   │                │  key in macOS Keychain     │
- └───────────┬──────────────┘                └─────────────┬──────────────┘
-             │  user login (RLS)                           │ service key
-             ▼                                             ▼
- ┌─────────────────────────────────────────────────────────────────────────┐
- │ Supabase: Postgres · Auth · Storage · Edge Functions                     │
- │   food-estimate → Google Gemini        health-ingest ← Shortcut / APK    │
- └─────────────────────────────────────────────────────────────────────────┘
-```
-
-| Folder | What |
+| | |
 |---|---|
-| [`app/`](app) | The phone app: React + TypeScript + Vite + Tailwind, installable PWA |
-| [`admin/`](admin) | Private admin dashboard (Node, no build step) |
-| [`supabase/`](supabase) | Database schema with row-level security, server functions, local demo data |
-| [`android-helper/`](android-helper) | Kotlin Health Connect sync app |
-| [`docs/`](docs) | [Setup guide](docs/setup.md) · [iPhone Shortcut](docs/apple-shortcut.md) |
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **A clear plan for every day.** A short checklist (workout or rest, weigh-in, meals, steps), today's workout from the weekly schedule, the weight trend and the next lesson. |
+| <img src="docs/screenshots/workout.jpg" width="200" alt="Workout"> | **Workouts for beginners.** Every exercise has photos, three simple steps and a video. Weights are **pre-filled and go up automatically** when they get stronger. Warm-up sets, supersets, a rest timer with sound, and "how hard was it?" for each set. Works without signal in the gym. |
+| <img src="docs/screenshots/progress.jpg" width="200" alt="Progress"> | **Progress anyone can understand.** Weight trend (smoothed, so daily ups and downs don't discourage), strength gained, consistency, steps, each with a verdict in words and one concrete tip. Streaks, records, private progress photos and a "share with family" card. |
+| <img src="docs/screenshots/barcode.jpg" width="200" alt="Barcode"> | **Food in three ways.** Snap a photo of the plate (AI estimates every item), **scan a barcode** (Open Food Facts, millions of products), or add it by hand. Every plate gets a score for losing fat and for building muscle. |
+| <img src="docs/screenshots/calories.jpg" width="200" alt="Calorie target"> | **A calorie target that explains itself.** Five steps with their own numbers: energy at rest, walking and training (from the phone's steps), a reality check with the scale, the goal, and how calories split into protein, fat and carbs. |
+| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lessons"> | **Learn the basics.** Twelve short infographics (why strength matters with age, protein, balanced plates, sleep, …) to read, print or share, in English or Italian. |
+
+Steps and weight arrive by themselves from **Health Connect** (Android) or **Apple Health** (iPhone), so smart
+scales like **Eufy** just work. Coming from **Build With Science**? The whole workout history comes along.
+
+## For you, the family coach
+
+| | |
+|---|---|
+| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** runs on your computer (Mac, Windows or Linux). It sets everything up for you, creates the accounts, and shows each person's weight, strength, workouts, meals and check-ins. Edit their workout plan from home: it appears on their phone at the next opening. |
+| <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Sign in with a QR code"> | **No passwords for them.** Make a QR code, they point the phone camera at it, and Forza! opens already signed in. Print it on a welcome card with simple instructions. |
+| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Import from Build With Science"> | **Bring their history.** Connect their Android phone with a cable and Coach imports every workout, set and effort, the weekly plan and the goal from Build With Science. |
 
 ## Get started
 
-Follow **[docs/setup.md](docs/setup.md)**: fork, create a free Supabase project, run one deploy script, set two
-GitHub variables, and you're live. Total cost: €0 for a family.
+You need a computer and about 30 minutes. No technical skills, no cost.
 
-Try it locally with demo data in two minutes:
+1. **Install [Node.js](https://nodejs.org/en/download)** (the LTS version) and **download Forza!**
+   (green **Code** button above → **Download ZIP**, then unzip it).
+2. **Double-click "Forza Coach"** in the folder (`Forza Coach (Mac).command`, `Forza Coach (Windows).bat`,
+   or `forza-coach-linux.sh`). Follow the four steps on screen: a free Supabase account, your database, an
+   optional free key for food photos, install.
+3. **Add a person** and let them **scan the QR code** with their phone. Done.
 
-```bash
-supabase start && supabase db reset   # demo user "Maria", 10 weeks of history
-cd app && npm install && npm run dev  # http://localhost:5173 · demo@forza.local / forza-demo-2026
-```
+👉 The **[Coach guide](docs/coach-guide.md)** ([italiano](docs/coach-guide.it.md)) walks you through every
+step, including health sync, smart scales and the Build With Science import.
+
+## Private and free
+
+- Each family has **its own database** (a free Supabase project that belongs to you). Each person sees only
+  their own data. Only the coach can create accounts.
+- The master key stays **on the coach's computer**, in its password store (Keychain, Credential Manager or
+  the Linux keyring).
+- Everything runs on free plans: Supabase, GitHub Pages, Google Gemini (food photos), Open Food Facts.
+
+## Documentation
+
+| | |
+|---|---|
+| [Coach guide](docs/coach-guide.md) | Step-by-step set-up for the family coach (also in [Italian](docs/coach-guide.it.md)) |
+| [How Forza! is designed](docs/design.md) | Features, formulas, architecture, security and the reasons behind them |
+| [Advanced set-up](docs/advanced-setup.md) | Command line on macOS/Windows/Linux, Supabase CLI, your own copy of the app, local development |
+| [Food photo AI](docs/food-ai.md) | Test results with well-known foods, and free alternatives to Gemini |
+| [Apple Shortcut](docs/apple-shortcut.md) · [Import format](docs/import-format.md) | iPhone health sync · importing history from other apps |
 
 ## Contributing
 
-Ideas, translations (more languages are welcome!), exercise content and bug reports are very welcome.
-Open an issue or a pull request. The health content aims to be simple **and** correct: if you spot something
-inaccurate, please tell us.
-
-## Credits
-
-- Exercise photos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain).
-- Icons: [Lucide](https://lucide.dev) (ISC).
+Ideas, translations (more languages are welcome!), exercise content and bug reports are very welcome: open
+an issue or a pull request. Health content aims to be simple **and** correct: if something looks inaccurate,
+please tell us.
 
 ## Disclaimer
 
-Forza! offers general information and is **not medical advice**. Anyone starting an exercise program,
-especially older adults or people with health conditions, should check with their doctor first.
+Forza! gives general information and **does not replace medical advice**. Anyone starting an exercise
+programme, especially older people or people with health conditions, should talk to their doctor first.
 
 ## License
 

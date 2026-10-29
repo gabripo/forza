@@ -702,7 +702,7 @@ export const it: Dict = {
   import: {
     title: 'Arrivi da Build With Science?',
     text: 'Porta con te gli allenamenti passati: Forza! conoscerà i tuoi pesi dal primo giorno.',
-    what: 'Forza! Coach (l\'app di configurazione sul computer di famiglia) legge allenamenti, scheda, diario alimentare e obiettivo da Build With Science sul telefono Android, tramite un cavo USB.',
+    what: 'Forza! Coach (l\'app di configurazione sul computer di famiglia) legge allenamenti (ogni serie e sforzo), scheda settimanale e obiettivo da Build With Science sul telefono Android, tramite un cavo USB.',
     weights: 'Le pesate arrivano da sole tramite Connessione Salute (app di supporto Android qui sopra): anche Build With Science le salva lì.',
     how: 'Il tuo coach le importa per te, oppure salva un file che puoi importare qui.',
     guide: 'Come funziona →',

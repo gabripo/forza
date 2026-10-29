@@ -90,6 +90,8 @@ sign-in settings. When it says **Forza! is ready**, the set-up is over.
 4. They answer a few simple questions (or fill in their **Profile** in Coach beforehand: they then go
    straight to the home screen).
 
+<p><img src="screenshots/coach-signin.jpg" width="480" alt="A sign-in code in Forza! Coach"> <img src="screenshots/welcome.jpg" width="200" alt="The welcome screen on the phone"></p>
+
 Each code works **once**, for **24 hours**. Make a new one whenever needed (a new phone, a reset).
 They stay signed in: no password to remember.
 
@@ -123,6 +125,8 @@ Their weigh-ins come by themselves through Health Connect (step 4).
    It takes about 30 seconds per workout (an hour for a year of training), and you can stop it any time:
    the next run continues where it stopped.
 5. Later, **Only workouts not imported yet** brings over just the new ones.
+
+<p><img src="screenshots/coach-import.jpg" width="560" alt="Build With Science import in Forza! Coach"></p>
 
 Coach can also save the result as a file (**Download the file**), which they can import themselves in
 Forza!: **Settings → Connect Health & scale → Import a history file**.

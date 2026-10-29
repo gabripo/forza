@@ -700,7 +700,7 @@ export const en = {
   import: {
     title: 'Coming from Build With Science?',
     text: 'Bring your past workouts with you, so Forza! knows your weights from the first day.',
-    what: 'Forza! Coach (the setup app on your family\'s computer) reads your workouts, plan, food log and goal from Build With Science on your Android phone, through a USB cable.',
+    what: 'Forza! Coach (the setup app on your family\'s computer) reads your workouts (every set and effort), weekly plan and goal from Build With Science on your Android phone, through a USB cable.',
     weights: 'Your weigh-ins arrive by themselves through Health Connect (Android helper above): Build With Science stores them there too.',
     how: 'Your coach imports them for you, or saves a file that you can import here.',
     guide: 'How it works →',

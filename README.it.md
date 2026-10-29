@@ -7,76 +7,77 @@
 ---
 
 I nostri genitori stanno invecchiando. Sappiamo che **allenamento di forza, abbastanza proteine, camminare e
-dormire bene** possono mantenerli autonomi e in salute per molti anni in più. Ma "vai in palestra e mangia
-meglio" non è un consiglio che qualcuno riesce davvero a seguire.
+dormire bene** li mantengono autonomi e in salute per molti anni in più, ma "vai in palestra e mangia meglio"
+non è un consiglio che qualcuno riesce davvero a seguire.
 
 **Forza!** è un'app semplice e amichevole che prepari *per* un genitore o un parente. Lo accompagna in
-allenamenti adatti ai principianti, mostra i progressi in parole semplici, stima i pasti da una foto e spiega le
-basi della salute con infografiche da stampare. Tu, il "coach" di famiglia, segui i progressi e aggiorni la
-scheda da una dashboard privata sul tuo computer.
+allenamenti adatti a chi inizia, spiega i progressi in parole semplici, stima i pasti da una foto o da un
+codice a barre e insegna le basi con infografiche da stampare. Tu, il "coach" di famiglia, segui i progressi
+e aggiorni la scheda dal tuo computer.
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home">
-  <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento con timer di recupero">
-  <img src="docs/screenshots/progress.jpg" width="200" alt="Progressi">
-  <img src="docs/screenshots/food.jpg" width="200" alt="Cibo e calorie">
-  <img src="docs/screenshots/learn.jpg" width="200" alt="Infografica">
+  <img src="docs/screenshots/dashboard.jpg" width="190" alt="Home: checklist del giorno e allenamento di oggi">
+  <img src="docs/screenshots/workout.jpg" width="190" alt="Allenamento con pesi già compilati e riscaldamento">
+  <img src="docs/screenshots/strength.jpg" width="190" alt="Storico dell'esercizio e record personali">
+  <img src="docs/screenshots/progress.jpg" width="190" alt="Progressi in parole semplici">
 </p>
 
-## Cosa fa
+*Schermate da un telefono vero con uno storico di allenamenti reale (importato da Build With Science).
+L'app è anche in italiano: la lingua si cambia in qualsiasi momento.*
 
-**🏠 Home.** Andamento del peso (una linea "smussata", così gli alti e bassi di ogni giorno non scoraggiano),
-forza guadagnata per esercizio, allenamenti della settimana, passi, cibo di oggi e un consiglio al giorno.
+## Per chi si allena
 
-**🏋️ Allenamento, pensato per chi inizia.**
-- Ogni esercizio ha foto di inizio e fine movimento, tre passi semplici, un consiglio chiave e un video.
-- I pesi sono **già compilati e la progressione è automatica**: *"L'ultima volta hai fatto tutte le ripetizioni: prova 18 kg oggi."*
-- Un tocco per serie, la scala "quanto è stata dura?" (Facile · Giusta · Dura · Al limite) e il **timer di recupero** con suono e vibrazione.
-- Lo schermo resta acceso e l'allenamento viene salvato prima sul telefono: anche senza campo in palestra non si perde nulla.
-- **Superset** (due esercizi alternati, un solo recupero), **serie di riscaldamento** automatiche per gli esercizi
-  pesanti e una **settimana programmata** (es. giovedì A, sabato B) con allenamenti fatti e camminate sincronizzate.
-- Ogni esercizio ha lo **storico** delle serie e i record personali (peso massimo, serie migliore).
-- Puoi creare i tuoi allenamenti, oppure il coach di famiglia prepara la scheda a distanza.
+| | |
+|---|---|
+| <img src="docs/screenshots/dashboard.jpg" width="200" alt="Home"> | **Un piano chiaro per ogni giorno.** Una breve checklist (allenamento o riposo, pesata, pasti, passi), l'allenamento di oggi dalla settimana programmata, la tendenza del peso e la prossima lezione. |
+| <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento"> | **Allenamenti per principianti.** Ogni esercizio ha foto, tre passi semplici e un video. I pesi sono **già compilati e salgono da soli** quando si diventa più forti. Serie di riscaldamento, superset, timer di recupero con suono e "quanto è stata dura?" per ogni serie. Funziona anche senza campo in palestra. |
+| <img src="docs/screenshots/progress.jpg" width="200" alt="Progressi"> | **Progressi che tutti capiscono.** Tendenza del peso (smussata, così gli alti e bassi di ogni giorno non scoraggiano), forza guadagnata, costanza, passi, ognuno con un giudizio in parole e un consiglio concreto. Settimane di fila, record, foto dei progressi private e una scheda "condividi con la famiglia". |
+| <img src="docs/screenshots/barcode.jpg" width="200" alt="Codice a barre"> | **Il cibo in tre modi.** Una foto del piatto (l'AI stima ogni alimento), il **codice a barre** (Open Food Facts, milioni di prodotti) o a mano. Ogni piatto riceve un punteggio per perdere grasso e per aumentare i muscoli. |
+| <img src="docs/screenshots/calories.jpg" width="200" alt="Obiettivo di calorie"> | **Un obiettivo di calorie che si spiega da solo.** Cinque passaggi con i propri numeri: energia a riposo, camminata e allenamento (dai passi del telefono), la verifica con la bilancia, l'obiettivo e come si dividono le calorie tra proteine, grassi e carboidrati. |
+| <img src="docs/screenshots/lesson.jpg" width="200" alt="Lezioni"> | **Impara le basi.** Dodici brevi infografiche (perché la forza conta con l'età, le proteine, il piatto equilibrato, il sonno, …) da leggere, stampare o condividere. |
 
-**✅ Checklist del giorno.** Allenamento (o riposo), pesata, pasti e passi, con "3 su 4 fatti".
+Passi e peso arrivano da soli da **Connessione Salute** (Android) o **Apple Salute** (iPhone), quindi le
+bilance smart come **Eufy** funzionano subito. Arrivi da **Build With Science**? Lo storico degli
+allenamenti viene con te.
 
-**📈 Progressi.** Velocità di dimagrimento rispetto all'obiettivo, forza, costanza, passi e alimentazione,
-ognuno con un giudizio chiaro (*Bene / OK / Da migliorare*) e un consiglio concreto. Check-in settimanali per
-energia, sonno, umore e girovita. **Settimane di fila** di allenamento, totale allenamenti, **record personali**
-recenti, **foto dei progressi** private (prima e ultima) e una scheda **"Condividi con la famiglia"**.
+## Per te, il coach di famiglia
 
-**📸 Calorie da una foto.** Fotografi il piatto e Google Gemini stima ogni alimento con i suoi macronutrienti.
-Le porzioni si possono correggere, e il piatto riceve un **punteggio per perdere grasso e per aumentare i
-muscoli** rispetto al fabbisogno personale (TDEE). Il TDEE parte da profilo e livello di attività, poi si adatta
-a passi e allenamenti registrati e, dopo due settimane di diario alimentare, a quello che ha fatto davvero la
-bilancia. Un **check-in settimanale** confronta la tendenza del peso con il ritmo obiettivo e suggerisce un piccolo
-aggiustamento delle calorie (±100–150 kcal). È sempre disponibile l'inserimento manuale con oltre 60 cibi comuni.
+| | |
+|---|---|
+| <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** funziona sul tuo computer (Mac, Windows o Linux). Configura tutto per te, crea gli account e mostra di ognuno peso, forza, allenamenti, pasti e check-in. Modifichi la scheda da casa: compare sul telefono alla prossima apertura. |
+| <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Accesso con codice QR"> | **Nessuna password da ricordare.** Crei un codice QR, la persona lo inquadra con la fotocamera e Forza! si apre già con l'accesso fatto. Puoi stamparlo su un biglietto di benvenuto con le istruzioni. |
+| <img src="docs/screenshots/coach-import.jpg" width="420" alt="Importazione da Build With Science"> | **Porta con te lo storico.** Collega il telefono Android con un cavo e Coach importa da Build With Science ogni allenamento con serie e sforzo, la scheda settimanale e l'obiettivo. |
 
-**📚 Impara.** Un breve **percorso guidato** (con la "Prossima lezione" in Home) di dodici infografiche per principianti, da stampare in A4 o salvare come immagine, in italiano o
-inglese: perché la forza conta con l'età · i macronutrienti · il piatto equilibrato (e le porzioni con la mano) ·
-le proteine · dove trovare i nutrienti · le fibre · la sensibilità all'insulina · cosa mangiare prima e dopo
-l'allenamento · idee per i pasti · più movimento con poco sforzo · il sonno · 10 piccole abitudini.
+## Come iniziare
 
-**🔄 Passi e peso automatici.** iPhone con un Comando Rapido, Android con una piccola app per Connessione Salute.
-Le bilance **Eufy** (o qualsiasi bilancia smart) funzionano tramite Apple Salute / Connessione Salute, e le pesate
-passate si importano da CSV.
+Servono un computer e circa 30 minuti. Nessuna competenza tecnica, nessun costo.
 
-**🔒 Privata per scelta.**
-- Gli account li crei **solo tu** (la registrazione pubblica è chiusa).
-- Ognuno vede solo i propri dati (row-level security di Postgres).
-- La dashboard di amministrazione gira **solo sul tuo Mac**, con la chiave principale nel Portachiavi di macOS.
+1. **Installa [Node.js](https://nodejs.org/it/download)** (versione LTS) e **scarica Forza!**
+   (pulsante verde **Code** qui sopra → **Download ZIP**, poi decomprimi).
+2. **Doppio clic su "Forza Coach"** nella cartella (`Forza Coach (Mac).command`, `Forza Coach (Windows).bat`
+   oppure `forza-coach-linux.sh`). Segui i quattro passi sullo schermo: un account Supabase gratuito, il tuo
+   database, una chiave gratuita (facoltativa) per le foto del cibo, installazione.
+3. **Aggiungi una persona** e falle **inquadrare il codice QR** con il telefono. Fatto.
 
-## Iniziare
+👉 La **[guida per il coach](docs/coach-guide.it.md)** spiega ogni passo, anche la sincronizzazione con
+Salute, le bilance smart e l'importazione da Build With Science.
 
-Segui la **[guida all'installazione](docs/setup.md)** (in inglese): fork del progetto, un progetto Supabase
-gratuito, uno script di deploy, due variabili su GitHub, ed è online. Costo per una famiglia: 0 €.
+## Privata e gratuita
 
-Prova in locale con i dati demo in due minuti:
+- Ogni famiglia ha **il proprio database** (un progetto Supabase gratuito che appartiene a te). Ognuno vede
+  solo i propri dati. Solo il coach può creare account.
+- La chiave principale resta **sul computer del coach**, nel suo archivio password (Portachiavi, Gestione
+  credenziali o il portachiavi di Linux).
+- Tutto funziona con piani gratuiti: Supabase, GitHub Pages, Google Gemini (foto del cibo), Open Food Facts.
 
-```bash
-supabase start && supabase db reset   # utente demo "Maria", 10 settimane di storico
-cd app && npm install && npm run dev  # http://localhost:5173 · demo@forza.local / forza-demo-2026
-```
+## Documentazione
+
+| | |
+|---|---|
+| [Guida per il coach](docs/coach-guide.it.md) | Configurazione passo per passo (anche in [inglese](docs/coach-guide.md)) |
+| [Come è progettata Forza!](docs/design.md) | Funzioni, formule, architettura, sicurezza e i motivi delle scelte (in inglese) |
+| [Configurazione avanzata](docs/advanced-setup.md) | Riga di comando su macOS/Windows/Linux, Supabase CLI, una tua copia dell'app, sviluppo (in inglese) |
+| [AI per le foto del cibo](docs/food-ai.md) | Prove con cibi noti e alternative gratuite a Gemini (in inglese) |
 
 ## Contribuire
 
