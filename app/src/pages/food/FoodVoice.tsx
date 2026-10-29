@@ -1,0 +1,307 @@
+import { Mic, Sparkles, Square, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { PlateAdvice } from '../../components/PlateAdvice'
+import { mealForNow } from '../../components/PlateResult'
+import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, cx } from '../../components/ui'
+import { PROCESSED_FOODS } from '../../data/foods'
+import { useApp } from '../../lib/auth'
+import { round1, scorePlate, sumItems } from '../../lib/calc'
+import { addFood, estimateText } from '../../lib/data'
+import { useI18n } from '../../lib/i18n'
+import type { FoodItem, Meal } from '../../lib/types'
+import { useEnergy } from '../../lib/useEnergy'
+import { parseMeal } from '../../lib/voice'
+
+type Item = FoodItem & { foodId?: string }
+
+interface Recognition {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  start: () => void
+  stop: () => void
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null
+  onend: (() => void) | null
+  onerror: ((e: { error: string }) => void) | null
+}
+
+/** The phone's own speech recognition (Chrome on Android, Safari on iPhone): nothing to install, no model to run. */
+const SpeechRecognition = (window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }).SpeechRecognition ??
+  (window as unknown as { webkitSpeechRecognition?: new () => Recognition }).webkitSpeechRecognition
+
+/**
+ * Log a meal by saying it: "two eggs, a slice of wholegrain bread and a coffee". The words are matched
+ * to the built-in food table on the phone; only foods it does not know go to the food AI. Advice comes
+ * first, the numbers after, and the grams can be changed only on request.
+ */
+export function FoodVoice() {
+  const { t, locale, num } = useI18n()
+  const { profile } = useApp()
+  const { energy } = useEnergy()
+  const navigate = useNavigate()
+  const [meal, setMeal] = useState<Meal>(mealForNow())
+  const [text, setText] = useState('')
+  const [listening, setListening] = useState(false)
+  const [micError, setMicError] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [items, setItems] = useState<Item[] | null>(null)
+  const [tip, setTip] = useState<string | null>(null)
+  const [aiTitle, setAiTitle] = useState<string | null>(null)
+  const [missing, setMissing] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [adjust, setAdjust] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const rec = useRef<Recognition | null>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => () => rec.current?.stop(), [])
+
+  function listen() {
+    if (!SpeechRecognition) {
+      textRef.current?.focus()
+      return
+    }
+    if (listening) {
+      rec.current?.stop()
+      return
+    }
+    const r = new SpeechRecognition()
+    r.lang = locale === 'it' ? 'it-IT' : 'en-GB'
+    r.interimResults = true
+    r.continuous = true
+    const before = text.trim()
+    r.onresult = (e) => {
+      const said = Array.from(e.results, (x) => x[0].transcript).join(' ').trim()
+      setText([before, said].filter(Boolean).join(', '))
+    }
+    r.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setMicError(true)
+    }
+    r.onend = () => setListening(false)
+    rec.current = r
+    reset()
+    setMicError(false)
+    setListening(true)
+    r.start()
+  }
+
+  function reset() {
+    setItems(null)
+    setTip(null)
+    setAiTitle(null)
+    setMissing([])
+    setError(null)
+    setAdjust(false)
+  }
+
+  /** Known foods are read on the phone; the AI is asked only about the rest, or about everything on request. */
+  async function analyse(wholeByAi = false) {
+    if (!profile || !text.trim()) return
+    rec.current?.stop()
+    const local = parseMeal(text, locale)
+    setError(null)
+    if (!wholeByAi && !local.unknown.length) {
+      setItems(local.items)
+      setMissing([])
+      return
+    }
+    setBusy(true)
+    try {
+      const ai = await estimateText({ text: wholeByAi ? text : local.unknown.join(', '), locale, goal: profile.goal ?? 'maintain', meal })
+      const found = ai.is_food ? ai.items : []
+      setItems(wholeByAi ? found : [...local.items, ...found])
+      setTip(ai.tip || null)
+      setAiTitle(wholeByAi ? ai.title : null)
+      setMissing(found.length ? [] : local.unknown)
+    } catch (e) {
+      const code = (e as Error).message
+      if (wholeByAi) setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+      // Without the AI the known foods still count; the rest can be added by hand.
+      else {
+        setItems(local.items)
+        setMissing(local.unknown)
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Changing grams scales that item's nutrients proportionally. */
+  function setGrams(i: number, grams: number | null) {
+    setItems((xs) =>
+      (xs ?? []).map((x, j) => {
+        if (j !== i || !grams || x.grams <= 0) return x
+        const k = grams / x.grams
+        return { ...x, grams, kcal: Math.round(x.kcal * k), protein_g: round1(x.protein_g * k), carbs_g: round1(x.carbs_g * k), fat_g: round1(x.fat_g * k), fiber_g: round1(x.fiber_g * k), sugar_g: round1(x.sugar_g * k) }
+      }),
+    )
+  }
+
+  const processed = (items ?? []).some((i) => i.foodId && PROCESSED_FOODS.has(i.foodId))
+
+  async function save() {
+    if (!items?.length || !energy) return
+    setSaving(true)
+    try {
+      const totals = sumItems(items)
+      const now = new Date()
+      const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
+      const said = text.trim()
+      await addFood({
+        eaten_at: now.toISOString(),
+        meal,
+        title: (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120),
+        items: items.map(({ foodId: _drop, ...rest }) => rest),
+        ...totals,
+        score_fat_loss: s.fatLoss,
+        score_muscle_gain: s.muscleGain,
+        photo_path: null,
+        source: 'voice',
+        ai_notes: tip,
+      })
+      navigate('/food', { state: { logged: true } })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!profile) return <Loading />
+  const totals = items ? sumItems(items) : null
+
+  return (
+    <div className="grid gap-4">
+      <PageHeader title={t('voice.title')} back="/food" />
+
+      <Segmented<Meal>
+        value={meal}
+        onChange={setMeal}
+        options={(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((m) => ({ value: m, label: t(`meal.${m}`) }))}
+      />
+
+      {SpeechRecognition ? (
+        <div className="grid justify-items-center gap-2 py-2">
+          <button
+            onClick={listen}
+            className={cx(
+              'grid size-28 place-items-center rounded-full text-white shadow-lg transition dark:text-black',
+              listening ? 'animate-pulse bg-danger' : 'bg-brand active:scale-95',
+            )}
+            aria-label={listening ? t('voice.stop') : t('voice.speak')}
+          >
+            {listening ? <Square className="size-10" aria-hidden /> : <Mic className="size-12" aria-hidden />}
+          </button>
+          <p className="text-center text-lg font-semibold">{listening ? t('voice.listening') : t('voice.speak')}</p>
+          <p className="text-center text-sm text-ink-3">{t('voice.example')}</p>
+          {micError ? <p className="rounded-2xl bg-danger-soft p-3 text-sm">{t('voice.micBlocked')}</p> : null}
+        </div>
+      ) : (
+        // No speech recognition in this browser: the keyboard's microphone key does the same job.
+        <Card tone="sky">
+          <p className="flex items-center gap-2 text-lg font-semibold">
+            <Mic className="size-6 text-sky" aria-hidden /> {t('voice.keyboard')}
+          </p>
+          <p className="mt-1 text-sm text-ink-2">{t('voice.example')}</p>
+        </Card>
+      )}
+
+      <Field label={t('voice.what')} hint={items ? undefined : t('voice.editHint')}>
+        <textarea
+          ref={textRef}
+          value={text}
+          autoFocus={!SpeechRecognition}
+          rows={3}
+          onChange={(e) => {
+            setText(e.target.value)
+            reset()
+          }}
+          className="w-full rounded-2xl border border-line bg-card px-4 py-3 text-lg outline-none focus:border-sky"
+        />
+      </Field>
+
+      {!items ? (
+        <Button size="lg" block onClick={() => analyse()} loading={busy} disabled={!text.trim() || listening}>
+          <Sparkles className="size-5" aria-hidden /> {busy ? t('snap.thinking') : t('voice.analyse')}
+        </Button>
+      ) : null}
+      {error ? <p className="rounded-2xl bg-danger-soft p-3">{error}</p> : null}
+
+      {items && totals && energy ? (
+        items.length ? (
+          <>
+            {/* Advice first: what to do with this meal, before any number. */}
+            <PlateAdvice
+              totals={totals}
+              meal={meal}
+              dailyKcal={energy.targets.kcal}
+              ultraProcessed={processed}
+              tip={tip}
+              voice
+              onRetake={() => {
+                setText('')
+                reset()
+                listen()
+              }}
+              onAdjust={() => setAdjust(true)}
+            />
+            <Card>
+              <p className="text-2xl font-extrabold tabular">
+                {num(totals.kcal)} kcal <span className="text-base font-semibold text-ink-2">· {t('macro.protein')} {num(totals.protein_g)} g</span>
+              </p>
+              <ul className="mt-3 grid gap-2">
+                {items.map((it, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold leading-tight">{it.name}</p>
+                      <p className="text-sm text-ink-2">
+                        {adjust ? `${it.kcal} kcal · P ${it.protein_g} · C ${it.carbs_g} · F ${it.fat_g}` : `${num(it.grams)} g · ${it.kcal} kcal`}
+                      </p>
+                    </div>
+                    {/* Quantities change only when asked for: one less thing to look at. */}
+                    {adjust ? (
+                      <>
+                        <div className="w-20">
+                          <NumberInput decimals={false} value={it.grams} onChange={(v) => setGrams(i, v)} aria-label={t('snap.grams', { name: it.name })} />
+                        </div>
+                        <span className="text-sm text-ink-2">g</span>
+                        <button onClick={() => setItems((xs) => (xs ?? []).filter((_, j) => j !== i))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
+                          <Trash2 className="size-5" />
+                        </button>
+                      </>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {missing.length ? <p className="mt-3 rounded-2xl bg-sun-soft p-3 text-sm">{t('voice.missing', { words: missing.join(', ') })}</p> : null}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {!adjust ? (
+                  <Button variant="secondary" onClick={() => setAdjust(true)}>
+                    {t('voice.adjust')}
+                  </Button>
+                ) : null}
+                <Button variant="ghost" onClick={() => analyse(true)} loading={busy}>
+                  <Sparkles className="size-4" aria-hidden /> {t('voice.askAi')}
+                </Button>
+              </div>
+            </Card>
+            <Button size="lg" variant="leaf" block onClick={save} loading={saving}>
+              {t('snap.save')}
+            </Button>
+          </>
+        ) : (
+          <Card tone="sun">
+            <p>{t('voice.nothing')}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button onClick={() => analyse(true)} loading={busy}>
+                <Sparkles className="size-4" aria-hidden /> {t('voice.askAi')}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/food/add', { state: { meal } })}>
+                {t('food.manual')}
+              </Button>
+            </div>
+          </Card>
+        )
+      ) : null}
+    </div>
+  )
+}

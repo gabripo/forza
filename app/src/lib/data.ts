@@ -352,6 +352,11 @@ export function estimatePlate(input: { image: string; note: string; locale: stri
   return invokeFoodAi<AiPlate>(input)
 }
 
+/** A meal described in words (dictated): the same answer as a photo. */
+export function estimateText(input: { text: string; locale: string; goal: string; meal: string }): Promise<AiPlate> {
+  return invokeFoodAi<AiPlate>({ ...input, mode: 'text' })
+}
+
 export interface AiLabel {
   is_label: boolean
   name: string

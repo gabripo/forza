@@ -17,6 +17,7 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
+import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
 import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
 import { autostartEnabled, setAutostart } from './lib/autostart.mjs'
@@ -166,6 +167,8 @@ async function userData(id) {
     activities: check(activities),
     photos: check(photos),
     lessons: check(lessons),
+    homeSections: HOME_SECTIONS,
+    homeOrder: homeOrder(profile.data?.home_order),
   }
 }
 
@@ -176,7 +179,7 @@ async function catalogue() {
   return { builtIn, custom: check(custom), overrides: check(overrides) }
 }
 
-const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training']
+const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training', 'home_order']
 
 /** A coach can fill in the profile, so the person skips the questions on their phone. */
 async function saveProfile(id, body) {
@@ -184,6 +187,8 @@ async function saveProfile(id, body) {
   for (const k of PROFILE_EDITABLE) if (k in body) patch[k] = body[k] === '' ? null : body[k]
   for (const k of ['birth_year', 'height_cm', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal']) if (patch[k] != null) patch[k] = Number(patch[k])
   if ('hide_training' in patch) patch.hide_training = patch.hide_training === true || patch.hide_training === 'true'
+  // The Home page order: complete and cleaned, or null for the default order.
+  if ('home_order' in patch) patch.home_order = patch.home_order === null ? null : homeOrder(patch.home_order)
   if (body.finish_setup) patch.onboarded_at = new Date().toISOString()
   return check(await need().from('profiles').update(patch).eq('id', id).select().single())
 }

@@ -10,7 +10,9 @@ import { Dashboard } from './pages/Dashboard'
 import { FoodHome } from './pages/food/FoodHome'
 import { FoodManual } from './pages/food/FoodManual'
 import { FoodSnap } from './pages/food/FoodSnap'
+import { FoodVoice } from './pages/food/FoodVoice'
 import { HealthSync } from './pages/HealthSync'
+import { HomeOrder } from './pages/HomeOrder'
 import { Install } from './pages/Install'
 import { Infographic } from './pages/learn/Infographic'
 import { LearnHome } from './pages/learn/LearnHome'
@@ -59,6 +61,7 @@ function Gate() {
         <Route path="check/photos" element={<Photos />} />
         <Route path="food" element={<FoodHome />} />
         <Route path="food/snap" element={<FoodSnap />} />
+        <Route path="food/voice" element={<FoodVoice />} />
         <Route path="food/add" element={<FoodManual />} />
         <Route path="learn" element={<LearnHome />} />
         <Route path="learn/:id" element={<Infographic />} />
@@ -66,6 +69,7 @@ function Gate() {
         <Route path="weights" element={<Weights />} />
         <Route path="settings" element={<Settings />} />
         <Route path="settings/health" element={<HealthSync />} />
+        <Route path="settings/home" element={<HomeOrder />} />
         <Route path="settings/install" element={<Install />} />
       </Route>
       {/* The active workout is full screen: no tab bar to tap by mistake. */}

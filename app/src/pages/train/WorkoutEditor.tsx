@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, Link2, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Cite } from '../../components/Cite'
 import { ExerciseMedia } from '../../components/ExerciseMedia'
 import { ExercisePicker } from '../../components/ExercisePicker'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, cx } from '../../components/ui'
@@ -198,7 +199,9 @@ export function WorkoutEditor() {
       <Button variant="secondary" size="lg" onClick={() => setPicking(true)}>
         <Plus className="size-5" aria-hidden /> {t('editor.addExercise')}
       </Button>
-      <p className="text-sm text-ink-3">{t('editor.repRangeHelp')}</p>
+      <p className="text-sm text-ink-3">
+        {t('editor.repRangeHelp')} <Cite ids={['acsm2009']} />
+      </p>
 
       <div className="grid gap-2">
         <Button size="lg" block onClick={save} loading={busy} disabled={!name.trim() || !list.length}>

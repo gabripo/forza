@@ -103,7 +103,7 @@ export function FoodSnap() {
         source: 'ai',
         ai_notes: result.tip,
       })
-      navigate('/food')
+      navigate('/food', { state: { logged: true } })
     } finally {
       setSaving(false)
     }

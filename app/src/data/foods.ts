@@ -83,6 +83,11 @@ const ROWS: Row[] = [
   ['croissant', 'Croissant', 'Cornetto', 'treats', 410, 8, 46, 21, 2, 12, 60, '1 croissant', '1 cornetto'],
   ['pizza', 'Pizza margherita', 'Pizza margherita', 'treats', 250, 10.5, 33, 8.5, 2, 3.6, 300, '1 pizza (⅔)', '1 pizza (⅔)'],
   ['ice_cream', 'Ice cream', 'Gelato', 'treats', 207, 3.5, 24, 11, 0.7, 21, 100],
+  ['sugar', 'Sugar', 'Zucchero', 'treats', 387, 0, 100, 0, 0, 100, 5, '1 teaspoon', '1 cucchiaino'],
+  ['honey', 'Honey', 'Miele', 'treats', 304, 0.3, 82, 0, 0.2, 82, 10, '1 teaspoon', '1 cucchiaino'],
+  ['jam', 'Jam', 'Marmellata', 'treats', 250, 0.4, 60, 0.1, 1, 50, 20, '1 tablespoon', '1 cucchiaio'],
+  ['espresso', 'Coffee (espresso)', 'Caffè (espresso)', 'drinks', 9, 0.1, 1.7, 0.2, 0, 0, 30, '1 cup', '1 tazzina'],
+  ['cappuccino', 'Cappuccino', 'Cappuccino', 'drinks', 40, 2.2, 3.5, 1.8, 0, 3.5, 150, '1 cup', '1 tazza'],
   ['soda', 'Sugary soft drink', 'Bibita zuccherata', 'drinks', 42, 0, 10.6, 0, 0, 10.6, 330, '1 can', '1 lattina'],
   ['juice', 'Fruit juice', 'Succo di frutta', 'drinks', 45, 0.5, 10.5, 0.1, 0.2, 9, 200, '1 glass', '1 bicchiere'],
   ['wine', 'Wine (per 100 ml)', 'Vino (per 100 ml)', 'drinks', 85, 0.1, 2.6, 0, 0, 0.6, 125, '1 glass', '1 bicchiere'],
@@ -102,6 +107,9 @@ export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs,
   portion,
   unit: uen ? { en: uen, it: uit ?? uen } : undefined,
 }))
+
+/** Foods that count as ultra-processed when scoring a plate. */
+export const PROCESSED_FOODS = new Set(['biscuits', 'croissant', 'soda', 'ice_cream'])
 
 export function foodAt(food: Food, grams: number) {
   const k = grams / 100

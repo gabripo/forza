@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
-import { FOODS, foodAt, type Food } from '../../data/foods'
+import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
 import { useApp } from '../../lib/auth'
 import { scorePlate, sumItems } from '../../lib/calc'
 import { addFood, readLabel } from '../../lib/data'
@@ -15,7 +15,6 @@ import { FOOD_FORMATS, validGtin } from '../../lib/scan'
 import type { FoodItem, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 
-const PROCESSED = new Set(['biscuits', 'croissant', 'soda', 'ice_cream'])
 
 export function FoodManual() {
   const { t, l, locale } = useI18n()
@@ -48,7 +47,7 @@ export function FoodManual() {
 
   if (!profile || !energy) return <Loading />
   const totals = sumItems(items)
-  const processed = items.some((i) => i.processed || (i.foodId && PROCESSED.has(i.foodId)))
+  const processed = items.some((i) => i.processed || (i.foodId && PROCESSED_FOODS.has(i.foodId)))
 
   async function onCode(raw: string) {
     setScanning(false)
@@ -132,7 +131,7 @@ export function FoodManual() {
         source: items.some((i) => i.barcode) ? 'barcode' : 'manual',
         ai_notes: null,
       })
-      navigate('/food')
+      navigate('/food', { state: { logged: true } })
     } finally {
       setBusy(false)
     }

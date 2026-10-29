@@ -61,7 +61,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 // A model that does not answer in time counts as busy: the next one in the order gets the photo.
 const STEP_TIMEOUT_MS = Number(Deno.env.get('FOOD_AI_STEP_TIMEOUT_MS') ?? 30_000)
 
-type Mode = 'plate' | 'label'
+type Mode = 'plate' | 'label' | 'text'
 type Schema = Record<string, unknown>
 
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g'] as const
@@ -76,19 +76,22 @@ const itemSchema: Schema = {
   required: ['name', 'grams', ...NUTRIENTS],
 }
 
-const SCHEMAS: Record<Mode, Schema> = {
-  plate: {
-    type: 'OBJECT',
-    properties: {
-      is_food: { type: 'BOOLEAN' },
-      title: { type: 'STRING' },
-      items: { type: 'ARRAY', items: itemSchema },
-      ultra_processed: { type: 'BOOLEAN' },
-      confidence: { type: 'STRING', enum: ['low', 'medium', 'high'] },
-      tip: { type: 'STRING' },
-    },
-    required: ['is_food', 'title', 'items', 'ultra_processed', 'confidence', 'tip'],
+const plateSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    is_food: { type: 'BOOLEAN' },
+    title: { type: 'STRING' },
+    items: { type: 'ARRAY', items: itemSchema },
+    ultra_processed: { type: 'BOOLEAN' },
+    confidence: { type: 'STRING', enum: ['low', 'medium', 'high'] },
+    tip: { type: 'STRING' },
   },
+  required: ['is_food', 'title', 'items', 'ultra_processed', 'confidence', 'tip'],
+}
+
+const SCHEMAS: Record<Mode, Schema> = {
+  text: plateSchema,
+  plate: plateSchema,
   label: {
     type: 'OBJECT',
     properties: {
@@ -123,6 +126,22 @@ function platePrompt(language: string, goal: string, meal: string, note: string)
   ].filter(Boolean).join('\n')
 }
 
+/** A meal described in words (usually dictated, so it may contain transcription mistakes). */
+function textPrompt(language: string, goal: string, meal: string, text: string): string {
+  return [
+    'You are a careful nutritionist. A beginner who wants to ' + (GOAL_TEXT[goal] ?? GOAL_TEXT.maintain) +
+      ' describes in words what they ate. The words come from speech recognition and may contain small mistakes.',
+    `The meal is: ${meal}.`,
+    `Their words: "${text}".`,
+    'List every food they mention with its nutrients. Use the quantity they say (grams, pieces, spoons, plates);',
+    'when they give none, use a typical Italian home portion. Use standard nutrition tables.',
+    'Mark ultra_processed true if most of the calories come from ultra-processed products.',
+    'If the words do not describe food, set is_food false and return an empty items list.',
+    `Write "title", item names and "tip" in ${language}.`,
+    '"tip" is one short, friendly, practical suggestion (max 25 words) to make this meal better for the goal.',
+  ].join('\n')
+}
+
 function labelPrompt(language: string): string {
   return [
     'The photo shows the nutrition facts table of a packaged food (any language, any country).',
@@ -142,6 +161,7 @@ function labelPrompt(language: string): string {
 interface Ask {
   prompt: string
   schema: Schema
+  /** Empty for a meal described in words. */
   image: string
   mime: string
 }
@@ -155,7 +175,7 @@ async function askGemini(model: string, { prompt, schema, image, mime }: Ask): P
     signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': Deno.env.get('GEMINI_API_KEY')! },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: mime, data: image } }] }],
+      contents: [{ role: 'user', parts: image ? [{ text: prompt }, { inlineData: { mimeType: mime, data: image } }] : [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.2 },
     }),
   })
@@ -183,7 +203,7 @@ async function askOpenAiCompatible(step: Step, { prompt, schema, image, mime }: 
   const base = (p.base ?? Deno.env.get(p.baseEnv!)!).replace(/\/$/, '')
   const messages = [
     { role: 'system', content: `${prompt}\nAnswer with one JSON object only, matching this JSON Schema:\n${JSON.stringify(jsonSchema(schema))}` },
-    { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] },
+    { role: 'user', content: image ? [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] : 'Estimate the meal described above.' },
   ]
   const post = (jsonMode: boolean) =>
     fetch(`${base}/chat/completions`, {
@@ -280,18 +300,19 @@ Deno.serve(async (req) => {
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; mime?: string; note?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
+  let body: { image?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
-  const image = body.image ?? ''
+  const mode: Mode = body.mode === 'label' ? 'label' : body.mode === 'text' ? 'text' : 'plate'
+  const text = (body.text ?? '').trim().slice(0, 500)
+  const image = mode === 'text' ? '' : body.image ?? ''
   const mime = body.mime ?? 'image/jpeg'
-  if (!image || image.length * 0.75 > MAX_IMAGE_BYTES || !/^image\/(jpeg|png|webp)$/.test(mime)) {
-    return json({ error: 'bad_image' }, 400)
+  if (mode === 'text' ? !text : !image || image.length * 0.75 > MAX_IMAGE_BYTES || !/^image\/(jpeg|png|webp)$/.test(mime)) {
+    return json({ error: mode === 'text' ? 'bad_request' : 'bad_image' }, 400)
   }
-  const mode: Mode = body.mode === 'label' ? 'label' : 'plate'
 
   if (userId) {
     const { error: limitError } = await admin.rpc('bump_ai_usage', { p_user: userId, p_limit: DAILY_LIMIT })
@@ -304,7 +325,9 @@ Deno.serve(async (req) => {
   const language = body.locale === 'it' ? 'Italian' : 'English'
   const prompt = mode === 'label'
     ? labelPrompt(language)
-    : platePrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', (body.note ?? '').slice(0, 300))
+    : mode === 'text'
+      ? textPrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', text)
+      : platePrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', (body.note ?? '').slice(0, 300))
   const started = Date.now()
   // Coach can test one entry of the order on its own.
   const use = coachTest && Number.isInteger(body.only) ? steps.slice(Number(body.only), Number(body.only) + 1) : steps

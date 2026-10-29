@@ -1,6 +1,7 @@
 import { Check, CircleHelp, Link2, Minus, Plus, Timer, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { Cite } from '../../components/Cite'
 import { ExerciseMedia, VideoButton } from '../../components/ExerciseMedia'
 import { ExercisePicker } from '../../components/ExercisePicker'
 import { Button, NumberInput, Sheet, cx } from '../../components/ui'
@@ -361,7 +362,9 @@ export function HowTo({ exercise }: { exercise: Exercise }) {
       <div className="flex flex-wrap gap-2">
         <VideoButton exercise={exercise} />
       </div>
-      <p className="text-sm text-ink-3">{t('exercise.safety')}</p>
+      <p className="text-sm text-ink-3">
+        {t('exercise.safety')} <Cite ids={['fragala2019']} />
+      </p>
     </div>
   )
 }
@@ -430,7 +433,11 @@ function ExerciseBlock({
       </div>
       {ex.note ? <p className="mb-2 rounded-2xl bg-card-2 p-2 text-sm">📝 {ex.note}</p> : null}
       {hint ? <p className="mb-2 rounded-2xl bg-sky-soft p-2 text-sm text-sky">💡 {hint}</p> : null}
-      {ex.sets.some((x) => x.warmup) ? <p className="mb-2 px-1 text-sm text-ink-3">{t('active.warmupHelp')}</p> : null}
+      {ex.sets.some((x) => x.warmup) ? (
+        <p className="mb-2 px-1 text-sm text-ink-3">
+          {t('active.warmupHelp')} <Cite ids={['fradkin2010']} />
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-[2rem_1fr_1fr_3.25rem] items-center gap-2 px-1 text-xs font-semibold text-ink-3">
         <span>#</span>

@@ -1,4 +1,4 @@
-import { ChevronRight, HeartPulse, LogOut, Smartphone } from 'lucide-react'
+import { ArrowUpDown, ChevronRight, HeartPulse, LogOut, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Field, Input, NumberInput, PageHeader, Segmented } from '../components/ui'
@@ -40,6 +40,14 @@ export function Settings() {
           <span className="flex-1">
             <span className="block font-bold">{t('health.title')}</span>
             <span className="block text-sm text-ink-2">{t('settings.healthSub')}</span>
+          </span>
+          <ChevronRight className="size-5 text-ink-3" aria-hidden />
+        </Link>
+        <Link to="/settings/home" className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4">
+          <ArrowUpDown className="size-6 text-brand" aria-hidden />
+          <span className="flex-1">
+            <span className="block font-bold">{t('home.arrangeTitle')}</span>
+            <span className="block text-sm text-ink-2">{t('home.arrangeSub')}</span>
           </span>
           <ChevronRight className="size-5 text-ink-3" aria-hidden />
         </Link>

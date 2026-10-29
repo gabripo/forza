@@ -185,7 +185,7 @@ function overview(d) {
       <div class="tile"><div class="label">Avg steps (14 d)</div><div class="value">${fmtNum(avgSteps)}</div><div class="small muted">goal ${fmtNum(p(d).steps_goal)}</div></div>
       <div class="tile"><div class="label">Strength change</div><div class="value">${avgPct == null ? '—' : `${avgPct >= 0 ? '+' : ''}${fmtNum(avgPct)}%`}</div></div>
       <div class="tile"><div class="label">Walks & activities (30 d)</div><div class="value">${fmtNum(d.activities.reduce((m, a) => m + (new Date(a.ended_at) - new Date(a.started_at)) / 60000, 0) / 60, 1)} h</div><div class="small muted">${d.activities.length} sessions</div></div>
-      <div class="tile"><div class="label">Lessons read</div><div class="value">${d.lessons.length} / 12</div></div>
+      <div class="tile"><div class="label">Lessons read</div><div class="value">${d.lessons.length}</div><div class="small muted">${d.lessons.filter((l) => l.quiz_passed_at).length} quizzes passed</div></div>
       <div class="tile"><div class="label">Calorie check-ins</div><div class="value" style="font-size:18px">${p(d).kcal_adjust ? `${p(d).kcal_adjust > 0 ? '+' : ''}${p(d).kcal_adjust} kcal` : 'no change'}</div><div class="small muted">${p(d).kcal_checkin_at ? 'last ' + fmtDate(p(d).kcal_checkin_at) : ''}</div></div>
       <div class="tile"><div class="label">Health sync</div><div class="value" style="font-size:15px">${d.sync?.last_used_at ? fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not connected'}</div></div>
     </div></div>
@@ -531,7 +531,26 @@ function profileView(d) {
       </div>
       ${p.onboarded_at ? `<p class="muted small">Set-up done on ${fmtDate(p.onboarded_at)}.</p>` : '<label class="row small"><input type="checkbox" name="finish_setup" value="1"> Set-up done: they go straight to the home screen</label>'}
       <div><button class="btn">Save profile</button></div>
-    </form></div>`
+    </form></div>
+    ${homeOrderView(d)}`
+}
+
+/** The order of the sections on their Home page: what they see first when they open Forza!. */
+function homeOrderView(d) {
+  const p = d.profile ?? {}
+  const rows = d.homeOrder
+    .map((id, i) => {
+      const s = d.homeSections.find((x) => x.id === id)
+      const hidden = s.training && p.hide_training
+      return `<tr><td>${i + 1}</td><td>${esc(s.en)}${hidden ? ' <span class="muted small">(hidden: training section is off)</span>' : ''}</td>
+        <td class="row" style="flex-wrap:nowrap"><button class="btn secondary small" data-action="home-up" data-i="${i}" ${i ? '' : 'disabled'}>↑</button><button class="btn secondary small" data-action="home-down" data-i="${i}" ${i < d.homeOrder.length - 1 ? '' : 'disabled'}>↓</button></td></tr>`
+    })
+    .join('')
+  return `<div class="card"><h2>Home page order</h2>
+    <p class="muted">What they see first when they open Forza!. Move a part up or down, then save: their phone shows the new order the next time the app opens. They can also change it in the app (Settings → Arrange the Home page).</p>
+    <table><tbody>${rows}</tbody></table>
+    <div class="row" style="margin-top:8px"><button class="btn" data-action="home-save">Save order</button>${p.home_order ? '<button class="btn secondary" data-action="home-reset">Back to the usual order</button>' : ''}</div>
+  </div>`
 }
 
 function importView() {
@@ -820,6 +839,20 @@ app.addEventListener('click', async (e) => {
       if (action === 'ai-del') order.splice(i, 1)
       if (action === 'ai-add') order.push({ provider: 'openrouter', model: '' })
       await loadModels(order.at(-1).provider)
+      return render()
+    }
+    if (action === 'home-up' || action === 'home-down') {
+      const order = state.data.homeOrder
+      const i = Number(btn.dataset.i)
+      const j = action === 'home-up' ? i - 1 : i + 1
+      ;[order[i], order[j]] = [order[j], order[i]]
+      return render()
+    }
+    if (action === 'home-save' || action === 'home-reset') {
+      const home_order = action === 'home-save' ? state.data.homeOrder : null
+      state.data.profile = await api(`/api/users/${state.selected}/profile`, { method: 'PUT', body: { home_order } })
+      if (!home_order) state.data.homeOrder = state.data.homeSections.map((s) => s.id)
+      toast('Home page order saved')
       return render()
     }
     if (action === 'ai-order-save') {

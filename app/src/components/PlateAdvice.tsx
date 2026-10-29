@@ -1,4 +1,4 @@
-import { Camera, ChevronRight, PenLine } from 'lucide-react'
+import { Camera, ChevronRight, Mic, PenLine } from 'lucide-react'
 import { useState } from 'react'
 import { scorePlate, type PlateTotals } from '../lib/calc'
 import { useI18n } from '../lib/i18n'
@@ -18,8 +18,8 @@ const ADVICE: Record<string, { emoji: string; key: string }> = {
 
 /**
  * Advice first, numbers later: after a photo, people see what to do ("Add protein!") before
- * calories and grams. Tapping a piece of advice explains it and offers to retake the photo or
- * adjust the meal by hand.
+ * calories and grams. Tapping a piece of advice explains it and offers to retake the photo (or
+ * dictate again) or adjust the meal by hand.
  */
 export function PlateAdvice({
   totals,
@@ -29,6 +29,7 @@ export function PlateAdvice({
   tip,
   onRetake,
   onAdjust,
+  voice = false,
 }: {
   totals: PlateTotals
   meal: Meal
@@ -37,6 +38,8 @@ export function PlateAdvice({
   tip?: string | null
   onRetake: () => void
   onAdjust: () => void
+  /** The meal was dictated: "again" means speaking again, not a new photo. */
+  voice?: boolean
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState<string | null>(null)
@@ -79,7 +82,7 @@ export function PlateAdvice({
                 onRetake()
               }}
             >
-              <Camera className="size-5" aria-hidden /> {t('advice.retake')}
+              {voice ? <Mic className="size-5" aria-hidden /> : <Camera className="size-5" aria-hidden />} {t(voice ? 'advice.redictate' : 'advice.retake')}
             </Button>
             <Button
               size="lg"

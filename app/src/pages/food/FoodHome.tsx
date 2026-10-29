@@ -1,8 +1,9 @@
-import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, PenLine, Trash2 } from 'lucide-react'
+import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, Mic, PenLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
+import { NextMealCard } from '../../components/NextMealCard'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../lib/calc'
@@ -18,6 +19,7 @@ export function FoodHome() {
   const { t, num, date } = useI18n()
   const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
+  const justLogged = Boolean((useLocation().state as { logged?: boolean } | null)?.logged)
   const { energy, food, weights, loading, reload } = useEnergy()
   const [savingCheckin, setSavingCheckin] = useState(false)
   const [offset, setOffset] = useState(0)
@@ -68,9 +70,15 @@ export function FoodHome() {
     <div className="grid gap-4">
       <PageHeader title={t('food.title')} subtitle={t(`goal.${goal}`)} />
 
-      <div className="grid grid-cols-3 gap-2">
+      {/* Right after logging: what the next meal could be, before anything else. */}
+      {justLogged ? <NextMealCard food={food} targets={tg} justLogged /> : null}
+
+      <div className="grid grid-cols-2 gap-2">
         <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>
           <Camera className="size-6" aria-hidden /> {t('food.snap')}
+        </Button>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/voice')}>
+          <Mic className="size-6 text-brand" aria-hidden /> {t('food.dictate')}
         </Button>
         <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add?scan=1')}>
           <Barcode className="size-6 text-brand" aria-hidden /> {t('food.barcode')}
@@ -156,6 +164,8 @@ export function FoodHome() {
           {sum.kcal < tg.kcal ? t('food.left', { kcal: num(tg.kcal - sum.kcal) }) : t('food.over', { kcal: num(sum.kcal - tg.kcal) })}
         </p>
       </Card>
+
+      {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}
 
       {/* Balanced days: the reward for eating by the guidelines (small, reachable, visible). */}
       <div className="flex items-center gap-3 rounded-3xl border border-line bg-card p-3">

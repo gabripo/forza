@@ -1,6 +1,7 @@
 import { BookOpen, Check, ChevronRight, Footprints, History as HistoryIcon, Pencil, Play, Plus, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { TrainingFacts } from '../../components/Cite'
 import { ExerciseMedia } from '../../components/ExerciseMedia'
 import { ExercisePicker } from '../../components/ExercisePicker'
 import { Button, Card, Empty, Field, Loading, NumberInput, PageHeader, Sheet, cx } from '../../components/ui'
@@ -182,6 +183,8 @@ export function TrainHome() {
           {t('train.browse')} <ChevronRight className="size-5" aria-hidden />
         </Button>
       </Card>
+
+      <TrainingFacts />
 
       <ExercisePicker
         open={browse}

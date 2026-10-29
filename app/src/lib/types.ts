@@ -28,6 +28,8 @@ export interface Profile {
   kcal_checkin_at: string | null
   /** The Train tab and training cards are hidden (people who never log training in the app). */
   hide_training: boolean
+  /** Order of the Home page sections (ids in shared/home-sections.mjs); null = the default order. */
+  home_order: string[] | null
   /** Shown on the family challenge board. */
   challenge_opt_in: boolean
   /** Build With Science workouts are synced by Forza! Coach. */
@@ -128,7 +130,7 @@ export interface FoodLog {
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null
-  source: 'ai' | 'manual' | 'barcode' | 'import' | 'health_connect'
+  source: 'ai' | 'manual' | 'barcode' | 'voice' | 'import' | 'health_connect'
   ai_notes: string | null
   /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science). */
   origin?: string | null
