@@ -264,7 +264,7 @@ private class Found(val allowed: Boolean) {
 /** Apps that often write to Health Connect, by their package name. */
 private val APP_NAMES = mapOf(
     "com.google.android.apps.fitness" to "Google Fit",
-    "com.eufylife.smarthome" to "EufyLife",
+    "com.oceanwing.smarthome" to "EufyLife",
     "com.sec.android.app.shealth" to "Samsung Health",
     "com.mi.health" to "Mi Fitness",
     "com.xiaomi.wearable" to "Mi Fitness",
@@ -276,9 +276,15 @@ private val APP_NAMES = mapOf(
     "android" to "Android",
 )
 
+/** A readable name for the app that wrote the data; Health Connect's own step counting is "this phone". */
+private fun appName(context: Context, pkg: String): String = when {
+    pkg.startsWith("com.android.healthconnect.phone") -> context.getString(R.string.this_phone)
+    else -> APP_NAMES[pkg] ?: pkg
+}
+
 /** "Steps: 15 days (Google Fit) · Weigh-ins: none…", one line per kind, with what to do when something is missing. */
 private fun summary(context: Context, found: Map<String, Found>): String {
-    fun apps(f: Found) = f.sources.joinToString(", ") { APP_NAMES[it] ?: it }
+    fun apps(f: Found) = f.sources.map { appName(context, it) }.distinct().joinToString(", ")
     fun line(name: String, ok: Int, none: Int, denied: Int): String {
         val f = found.getValue(name)
         return when {

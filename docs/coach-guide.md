@@ -216,6 +216,7 @@ Coach and click **Setup → Update the server**. Nothing is lost: the data lives
 | Food photos say "not set up" | Add the Gemini key in Coach → **Setup** → *Food photo AI*, then **Test** it with a photo. |
 | Food photos often say "The estimate did not work" | Probably every model in the order was busy or out of quota (try **Test the whole order** to see why). Add a second service (OpenRouter is free) in **Setup → Food photo AI: keys** and put one of its models in the order. |
 | Build With Science import stops | Keep the phone unlocked and Build With Science in front, then start again: it continues where it stopped. |
+| Steps or weight don't arrive from their phone | Open the person in Coach → **Overview → Last health sync**: it shows, for steps, weight and meals, whether the helper may read them, how many it found and which app wrote them, with what to do (for an Eufy scale: EufyLife → Me → Health Connect → Weight, on their own EufyLife account, then a new weigh-in). On iPhone, run the *Forza Sync* shortcut: its notification says what arrived or what to fix ([guide](apple-shortcut.md#if-nothing-arrives)). |
 | "No phone found" | Check the cable (some only charge), USB debugging, and tap **Allow** on the phone. |
 
 ## Privacy and safety

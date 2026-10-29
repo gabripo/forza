@@ -55,9 +55,10 @@
     <string name="none_steps">Steps: none in Health Connect yet. An app must count them into it: open Health Connect → Data and access → Steps, and check that Google Fit (or your phone\'s fitness app) is a source.</string>
     <string name="denied_steps">Steps: not allowed. Tap \"Allow access\" and turn on Steps.</string>
     <string name="found_weight">Weigh-ins: %1$d ✓ (%2$s)</string>
-    <string name="none_weight">Weigh-ins: none in Health Connect. In EufyLife: Me → link Google Fit (it goes through Health Connect), weigh in on your own EufyLife account (only its main user is synced), then step on the scale once: only new weigh-ins are sent.</string>
+    <string name="none_weight">Weigh-ins: none in Health Connect. In EufyLife: Me → Health Connect, turn on Weight, on your own EufyLife account (only its main user is synced); then step on the scale once: only new weigh-ins are sent.</string>
     <string name="denied_weight">Weigh-ins: not allowed. Tap \"Allow access\" and turn on Weight.</string>
     <string name="found_meals">Meals: %1$d entries ✓ (%2$s)</string>
     <string name="none_meals">Meals: none in Health Connect (fine if you log them in Forza!).</string>
     <string name="denied_meals">Meals: not allowed (optional: only for food apps such as Build With Science).</string>
+    <string name="this_phone">this phone</string>
 </resources>

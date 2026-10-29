@@ -657,7 +657,7 @@ export const en = {
     stepsDenied: 'Steps: not allowed. In the Forza! Health app tap "Allow access" and turn on Steps.',
     weightDenied: 'Weigh-ins: not allowed. In the Forza! Health app tap "Allow access" and turn on Weight.',
     stepsNoneAndroid: 'Steps: none in Health Connect. A fitness app must count them into it (Health Connect → Data and access → Steps).',
-    weightNoneAndroid: 'Weigh-ins: none in Health Connect. EufyLife: Me → link Google Fit, on your own EufyLife account; then weigh in once (only new weigh-ins are sent).',
+    weightNoneAndroid: 'Weigh-ins: none in Health Connect. EufyLife: Me → Health Connect → turn on Weight, on your own EufyLife account; then weigh in once (only new weigh-ins are sent).',
     stepsNoneIphone: 'Steps: none received. In Health → profile → Apps → Shortcuts, turn on Steps.',
     weightNoneIphone: 'Weigh-ins: none received. In Health → profile → Apps → Shortcuts, turn on Weight; EufyLife: Me → Apple Health → Weight.',
   },

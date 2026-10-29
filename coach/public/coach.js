@@ -517,16 +517,16 @@ function syncReportView(d) {
   const r = d.sync?.last_report
   if (!r) return ''
   const NAMES = { steps: 'Steps', weight: 'Weigh-ins', body_fat: 'Body fat', exercise: 'Walks & workouts', meals: 'Meals' }
-  const APPS = { 'com.google.android.apps.fitness': 'Google Fit', 'com.eufylife.smarthome': 'EufyLife', 'com.sec.android.app.shealth': 'Samsung Health', 'com.mi.health': 'Mi Fitness', 'com.xiaomi.wearable': 'Mi Fitness', 'com.bws.appv2': 'Build With Science' }
+  const APPS = { 'com.google.android.apps.fitness': 'Google Fit', 'com.oceanwing.smarthome': 'EufyLife', 'com.sec.android.app.shealth': 'Samsung Health', 'com.mi.health': 'Mi Fitness', 'com.xiaomi.wearable': 'Mi Fitness', 'com.bws.appv2': 'Build With Science' }
   const HINTS = {
     steps: 'No app writes steps into Health Connect on this phone: in Health Connect → Data and access → Steps, a fitness app (Google Fit, the phone maker\'s app) must be a source.',
-    weight: 'Nothing from the scale yet. EufyLife (Android): Me → link Google Fit, on their own EufyLife account (only the main user is synced); then a new weigh-in. Older weigh-ins are not sent.',
+    weight: 'Nothing from the scale yet. EufyLife (Android): Me → Health Connect → turn on Weight, on their own EufyLife account (only its main user is synced); then a new weigh-in. Older weigh-ins are not sent.',
   }
   const rows = r.types
     ? Object.entries(r.types)
         .map(([k, t]) => {
           const state = !t.allowed ? '<span class="warn">not allowed in the helper</span>' : t.found ? `<span class="ok">${t.found}</span>` : '<span class="warn">none in Health Connect</span>'
-          const apps = (t.sources ?? []).map((s) => APPS[s] ?? s).join(', ')
+          const apps = [...new Set((t.sources ?? []).map((s) => (s.startsWith('com.android.healthconnect.phone') ? 'the phone itself' : APPS[s] ?? s)))].join(', ')
           const hint = t.allowed && !t.found && HINTS[k] ? `<div class="small muted">${esc(HINTS[k])}</div>` : !t.allowed && (k === 'steps' || k === 'weight') ? '<div class="small muted">On their phone: Forza! Health → Allow access → turn it on.</div>' : ''
           return `<tr><td>${esc(NAMES[k] ?? k)}</td><td>${state}${hint}</td><td class="small">${esc(apps)}</td></tr>`
         })

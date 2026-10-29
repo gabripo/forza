@@ -290,6 +290,12 @@ counts), and only to callers who joined; nobody can read anyone else's weight, m
   server replaces the whole window it receives: an entry edited or deleted in the food app is edited or
   deleted in Forza! too. Synced meals show their source and are changed only in the app that logged them.
 - **iPhone**: an Apple Shortcut reads Apple Health and posts the same data; it can run daily as an automation.
+- **Diagnosing from afar**: the helper reports, per kind of data, whether it may read it, how many records
+  it found and which apps wrote them (`sync_tokens.last_report`); Coach and the app show it with what to do.
+  Health Connect apps cannot see why data is missing on their own: "not allowed" and "nothing written by any
+  app" look the same without this. The server answers every request with a message in the person's language
+  (what arrived, or what to fix: no key, a key cut short, a replaced key, Health access off), which the
+  Shortcut shows as its notification; the key is accepted wherever and however it was pasted.
 - **Smart scales** (Eufy and others) write to Health Connect / Apple Health, so they need no integration
   of their own; past weigh-ins can also be imported from a CSV export.
 - **Sync now**: Settings → Connect Health & scale has a button that wakes the Android helper at once

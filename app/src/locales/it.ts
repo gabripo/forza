@@ -659,7 +659,7 @@ export const it: Dict = {
     stepsDenied: 'Passi: non consentiti. Nell’app Forza! Health tocca "Consenti l’accesso" e attiva Passi.',
     weightDenied: 'Pesate: non consentite. Nell’app Forza! Health tocca "Consenti l’accesso" e attiva Peso.',
     stepsNoneAndroid: 'Passi: nessuno in Connessione Salute. Un’app fitness deve contarli lì (Connessione Salute → Dati e accesso → Passi).',
-    weightNoneAndroid: 'Pesate: nessuna in Connessione Salute. EufyLife: Io → collega Google Fit, sul tuo account EufyLife; poi pesati una volta (si inviano solo le pesate nuove).',
+    weightNoneAndroid: 'Pesate: nessuna in Connessione Salute. EufyLife: Io → Connessione Salute → attiva Peso, sul tuo account EufyLife; poi pesati una volta (si inviano solo le pesate nuove).',
     stepsNoneIphone: 'Passi: nessuno ricevuto. In Salute → profilo → App → Comandi, attiva Passi.',
     weightNoneIphone: 'Pesate: nessuna ricevuta. In Salute → profilo → App → Comandi, attiva Peso; EufyLife: Io → Apple Salute → Peso.',
   },

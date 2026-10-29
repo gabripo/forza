@@ -54,9 +54,10 @@
     <string name="none_steps">Passi: ancora nessuno in Connessione Salute. Un\'app deve contarli lì: apri Connessione Salute → Dati e accesso → Passi e controlla che Google Fit (o l\'app fitness del telefono) sia tra le fonti.</string>
     <string name="denied_steps">Passi: non consentiti. Tocca \"Consenti l\'accesso\" e attiva Passi.</string>
     <string name="found_weight">Pesate: %1$d ✓ (%2$s)</string>
-    <string name="none_weight">Pesate: nessuna in Connessione Salute. In EufyLife: Io → collega Google Fit (passa da Connessione Salute), pesati sul tuo account EufyLife (si sincronizza solo il suo utente principale), poi sali sulla bilancia una volta: vengono inviate solo le pesate nuove.</string>
+    <string name="none_weight">Pesate: nessuna in Connessione Salute. In EufyLife: Io → Connessione Salute, attiva Peso, sul tuo account EufyLife (si sincronizza solo il suo utente principale); poi sali sulla bilancia una volta: vengono inviate solo le pesate nuove.</string>
     <string name="denied_weight">Pesate: non consentite. Tocca \"Consenti l\'accesso\" e attiva Peso.</string>
     <string name="found_meals">Pasti: %1$d voci ✓ (%2$s)</string>
     <string name="none_meals">Pasti: nessuno in Connessione Salute (va bene se li registri in Forza!).</string>
     <string name="denied_meals">Pasti: non consentiti (facoltativo: solo per app come Build With Science).</string>
+    <string name="this_phone">questo telefono</string>
 </resources>

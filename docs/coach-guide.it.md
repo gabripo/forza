@@ -226,6 +226,7 @@ Coach e clicca **Setup → Update the server**. Non si perde nulla: i dati sono 
 | Le foto del cibo dicono "non configurato" | Aggiungi la chiave Gemini in Coach → **Setup** → *Food photo AI* e provala con **Test**. |
 | Le foto del cibo dicono spesso "La stima non ha funzionato" | Probabilmente tutti i modelli dell'ordine erano occupati o senza quota (prova **Test the whole order** per vedere perché). Aggiungi un secondo servizio (OpenRouter è gratuito) in **Setup → Food photo AI: keys** e metti un suo modello nell'ordine. |
 | L'importazione da Build With Science si ferma | Tieni il telefono sbloccato con Build With Science in primo piano e riavvia: riprende da dove si era fermata. |
+| Passi o peso non arrivano dal telefono | Apri la persona in Coach → **Overview → Last health sync**: per passi, peso e pasti mostra se l'app di supporto può leggerli, quanti ne ha trovati e quale app li ha scritti, con cosa fare (bilancia Eufy: EufyLife → Io → Connessione Salute → Peso, sul suo account EufyLife, poi una nuova pesata). Su iPhone esegui il comando rapido *Forza Sync*: la notifica dice cosa è arrivato o cosa sistemare ([guida](apple-shortcut.md#if-nothing-arrives)). |
 | "No phone found" | Controlla il cavo (alcuni servono solo a caricare), il debug USB, e tocca **Consenti** sul telefono. |
 
 ## Privacy e sicurezza
