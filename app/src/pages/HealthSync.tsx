@@ -1,5 +1,5 @@
 import { Apple, Check, Copy, Dumbbell, FileUp, KeyRound, RefreshCw, Scale, Smartphone } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { importHistory, type ImportResult } from '../../../shared/history-import.mjs'
 import { Link } from 'react-router-dom'
 import { Button, Card, PageHeader } from '../components/ui'
@@ -32,9 +32,22 @@ function CopyButton({ text }: { text: string }) {
 
 export function HealthSync() {
   const { t, date } = useI18n()
+  const { refreshProfile } = useApp()
   const status = useAsync(() => hasSyncKey(), [])
   const [key, setKey] = useState<string | null>(savedSyncKey())
   const [busy, setBusy] = useState(false)
+  const reloadStatus = status.reload
+
+  // Back from the helper app (or from anywhere else): show the latest sync times without a reload.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      void reloadStatus()
+      void refreshProfile()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [reloadStatus, refreshProfile])
 
   async function newKey() {
     if (status.data?.exists && !window.confirm(t('health.replaceKey'))) return
@@ -152,15 +165,28 @@ export function HealthSync() {
  */
 function SyncNow({ helperReady, lastSync }: { helperReady: boolean; lastSync: string | null }) {
   const { t, date } = useI18n()
-  const { profile, saveProfile } = useApp()
-  const [asked, setAsked] = useState(false)
+  const { profile, saveProfile, refreshProfile } = useApp()
+  const [asking, setAsking] = useState(false)
+  const requested = profile?.bws_sync_requested_at
+  const pending = Boolean(requested && (!profile?.bws_synced_at || profile.bws_synced_at < requested))
+
+  // While Coach has not answered (for up to 10 minutes), look every 15 seconds for its result.
+  useEffect(() => {
+    if (!pending || !requested || Date.now() - new Date(requested).getTime() > 10 * 60_000) return
+    const timer = window.setInterval(() => void refreshProfile(), 15_000)
+    return () => window.clearInterval(timer)
+  }, [pending, requested, refreshProfile])
+
   if (!helperReady && !profile?.bws_auto_sync) return null
   const when = (d: string) => date(d, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-  const pending = profile?.bws_sync_requested_at && (!profile.bws_synced_at || profile.bws_synced_at < profile.bws_sync_requested_at)
 
   async function askBws() {
-    await saveProfile({ bws_sync_requested_at: new Date().toISOString() })
-    setAsked(true)
+    setAsking(true)
+    try {
+      await saveProfile({ bws_sync_requested_at: new Date().toISOString() })
+    } finally {
+      setAsking(false)
+    }
   }
 
   return (
@@ -176,11 +202,11 @@ function SyncNow({ helperReady, lastSync }: { helperReady: boolean; lastSync: st
         ) : null}
         {profile?.bws_auto_sync ? (
           <div>
-            <Button block variant="secondary" onClick={askBws} disabled={asked || Boolean(pending)}>
-              <Dumbbell className="size-5" aria-hidden /> {asked || pending ? t('sync.bwsAsked') : t('sync.bws')}
+            <Button block variant="secondary" onClick={askBws} loading={asking} disabled={pending}>
+              <Dumbbell className="size-5" aria-hidden /> {pending ? t('sync.bwsAsked') : t('sync.bws')}
             </Button>
             <p className="mt-1 text-sm text-ink-3">
-              {asked || pending ? t('sync.bwsHow') : profile.bws_synced_at ? t('sync.bwsLast', { date: when(profile.bws_synced_at) }) : t('sync.bwsAuto')}
+              {pending ? t('sync.bwsHow') : profile.bws_synced_at ? t('sync.bwsLast', { date: when(profile.bws_synced_at) }) : t('sync.bwsAuto')}
             </p>
           </div>
         ) : null}

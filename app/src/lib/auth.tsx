@@ -15,6 +15,8 @@ interface AppState {
   connectError: 'expired' | null
   exercises: Map<string, Exercise>
   saveProfile: (patch: Partial<Profile>) => Promise<void>
+  /** Reads the profile again (for values that Forza! Coach or the phone helper change). */
+  refreshProfile: () => Promise<void>
   refreshExercises: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -86,6 +88,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [userId, setLocale],
   )
 
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return
+    const p = await getProfile(userId)
+    if (p) setProfile(p)
+  }, [userId])
+
   const refreshExercises = useCallback(async () => {
     setExercises(await loadExercises())
   }, [])
@@ -95,7 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AppContext.Provider value={{ session, profile, loading, connectError, exercises, saveProfile, refreshExercises, signOut }}>
+    <AppContext.Provider value={{ session, profile, loading, connectError, exercises, saveProfile, refreshProfile, refreshExercises, signOut }}>
       {children}
     </AppContext.Provider>
   )
