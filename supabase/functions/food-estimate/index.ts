@@ -49,12 +49,17 @@ function chain(): Step[] {
       ? [{ provider: 'custom', model: Deno.env.get('FOOD_AI_MODEL') ?? '' }]
       : [GEMINI_MODEL, ...GEMINI_FALLBACKS].map((model) => ({ provider: 'gemini', model }))
   }
-  return steps.filter((s) => PROVIDERS[s.provider] && s.model && Deno.env.get(PROVIDERS[s.provider].key) &&
-    (PROVIDERS[s.provider].base || Deno.env.get(PROVIDERS[s.provider].baseEnv ?? '')))
+  return steps.filter((s) => {
+    const p = PROVIDERS[s.provider]
+    // Gemini has its own endpoint; the others need an address (built in, or FOOD_AI_BASE_URL for "custom").
+    return p && s.model && Deno.env.get(p.key) && (s.provider === 'gemini' || p.base || (p.baseEnv && Deno.env.get(p.baseEnv)))
+  })
 }
 
 const DAILY_LIMIT = Number(Deno.env.get('FOOD_AI_DAILY_LIMIT') ?? 25)
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+// A model that does not answer in time counts as busy: the next one in the order gets the photo.
+const STEP_TIMEOUT_MS = Number(Deno.env.get('FOOD_AI_STEP_TIMEOUT_MS') ?? 30_000)
 
 type Mode = 'plate' | 'label'
 type Schema = Record<string, unknown>
@@ -147,6 +152,7 @@ class Busy extends Error {}
 async function askGemini(model: string, { prompt, schema, image, mime }: Ask): Promise<unknown> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
+    signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': Deno.env.get('GEMINI_API_KEY')! },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: mime, data: image } }] }],
@@ -182,6 +188,7 @@ async function askOpenAiCompatible(step: Step, { prompt, schema, image, mime }: 
   const post = (jsonMode: boolean) =>
     fetch(`${base}/chat/completions`, {
       method: 'POST',
+      signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Deno.env.get(p.key)}`,
@@ -213,9 +220,10 @@ async function ask(ask: Ask, steps: Step[]): Promise<{ answer: unknown; model: s
       try {
         const answer = step.provider === 'gemini' ? await askGemini(step.model, ask) : await askOpenAiCompatible(step, ask)
         return { answer, model: `${step.provider}:${step.model}`, tried }
-      } catch (e) {
-        tried.push(`${step.provider}:${step.model} → ${(e as Error).message.slice(0, 160)}`)
-        console.error('food ai step failed', (e as Error).message)
+      } catch (err) {
+        const e = (err as Error).name === 'TimeoutError' ? new Busy(`no answer in ${STEP_TIMEOUT_MS / 1000} s`) : (err as Error)
+        tried.push(`${step.provider}:${step.model} → ${e.message.slice(0, 160)}`)
+        console.error('food ai step failed', e.message)
         // Retry a busy model once, only when nothing else is left to try soon.
         if (!(e instanceof Busy) || attempt === 1 || i < steps.length - 1) break
         await new Promise((r) => setTimeout(r, 1500))
