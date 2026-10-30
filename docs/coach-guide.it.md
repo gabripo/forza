@@ -187,7 +187,7 @@ Coach può anche salvare il risultato come file (**Download the file**), che la 
 sola in Forza!: **Impostazioni → Collega Salute e bilancia → Importa un file di storico**.
 
 *Non viene importato:* altezza ed età (Build With Science non le mostra) e le foto dei progressi. Il diario
-alimentare arriva invece tramite Connessione Salute (punto 4).
+alimentare arriva tramite Connessione Salute (punto 4), oppure viene letto dal suo telefono (sotto).
 
 ## 6. Fare da coach
 

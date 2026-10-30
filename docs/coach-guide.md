@@ -180,7 +180,7 @@ Coach can also save the result as a file (**Download the file**), which they can
 Forza!: **Settings → Connect Health & scale → Import a history file**.
 
 *Not imported:* height and age (Build With Science does not show them) and progress photos. The food
-diary arrives through Health Connect instead (step 4).
+diary arrives through Health Connect (step 4), or is read on their phone (below).
 
 ## 6. Coaching
 
