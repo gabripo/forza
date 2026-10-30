@@ -56,6 +56,15 @@ function activityKind(raw: unknown): string {
 type StepRow = { day: string; steps: number }
 type WeightRow = { measured_at: string; weight_kg: number; body_fat_pct: number | null }
 
+/**
+ * Body fat as stored (1–80 %, one decimal), or none. A scale that could not measure it may still write a value
+ * (EufyLife writes 0 % when it shows "--"): the weigh-in is kept without it instead of failing the whole sync.
+ */
+function fatPct(v: unknown): number | null {
+  const n = Number(v)
+  return v != null && Number.isFinite(n) && n >= 1 && n <= 80 ? Math.round(n * 10) / 10 : null
+}
+
 const DATE_RE = /(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2}):(\d{2}))?/
 
 /** Day-first dates as an iPhone set to Italian (or most of Europe) writes them: 29/10/2026, 29.10.26, 29-10-2026. */
@@ -184,7 +193,7 @@ Deno.serve(async (req) => {
     for (const w of body.weights as { at?: string; kg?: number; fat_pct?: number }[]) {
       const at = new Date(String(w?.at))
       if (!Number.isNaN(at.getTime())) {
-        weights.push({ measured_at: at.toISOString(), weight_kg: Number(w.kg) * toKg, body_fat_pct: w.fat_pct ?? null })
+        weights.push({ measured_at: at.toISOString(), weight_kg: Number(w.kg) * toKg, body_fat_pct: fatPct(w.fat_pct) })
       }
     }
   }
