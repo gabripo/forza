@@ -9,12 +9,15 @@ export interface Product {
   brand: string | null
   image: string | null
   /** Nutrients per 100 g (or 100 ml). */
-  per100: { kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sugar_g: number }
+  per100: { kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sugar_g: number; salt_g?: number }
   /** One serving in grams, when the label states it. */
   servingG: number | null
   /** NOVA group 4 = ultra-processed. */
   ultraProcessed: boolean
-  source: 'openfoodfacts' | 'label'
+  /** Scanned (Open Food Facts), read from a label photo, from the family's foods, or found by name online. */
+  source: 'openfoodfacts' | 'label' | 'family' | 'web'
+  /** For a family food: its id in the database. */
+  dbId?: string
 }
 
 const FIELDS = 'code,product_name,product_name_it,product_name_en,generic_name,brands,nutriments,serving_quantity,nova_group,image_front_small_url'
@@ -46,6 +49,8 @@ export function fromOpenFoodFacts(p: Record<string, unknown>, locale: Locale): P
       fat_g: n(nt.fat_100g),
       fiber_g: n(nt.fiber_100g),
       sugar_g: n(nt.sugars_100g),
+      // Salt as printed, or worked out from sodium (salt = sodium × 2.5).
+      ...(nt.salt_100g != null ? { salt_g: n(nt.salt_100g) } : nt.sodium_100g != null ? { salt_g: Math.round(n(nt.sodium_100g) * 250) / 100 } : {}),
     },
     servingG: serving > 0 && serving < 2000 ? serving : null,
     ultraProcessed: nova === 4,
@@ -78,6 +83,7 @@ export function productAt(p: Product, grams: number): FoodItem {
     fat_g: r1(p.per100.fat_g * k),
     fiber_g: r1(p.per100.fiber_g * k),
     sugar_g: r1(p.per100.sugar_g * k),
+    ...(p.per100.salt_g != null ? { salt_g: Math.round(p.per100.salt_g * k * 100) / 100 } : {}),
   }
 }
 

@@ -2,6 +2,7 @@
 // Follows the data-viz rules: 2px lines, >=8px dots with a surface ring, hairline grid,
 // recessive axes, text in ink colours (never the series colour), crosshair tooltip,
 // selective direct labels, and a data table for screen readers.
+import { useI18n } from '../lib/i18n'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 function useWidth<T extends HTMLElement>() {
@@ -321,7 +322,8 @@ export function Ring({ value, max, size = 132, children }: { value: number; max:
   )
 }
 
-export function MacroBar({ label, value, target, color, unit = 'g' }: { label: string; value: number; target: number; color: string; unit?: string }) {
+export function MacroBar({ label, value, target, color, unit = 'g', digits = 0 }: { label: string; value: number; target: number; color: string; unit?: string; digits?: number }) {
+  const { num } = useI18n()
   const pct = target > 0 ? Math.min(100, (value / target) * 100) : 0
   return (
     <div>
@@ -331,7 +333,7 @@ export function MacroBar({ label, value, target, color, unit = 'g' }: { label: s
           {label}
         </span>
         <span className="tabular text-ink-2">
-          <b className="text-ink">{Math.round(value)}</b> / {Math.round(target)} {unit}
+          <b className="text-ink">{digits ? num(value, digits) : Math.round(value)}</b> / {Math.round(target)} {unit}
         </span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-card-2">

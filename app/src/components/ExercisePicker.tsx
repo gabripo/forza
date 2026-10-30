@@ -26,7 +26,8 @@ export function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClo
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return [...exercises.values()]
+    // Retired exercises stay in plans and history, but are not offered any more.
+    return [...exercises.values()].filter((e) => !e.archived)
       .filter((e) => !group || e.muscles.some((m) => MUSCLE_GROUPS[group].includes(m)))
       .filter((e) => !needle || e.name.en.toLowerCase().includes(needle) || e.name.it.toLowerCase().includes(needle))
       .sort((a, b) => a.level - b.level || l(a.name).localeCompare(l(b.name)))

@@ -68,6 +68,7 @@ export function Dashboard() {
     const rewardInput = {
       lessons,
       quizAnswers,
+      goal: profile.goal,
       food,
       weights,
       steps,

@@ -174,7 +174,9 @@ The calorie target is built in five explainable steps, shown in the app with the
    0.45 kg a week, at 7,700 kcal per kg), muscle gain +150 / **+250** / +400 kcal, maintain = TDEE.
    A **weekly check-in** compares the trend with that pace and suggests ±100–150 kcal, never more than
    ±600 in total; on top, a **manual adjustment** (±1,500 kcal, in 50 kcal steps in the app); never below
-   1,200 (women) / 1,500 (men) kcal. Someone who uses Build With Science can **follow its target** instead:
+   1,200 (women) / 1,500 (men) kcal. The target can also be **set by hand** (800–6,000 kcal, by the person
+   in Food → Adjust or by the coach): protein stays on body weight, fat is 30% of it and carbohydrates the
+   rest, and no check-in nudges it. Someone who uses Build With Science can **follow its target** instead:
    the phone reads its daily calorie and macro ranges with the food log, and the app uses their middle
    (no check-in then: Build With Science adjusts its own target).
 5. **Split**: protein 1.8 / 1.6 / 1.4 g per kg (at least 1.4 after 60; above BMI 30 a reference weight
@@ -199,11 +201,40 @@ Ways to log a meal:
   twice.
 
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
-against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out.
+against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out. Meals that
+arrive without one (synced from another app, or changed in Coach) get theirs when the Food page shows them,
+and keep it: good meals count in the family challenge.
+
+**The family food database.** Every food logged that is not in the built-in table joins a shared table,
+`foods` (values per 100 g): products scanned or read from a label, foods typed in (with their amount, so they
+can be stored per 100 g), foods the AI recognised, products found online. `food_memory` counts how often each
+person had each food (built-in ones too). Saving goes through `remember_foods()`: values from a barcode, a
+label or typed in replace what the AI had guessed, never the other way round. What comes of it:
+
+- **Your usual foods first.** "Add by hand" opens on the person's most frequent foods; the search lists their
+  own foods, then the family's, then the built-in table.
+- **Your mozzarella is "the" mozzarella.** When a dictated word or a photo names a food the person logged from
+  a barcode, a label, by hand or from an online search (all its words in the product's name), that product's
+  values replace the generic ones, with "★ Your usual one" next to it. AI guesses never stand in this way.
+- **A larger database.** "Search more online" looks the words up in **Open Food Facts** (millions of products,
+  many Italian) through the `food-search` function, because its search service does not answer web pages
+  directly; a product picked there joins the family database too.
+
+**Salt and sodium (optional).** People who turn it on (Settings, or their coach) see the salt of each meal
+and of the day against WHO's limit of 5 g of salt (2,000 mg of sodium; sodium = salt ÷ 2.5); the bar turns
+red past it. Salt comes from the built-in table (typical values per 100 g, dishes as salted at home), Open
+Food Facts (salt, or sodium × 2.5), the label photo and the photo AI (which includes the salt added when
+cooking). Meals synced from another app have none yet.
+
+**Moving a meal.** Tapping a logged meal moves it to another part of the day (breakfast, lunch, snack,
+dinner); Coach can do the same.
 
 **Dictate.** Tap **Dictate** and say the meal. The words come from the phone's own speech recognition (the
-Web Speech API in Chrome on Android and Safari on iPhone; where a browser lacks it, such as Firefox, the
-microphone key of the keyboard does the same), so no speech model runs anywhere. The sentence is then read
+Web Speech API in Chrome on Android and Safari on iPhone). Where a browser lacks it, such as Firefox, the same
+button records the voice and the food AI writes it down (Gemini models only, which listen to audio; it counts
+towards the daily AI limit); without either, the keyboard's microphone key does the same. The words stay in a
+text field for corrections, and **Tidy up with AI** rewrites them as a clean list (one food and its amount per
+line, recognition mistakes fixed, nothing added), with **Undo**. The sentence is then read
 **on the phone**: it is split at "and", "with" and commas, each part is matched to the built-in food table
 (with everyday names: "pollo", "spaghetti", "caffè"; singular and plural; longest name first) and its
 amount understood (grams, kilos, spoons, slices, glasses, pots, "two", "half"; a bare small number counts
@@ -292,8 +323,9 @@ short, it promises something and it pays back at once. The app uses a few well-k
 | Collection | eight badges: first lesson, 5 lessons, 5 quizzes, the course, 3 expert lessons, a balanced week, protein three days in a row, a week of food logging |
 | Social proof, friendly | the opt-in family challenge (below) |
 
-Points: workout 20, lesson read 10, quiz passed 20, a right answer in the daily points quiz 5, a day with two
-or more meals logged 10, step goal reached 10, weigh-in 5. **Nothing is ever scored on weight or calories**: a person who does not yet know what
+Points: workout 20, lesson read 10, quiz passed 20, a right answer in the daily points quiz 5, a good meal
+(scoring 70 or more for the person's goal, up to 3 a day) 5, a day with two or more meals logged 10, step goal
+reached 10, weigh-in 5. **Nothing is ever scored on weight or calories**: a person who does not yet know what
 a calorie is can beat a gym regular by showing up, reading and logging. No streak is ever "lost" with a red
 message; the app only counts what was done.
 
@@ -420,7 +452,14 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
   check-ins, lessons, calorie check-ins, health-sync status, progress photos (only on request).
 - **Plans**: edit exercises, sets, reps, rest, weekdays, supersets, warm-ups and starting weights; copy a
   plan between people; every save keeps the previous version, restorable in one click.
-- **Exercises**: video links and coach notes for any exercise; shared custom exercises.
+- **Exercises**: for any exercise, photos, GIFs or a short video (uploaded to the public `exercise-media`
+  bucket, up to 25 MB, in order) previewed exactly as the app shows them (photos in turn every 1.1 s, a GIF,
+  or a silent video on a loop), a video link and a coach note. Family exercises can be added, changed and
+  deleted; one already in a plan or in past workouts is retired instead (gone from the lists, kept in plans
+  and history).
+- **Daily targets**: each person's calories, protein, carbohydrates, fat, fibre and salt as their phone shows
+  them, with what they ate today. Coach runs the app's own calculation (`shared/energy.mjs`, generated by
+  `npm run export-knowledge` from `app/src/lib`), so the numbers always agree.
 - **Food photo AI**: one key per provider (Gemini, OpenRouter, Groq, Mistral, OpenAI or any
   OpenAI-compatible service), an overview of which keys are set, and the **model use order**: a list of
   models tried top to bottom. Models whose provider has no key are greyed out and skipped. For OpenRouter the

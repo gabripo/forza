@@ -364,6 +364,60 @@ details summary {
   color: var(--brand);
   font-weight: 700;
 }
+.ex-media {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ex-media img,
+.ex-media video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ex-media img.on,
+.ex-media video {
+  opacity: 1;
+}
+.ex-media.empty {
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: var(--card-2);
+}
+.ex-media.small {
+  width: 96px;
+  border-radius: 10px;
+}
+.ex-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .ex-edit {
+    grid-template-columns: 1fr;
+  }
+}
+.media-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.media-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 @media print {
   .top,
   .no-print,

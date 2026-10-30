@@ -28,10 +28,17 @@ export function mealItems(items) {
       if (!Number.isFinite(v) || v < 0 || v > max) throw bad(`${name}: ${k.replace('_g', '')} must be between 0 and ${max}`)
       item[k] = k === 'kcal' ? Math.round(v) : round1(v)
     }
+    // Salt is optional: blank means not known.
+    const salt = i.salt_g === '' || i.salt_g == null ? null : Number(i.salt_g)
+    if (salt !== null) {
+      if (!Number.isFinite(salt) || salt < 0 || salt > 50) throw bad(`${name}: salt must be between 0 and 50 g`)
+      item.salt_g = Math.round(salt * 100) / 100
+    }
     return item
   })
   const totals = Object.fromEntries(NUTRIENTS.map((k) => [k, round1(clean.reduce((s, i) => s + i[k], 0))]))
-  return { items: clean, ...totals }
+  const salted = clean.filter((i) => i.salt_g != null)
+  return { items: clean, ...totals, salt_g: salted.length ? Math.round(salted.reduce((s, i) => s + i.salt_g, 0) * 100) / 100 : null }
 }
 
 function mealFields(body) {

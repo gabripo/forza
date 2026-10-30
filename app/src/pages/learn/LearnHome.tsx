@@ -30,6 +30,7 @@ export function LearnHome() {
     const input = {
       lessons,
       quizAnswers,
+      goal: profile.goal,
       food,
       weights,
       steps,

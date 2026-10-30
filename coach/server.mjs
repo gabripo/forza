@@ -17,7 +17,9 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
+import { computeEnergy } from '../shared/energy.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
+import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
 import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
@@ -137,6 +139,15 @@ async function listUsers() {
   }))
 }
 
+function energyOf(profile, weights, steps, sessions, food) {
+  try {
+    return computeEnergy(profile, weights, steps, sessions, food)
+  } catch (e) {
+    console.error('[energy]', e.message)
+    return null
+  }
+}
+
 async function userData(id) {
   const db = need()
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
@@ -170,6 +181,8 @@ async function userData(id) {
     activities: check(activities),
     photos: check(photos),
     lessons: check(lessons),
+    // The daily targets, worked out exactly as on their phone (the app's own code, shared/energy.mjs).
+    energy: profile.data ? energyOf(profile.data, weights.data ?? [], steps.data ?? [], sessions.data ?? [], food.data ?? []) : null,
     // A server not updated yet has no daily quiz.
     quiz: quiz.data ?? [],
     homeSections: HOME_SECTIONS,
@@ -238,7 +251,7 @@ async function catalogue() {
   return { builtIn, custom: check(custom), overrides: check(overrides) }
 }
 
-const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training', 'home_order', 'goal_pace', 'kcal_manual', 'kcal_source']
+const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training', 'home_order', 'goal_pace', 'kcal_manual', 'kcal_source', 'kcal_target', 'track_salt']
 
 /** A coach can fill in the profile, so the person skips the questions on their phone. */
 async function saveProfile(id, body) {
@@ -248,6 +261,9 @@ async function saveProfile(id, body) {
   if ('kcal_manual' in patch) patch.kcal_manual = Math.max(-1500, Math.min(1500, Math.round(patch.kcal_manual ?? 0)))
   if ('goal_pace' in patch) patch.goal_pace ??= 'normal'
   if ('kcal_source' in patch) patch.kcal_source ??= 'forza'
+  if ('kcal_target' in patch) patch.kcal_target = patch.kcal_target == null ? null : Math.max(800, Math.min(6000, Math.round(Number(patch.kcal_target) || 0)))
+  if (patch.kcal_source === 'manual' && !(patch.kcal_target ?? body.kcal_target)) throw Object.assign(new Error('Write the daily calories to set them by hand'), { status: 400 })
+  if ('track_salt' in patch) patch.track_salt = patch.track_salt === true || patch.track_salt === 'true'
   if ('hide_training' in patch) patch.hide_training = patch.hide_training === true || patch.hide_training === 'true'
   // The Home page order: complete and cleaned, or null for the default order.
   if ('home_order' in patch) patch.home_order = patch.home_order === null ? null : homeOrder(patch.home_order)
@@ -572,40 +588,12 @@ const routes = [
       return { url: data?.signedUrl ?? null }
     },
   ],
-  [
-    'PUT',
-    /^\/api\/overrides\/([\w-]+)$/,
-    async (m, body) =>
-      check(
-        await need()
-          .from('exercise_overrides')
-          .upsert({ exercise_id: m[1], video_url: body.video_url || null, note_en: body.note_en || null, note_it: body.note_it || null, updated_at: new Date().toISOString() })
-          .select()
-          .single(),
-      ),
-  ],
-  [
-    'POST',
-    /^\/api\/custom-exercises$/,
-    async (_m, body) =>
-      check(
-        await need()
-          .from('custom_exercises')
-          .insert({
-            owner_id: null,
-            name_en: body.name_en,
-            name_it: body.name_it || body.name_en,
-            muscles: body.muscles ?? [],
-            equipment: body.equipment ?? 'other',
-            kind: body.kind ?? 'reps',
-            steps_en: body.steps_en ?? [],
-            steps_it: body.steps_it ?? [],
-            video_url: body.video_url || null,
-          })
-          .select()
-          .single(),
-      ),
-  ],
+  // Exercises: the coach's link, note and photos/GIFs/videos for a built-in one; the family's own exercises.
+  ['PUT', /^\/api\/overrides\/([\w-]+)$/, (m, body) => saveOverride(need(), m[1], body)],
+  ['POST', /^\/api\/exercise-media$/, (_m, body) => uploadMedia(need(), body)],
+  ['POST', /^\/api\/custom-exercises$/, (_m, body) => addCustom(need(), body)],
+  ['PUT', /^\/api\/custom-exercises\/([\w-]+)$/, (m, body) => updateCustom(need(), m[1], body)],
+  ['DELETE', /^\/api\/custom-exercises\/([\w-]+)$/, (m) => deleteCustom(need(), m[1])],
   [
     'GET',
     /^\/api\/photo$/,
@@ -657,6 +645,13 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(result))
       return
     }
+    // The app's own photos of the built-in exercises, for the previews.
+    const builtIn = /^\/builtin-exercises\/([\w-]+)\/([01])\.jpg$/.exec(u.pathname)
+    if (builtIn) {
+      const content = await readFile(join(here, '../app/public/exercises', builtIn[1], `${builtIn[2]}.jpg`))
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'max-age=86400' }).end(content)
+      return
+    }
     const file = u.pathname === '/' ? 'index.html' : u.pathname.slice(1)
     if (!/^[\w.-]+$/.test(file)) {
       res.writeHead(404).end()
@@ -666,7 +661,7 @@ const server = createServer(async (req, res) => {
     res
       .writeHead(200, {
         'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
-        'content-security-policy': "default-src 'self'; img-src 'self' data: https: http://127.0.0.1:54321; connect-src 'self'; style-src 'self' 'unsafe-inline'",
+        'content-security-policy': "default-src 'self'; img-src 'self' data: blob: https: http://127.0.0.1:54321; media-src 'self' blob: https: http://127.0.0.1:54321; connect-src 'self'; style-src 'self' 'unsafe-inline'",
       })
       .end(content)
   } catch (e) {

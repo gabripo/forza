@@ -4,7 +4,7 @@ import { Button, Card, Loading, PageHeader, Segmented, cx } from '../components/
 import { useApp } from '../lib/auth'
 import { familyBoard, useAsync } from '../lib/data'
 import { useI18n } from '../lib/i18n'
-import { POINTS } from '../lib/rewards'
+import { GOOD_MEAL_SCORE, GOOD_MEALS_A_DAY, POINTS } from '../lib/rewards'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -106,6 +106,7 @@ export function Challenge() {
             ['🧠', t('challenge.how.quiz'), POINTS.quiz],
             ['🎯', t('challenge.how.dailyQuiz'), POINTS.dailyQuiz],
             ['🍽️', t('challenge.how.meals'), POINTS.mealsDay],
+            ['🥗', t('challenge.how.goodMeal', { score: GOOD_MEAL_SCORE, n: GOOD_MEALS_A_DAY }), POINTS.goodMeal],
             ['👣', t('challenge.how.steps'), POINTS.stepsDay],
             ['⚖️', t('challenge.how.weigh'), POINTS.weighIn],
           ].map(([emoji, label, pts]) => (

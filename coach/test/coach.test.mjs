@@ -7,7 +7,9 @@ import { test } from 'node:test'
 import { parseNodes, parsePower } from '../lib/adb.mjs'
 import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } from '../lib/bws-convert.mjs'
 import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
+import { mediaList } from '../lib/exercises.mjs'
 import { isSynced, mealItems } from '../lib/meals.mjs'
+import { computeEnergy, scorePlate } from '../../shared/energy.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
 
 test('session ids match the first import (re-importing never duplicates)', () => {
@@ -274,3 +276,35 @@ test('food log: a meal changed in Coach, with its totals', () => {
   assert.equal(isSynced({ source: 'import', origin: null }), false)
   assert.equal(isSynced({ source: 'ai' }), false)
 })
+
+test('food log: salt is optional, and blank means not known', () => {
+  const salted = mealItems([
+    { name: 'Bread', grams: 50, kcal: 130, salt_g: 0.65 },
+    { name: 'Ham', grams: 40, kcal: 90, salt_g: '0.8' },
+    { name: 'Coffee', grams: 30, kcal: 1, salt_g: '' },
+  ])
+  assert.equal(salted.salt_g, 1.45)
+  assert.equal('salt_g' in salted.items[2], false)
+  assert.equal(mealItems([{ name: 'Apple', grams: 150, kcal: 80 }]).salt_g, null)
+  assert.throws(() => mealItems([{ name: 'Crisps', kcal: 500, salt_g: 80 }]), /salt must be between/)
+})
+
+test('exercises: media are web addresses, at most 12, in order', () => {
+  assert.deepEqual(mediaList([' https://x.test/a.gif ', 'javascript:alert(1)', 'http://y.test/b.mp4', 42]), ['https://x.test/a.gif', 'http://y.test/b.mp4'])
+  assert.equal(mediaList(Array.from({ length: 20 }, (_, i) => `https://x.test/${i}.jpg`)).length, 12)
+  assert.deepEqual(mediaList('https://x.test/a.jpg'), [])
+})
+
+test('targets in Coach: the app\'s own calculation, with a calorie target set by hand', () => {
+  const profile = { sex: 'female', birth_year: 1960, height_cm: 162, start_weight_kg: 72, goal: 'fat_loss', goal_pace: 'normal', activity_level: 'light', steps_goal: 7000, kcal_adjust: 0, kcal_manual: 0, kcal_source: 'forza' }
+  const auto = computeEnergy(profile, [], [], [], []).targets
+  assert.ok(auto.kcal >= 1200 && auto.kcal < 2200)
+  assert.equal(auto.salt_g, 5)
+  const byHand = computeEnergy({ ...profile, kcal_source: 'manual', kcal_target: 1650 }, [], [], [], []).targets
+  assert.equal(byHand.kcal, 1650)
+  assert.equal(byHand.protein_g, auto.protein_g)
+  assert.equal(byHand.fat_g, Math.round((1650 * 0.3) / 9))
+  assert.equal(byHand.carbs_g, Math.round((1650 - byHand.protein_g * 4 - byHand.fat_g * 9) / 4))
+  assert.ok(scorePlate({ kcal: 500, protein_g: 35, carbs_g: 50, fat_g: 15, fiber_g: 10, sugar_g: 5 }, 'lunch', 1650, false, new Date(2026, 9, 30, 13)).fatLoss > 50)
+})
+

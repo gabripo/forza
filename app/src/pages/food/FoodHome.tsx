@@ -1,18 +1,18 @@
 import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Copy, Info, Mic, PenLine, SlidersHorizontal, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { CopiedNotice } from '../../components/CopyMeal'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { NextMealCard } from '../../components/NextMealCard'
 import { TargetSheet } from '../../components/TargetSheet'
-import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
+import { Button, Card, Empty, Loading, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
-import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../lib/calc'
+import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate, sodiumMg } from '../../lib/calc'
 import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
-import { deleteFood } from '../../lib/data'
+import { deleteFood, updateFood } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
-import type { Meal } from '../../lib/types'
+import type { FoodLog, Meal } from '../../lib/types'
 import { balancedDays } from '../../lib/rewards'
 import { useEnergy } from '../../lib/useEnergy'
 
@@ -29,8 +29,24 @@ export function FoodHome() {
   // Home's "Copy a meal" opens yesterday, where every meal can be copied to today.
   const [offset, setOffset] = useState(navState?.offset ?? 0)
   const copying = useMealCopy(() => void reload())
+
+  // Meals that arrive without a score (synced from another app, or changed in Forza! Coach) get theirs here,
+  // and keep it: the family challenge counts good meals.
+  const scored = useRef(new Set<string>())
+  useEffect(() => {
+    if (!energy) return
+    const unscored = food.filter((f) => f.score_fat_loss === null && !scored.current.has(f.id))
+    if (!unscored.length) return
+    for (const f of unscored) {
+      scored.current.add(f.id)
+      const s = scorePlate({ kcal: Number(f.kcal), protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g), fiber_g: Number(f.fiber_g), sugar_g: Number(f.sugar_g) }, f.meal, energy.targets.kcal, false, new Date(f.eaten_at))
+      void updateFood(f.id, { score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain }).catch(() => {})
+    }
+  }, [food, energy])
   const [explain, setExplain] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
+  // The meal being moved to another part of the day (breakfast, lunch, snack, dinner).
+  const [moving, setMoving] = useState<FoodLog | null>(null)
 
   if ((loading && !energy) || !profile) return <Loading />
   if (!energy) return null
@@ -44,8 +60,9 @@ export function FoodHome() {
       carbs: a.carbs + Number(f.carbs_g),
       fat: a.fat + Number(f.fat_g),
       fiber: a.fiber + Number(f.fiber_g),
+      salt: a.salt + Number(f.salt_g ?? 0),
     }),
-    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, salt: 0 },
   )
   const tg = energy.targets
   const goal = profile.goal ?? 'maintain'
@@ -188,6 +205,13 @@ export function FoodHome() {
             <MacroBar label={t('macro.carbs')} value={sum.carbs} target={tg.carbs_g} color="var(--macro-carbs)" />
             <MacroBar label={t('macro.fat')} value={sum.fat} target={tg.fat_g} color="var(--macro-fat)" />
             <MacroBar label={t('macro.fiber')} value={sum.fiber} target={tg.fiber_g} color="var(--macro-fiber)" />
+            {/* Salt, for people who track it: a limit, not a goal, so the bar turns red past it. */}
+            {profile.track_salt ? (
+              <div>
+                <MacroBar label={t('macro.salt')} digits={1} value={sum.salt} target={tg.salt_g} color={sum.salt > tg.salt_g ? 'var(--danger)' : 'var(--ink-3)'} />
+                <p className="mt-0.5 text-xs text-ink-3">{t('food.sodium', { mg: num(sodiumMg(sum.salt)), max: num(sodiumMg(tg.salt_g)) })}</p>
+              </div>
+            ) : null}
           </div>
         </div>
         <p className="mt-3 text-sm text-ink-2">
@@ -244,13 +268,14 @@ export function FoodHome() {
                   const band = score !== null ? scoreBand(score) : null
                   return (
                     <li key={e.id} className="flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
+                      <button onClick={() => (synced ? undefined : setMoving(e))} disabled={synced} className="min-w-0 flex-1 rounded-xl text-left active:bg-card-2 disabled:active:bg-transparent">
                         <p className="truncate font-semibold">{e.title}</p>
                         <p className="text-sm text-ink-2">
                           {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g
+                          {profile.track_salt && e.salt_g != null ? ` · ${t('macro.salt')} ${num(Number(e.salt_g), 1)} g` : ''}
                         </p>
                         {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
-                      </div>
+                      </button>
                       {band ? (
                         <span className={`rounded-full px-2 py-0.5 text-sm font-bold ${band === 'rethink' ? 'bg-danger-soft text-danger' : band === 'okay' ? 'bg-sun-soft text-sun' : 'bg-leaf-soft text-leaf'}`}>
                           {score}
@@ -289,7 +314,24 @@ export function FoodHome() {
         <p className="mt-1 text-sm text-ink-3">{t(`food.method.${energy.tdee.method}`)}</p>
       </Card>
 
-      <TargetSheet open={adjusting} onClose={() => setAdjusting(false)} onChanged={() => void reload()} />
+      <Sheet open={Boolean(moving)} onClose={() => setMoving(null)} title={moving?.title ?? ''}>
+        {moving ? (
+          <div className="grid gap-3">
+            <p className="font-semibold">{t('food.moveTo')}</p>
+            <Segmented<Meal>
+              value={moving.meal}
+              onChange={(meal) => {
+                const id = moving.id
+                setMoving(null)
+                void updateFood(id, { meal }).then(() => reload())
+              }}
+              options={MEALS.map((m) => ({ value: m, label: t(`meal.${m}`) }))}
+            />
+            <p className="text-sm text-ink-3">{t('food.moveHint')}</p>
+          </div>
+        ) : null}
+      </Sheet>
+      <TargetSheet open={adjusting} onClose={() => setAdjusting(false)} onChanged={() => void reload()} current={tg.kcal} />
       <Sheet open={explain} onClose={() => setExplain(false)} title={t('food.how')}>
         <EnergyExplainer energy={energy} profile={profile} />
       </Sheet>

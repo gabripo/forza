@@ -90,7 +90,15 @@ export interface Targets {
   fat_g: number
   carbs_g: number
   fiber_g: number
+  /** At most, a day (WHO: under 5 g of salt, 2 g of sodium). */
+  salt_g: number
 }
+
+/** WHO's daily limit for salt; sodium is salt ÷ 2.5. */
+export const SALT_LIMIT_G = 5
+
+/** Milligrams of sodium in grams of salt. */
+export const sodiumMg = (saltG: number) => Math.round(saltG * 400)
 
 /** Reference weight for protein: avoids huge targets for people carrying a lot of fat. */
 function proteinWeight(p: Profile, weightKg: number): number {
@@ -119,14 +127,15 @@ export function dailyTargets(p: Profile, weightKg: number, tdee: number): Target
   const floor = kcalFloor(p)
   const base = tdee + paceKcal(p)
   // Weekly check-ins nudge the target up or down based on what the scale really does; the person or
-  // their coach can add their own adjustment on top.
-  const kcal = Math.max(floor, base + (p.kcal_adjust ?? 0) + (p.kcal_manual ?? 0))
+  // their coach can add their own adjustment on top, or set the number themselves (macros follow it).
+  const manual = p.kcal_source === 'manual' && p.kcal_target ? p.kcal_target : null
+  const kcal = manual ?? Math.max(floor, base + (p.kcal_adjust ?? 0) + (p.kcal_manual ?? 0))
   const perKg = goal === 'maintain' ? 1.4 : goal === 'fat_loss' ? 1.8 : 1.6
   const protein = Math.round(proteinWeight(p, weightKg) * (ageFrom(p.birth_year) >= 60 ? Math.max(perKg, 1.4) : perKg))
   const fat = Math.round((kcal * 0.3) / 9)
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   const fiber = Math.max(25, Math.round((kcal / 1000) * 14))
-  return { kcal: Math.round(kcal / 10) * 10, protein_g: protein, fat_g: fat, carbs_g: carbs, fiber_g: fiber }
+  return { kcal: manual ?? Math.round(kcal / 10) * 10, protein_g: protein, fat_g: fat, carbs_g: carbs, fiber_g: fiber, salt_g: SALT_LIMIT_G }
 }
 
 /**
@@ -137,7 +146,7 @@ export function bwsTargets(p: Profile, own: Targets): Targets | null {
   const t = p.bws_targets
   if (p.kcal_source !== 'bws' || !t?.kcal) return null
   const mid = (r?: [number, number]) => (r ? Math.round((r[0] + r[1]) / 2) : null)
-  return { kcal: mid(t.kcal) ?? own.kcal, protein_g: mid(t.protein) ?? own.protein_g, carbs_g: mid(t.carbs) ?? own.carbs_g, fat_g: mid(t.fat) ?? own.fat_g, fiber_g: own.fiber_g }
+  return { kcal: mid(t.kcal) ?? own.kcal, protein_g: mid(t.protein) ?? own.protein_g, carbs_g: mid(t.carbs) ?? own.carbs_g, fat_g: mid(t.fat) ?? own.fat_g, fiber_g: own.fiber_g, salt_g: own.salt_g }
 }
 
 // ---------------------------------------------------------------------------
@@ -273,10 +282,12 @@ export interface PlateTotals {
   fat_g: number
   fiber_g: number
   sugar_g: number
+  salt_g?: number
 }
 
 export function sumItems(items: FoodItem[]): PlateTotals {
   const t = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
+  let salt: number | null = null
   for (const i of items) {
     t.kcal += Number(i.kcal) || 0
     t.protein_g += Number(i.protein_g) || 0
@@ -284,6 +295,8 @@ export function sumItems(items: FoodItem[]): PlateTotals {
     t.fat_g += Number(i.fat_g) || 0
     t.fiber_g += Number(i.fiber_g) || 0
     t.sugar_g += Number(i.sugar_g) || 0
+    // Salt counts only when some food says how much it has.
+    if (i.salt_g != null && Number.isFinite(Number(i.salt_g))) salt = (salt ?? 0) + Number(i.salt_g)
   }
   return {
     kcal: Math.round(t.kcal),
@@ -292,6 +305,7 @@ export function sumItems(items: FoodItem[]): PlateTotals {
     fat_g: round1(t.fat_g),
     fiber_g: round1(t.fiber_g),
     sugar_g: round1(t.sugar_g),
+    ...(salt !== null ? { salt_g: Math.round(salt * 100) / 100 } : {}),
   }
 }
 
@@ -456,7 +470,8 @@ export function calorieCheckin(p: Profile, weights: BodyWeight[], now = new Date
   const goal: Goal = p.goal ?? 'maintain'
   const last = p.kcal_checkin_at ? new Date(p.kcal_checkin_at) : p.onboarded_at ? new Date(p.onboarded_at) : now
   // Build With Science adapts its own target: no check-in when the person follows it.
-  const due = p.kcal_source !== 'bws' && now.getTime() - last.getTime() >= 7 * DAY
+  // A target set by hand or by Build With Science is not nudged by Forza!.
+  const due = (p.kcal_source ?? 'forza') === 'forza' && now.getTime() - last.getTime() >= 7 * DAY
   const since = localDay(daysAgo(21))
   const trend = weightTrend(dailyWeights(weights)).filter((x) => x.day >= since)
   const recent = trend.filter((x) => x.day >= localDay(daysAgo(14)))

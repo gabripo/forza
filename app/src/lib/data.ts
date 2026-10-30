@@ -127,12 +127,15 @@ export async function loadExercises(): Promise<Map<string, Exercise>> {
       steps: { en: c.steps_en ?? [], it: c.steps_it?.length ? c.steps_it : (c.steps_en ?? []) },
       video_url: c.video_url,
       custom: true,
+      archived: c.archived ?? false,
     })
   }
   for (const o of overrides.data ?? []) {
     const ex = map.get(o.exercise_id)
     if (ex) {
       ex.video_url = o.video_url ?? ex.video_url
+      // The coach's photos, GIFs or video replace the built-in photos.
+      if (o.media_urls?.length) ex.images = o.media_urls
       if (o.note_en) ex.tip = { en: o.note_en, it: o.note_it || o.note_en }
     }
   }
@@ -320,10 +323,15 @@ export async function copyMealsToToday(logs: FoodLog[]): Promise<string[]> {
     const at = new Date(f.eaten_at)
     const today = new Date(now)
     today.setHours(at.getHours(), at.getMinutes(), 0, 0)
-    const { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, score_fat_loss, score_muscle_gain, ai_notes } = f
-    return { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, score_fat_loss, score_muscle_gain, ai_notes, eaten_at: (today > now ? now : today).toISOString(), source: 'manual' as const }
+    const { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, score_fat_loss, score_muscle_gain, ai_notes } = f
+    return { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, score_fat_loss, score_muscle_gain, ai_notes, eaten_at: (today > now ? now : today).toISOString(), source: 'manual' as const }
   })
   return (check(await supabase.from('food_logs').insert(rows).select('id')) as { id: string }[]).map((r) => r.id)
+}
+
+/** Changes a logged meal: which meal of the day it was, or its scores once worked out. */
+export async function updateFood(id: string, patch: Partial<Pick<FoodLog, 'meal' | 'score_fat_loss' | 'score_muscle_gain'>>): Promise<void> {
+  check(await supabase.from('food_logs').update(patch).eq('id', id))
 }
 
 export async function deleteFoods(ids: string[]): Promise<void> {
@@ -355,7 +363,7 @@ export interface AiPlate {
 }
 
 async function invokeFoodAi<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('food-estimate', { body: { ...body, mime: 'image/jpeg' } })
+  const { data, error } = await supabase.functions.invoke('food-estimate', { body: { mime: 'image/jpeg', ...body } })
   if (error) {
     let code = 'ai_failed'
     try {
@@ -378,6 +386,16 @@ export function estimateText(input: { text: string; locale: string; goal: string
   return invokeFoodAi<AiPlate>({ ...input, mode: 'text' })
 }
 
+/** A recorded voice note turned into words, for browsers without speech recognition (Firefox). */
+export function transcribeAudio(input: { audio: string; mime: string; locale: string }): Promise<{ text: string }> {
+  return invokeFoodAi<{ text: string }>({ ...input, mode: 'transcribe' })
+}
+
+/** Dictated words rewritten as a clean list of foods with their amounts, one per line. */
+export function tidyText(input: { text: string; locale: string }): Promise<{ text: string }> {
+  return invokeFoodAi<{ text: string }>({ ...input, mode: 'tidy' })
+}
+
 export interface AiLabel {
   is_label: boolean
   name: string
@@ -389,6 +407,7 @@ export interface AiLabel {
   fat_g: number
   fiber_g: number
   sugar_g: number
+  salt_g?: number
   serving_g: number
 }
 

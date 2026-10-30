@@ -1,17 +1,17 @@
-import { Barcode, Camera, PenLine, Plus, Search, Trash2 } from 'lucide-react'
+import { Barcode, Camera, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
+import { dbProduct, frequentFoods, plainItem, rememberItems, searchAll, searchOnline, useFoodDb, type LoggedItem, type Pick } from '../../lib/foodDb'
 import { useApp } from '../../lib/auth'
 import { scorePlate, sumItems } from '../../lib/calc'
 import { addFood, readLabel } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
-import { searchFoods } from '../../lib/voice'
 import { compressPhoto } from '../../lib/image'
-import { lookupBarcode, productAt, recentProducts, rememberProduct, type Product } from '../../lib/products'
+import { lookupBarcode, productAt, rememberProduct, type Product } from '../../lib/products'
 import { FOOD_FORMATS, validGtin } from '../../lib/scan'
 import type { FoodItem, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
@@ -26,25 +26,46 @@ export function FoodManual() {
   // Coming from a photo ("adjust by hand"): start from what the AI saw.
   const from = useLocation().state as { items?: FoodItem[]; meal?: Meal } | null
   const [meal, setMeal] = useState<Meal>(from?.meal ?? mealForNow())
-  const [items, setItems] = useState<(FoodItem & { foodId?: string; processed?: boolean; barcode?: string })[]>(from?.items ?? [])
+  const [items, setItems] = useState<(LoggedItem & { processed?: boolean })[]>(from?.items ?? [])
   const [scanning, setScanning] = useState(params.get('scan') === '1')
   const [looking, setLooking] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
   const [notFound, setNotFound] = useState<string | null>(null)
   const [labelError, setLabelError] = useState<string | null>(null)
   const labelInput = useRef<HTMLInputElement>(null)
-  const recent = useMemo(() => recentProducts(), [])
+  const db = useFoodDb()
   const [q, setQ] = useState('')
+  const [online, setOnline] = useState<Product[] | null>(null)
+  const [onlineBusy, setOnlineBusy] = useState(false)
+  const [onlineError, setOnlineError] = useState(false)
   const [picked, setPicked] = useState<Food | null>(null)
   const [grams, setGrams] = useState<number | null>(null)
   const [custom, setCustom] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const results = useMemo(() => {
-    if (!q.trim()) return FOODS.slice(0, 12)
-    // Everyday names count too: "hamburger di tacchino", "nutella", "pasta e fagioli".
-    return searchFoods(q)
-  }, [q])
+  // The person's usual foods first, then the family's, then the app's own table; everyday names count too.
+  const frequent = useMemo(() => frequentFoods(db, 8), [db])
+  const results = useMemo((): Pick[] => (q.trim() ? searchAll(q, db) : FOODS.slice(0, 12).map((food) => ({ kind: 'builtin', food, uses: 0 }))), [q, db])
+
+  async function findOnline() {
+    setOnlineBusy(true)
+    setOnlineError(false)
+    try {
+      setOnline(await searchOnline(q, locale))
+    } catch {
+      setOnlineError(true)
+    } finally {
+      setOnlineBusy(false)
+    }
+  }
+
+  function pick(p: Pick) {
+    if (p.kind === 'db') setProduct(dbProduct(p.food))
+    else {
+      setPicked(p.food)
+      setGrams(p.food.portion)
+    }
+  }
 
   if (!profile || !energy) return <Loading />
   const totals = sumItems(items)
@@ -86,7 +107,7 @@ export function FoodManual() {
         name: r.name || t('scan.unnamed'),
         brand: r.brand || null,
         image: null,
-        per100: { kcal: Math.round(r.kcal), protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, fiber_g: r.fiber_g, sugar_g: r.sugar_g },
+        per100: { kcal: Math.round(r.kcal), protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, fiber_g: r.fiber_g, sugar_g: r.sugar_g, ...(r.salt_g != null ? { salt_g: r.salt_g } : {}) },
         servingG: r.serving_g > 0 ? r.serving_g : null,
         ultraProcessed: false,
         source: 'label',
@@ -102,8 +123,10 @@ export function FoodManual() {
   }
 
   function addProduct(p: Product, grams: number) {
-    rememberProduct(p)
-    setItems((xs) => [...xs, { ...productAt(p, grams), processed: p.ultraProcessed, barcode: p.code }])
+    if (p.source === 'openfoodfacts' || p.source === 'label') rememberProduct(p)
+    const origin = p.source === 'openfoodfacts' ? 'barcode' : p.source === 'family' ? undefined : p.source
+    const barcode = /^\d{6,14}$/.test(p.code) ? p.code : undefined
+    setItems((xs) => [...xs, { ...productAt(p, grams), processed: p.ultraProcessed, barcode, brand: p.brand, origin, dbId: p.dbId }])
     setProduct(null)
   }
 
@@ -124,7 +147,7 @@ export function FoodManual() {
         eaten_at: now.toISOString(),
         meal,
         title: items.map((i) => i.name).join(', ').slice(0, 120),
-        items: items.map(({ foodId: _drop, processed: _p, barcode: _b, ...rest }) => rest),
+        items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
         score_muscle_gain: s.muscleGain,
@@ -132,6 +155,7 @@ export function FoodManual() {
         source: items.some((i) => i.barcode) ? 'barcode' : 'manual',
         ai_notes: null,
       })
+      rememberItems(items, 'manual')
       navigate('/food', { state: { logged: true } })
     } finally {
       setBusy(false)
@@ -170,52 +194,63 @@ export function FoodManual() {
         <Button block variant="secondary" className="mb-3" onClick={() => setScanning(true)} loading={looking}>
           <Barcode className="size-5" aria-hidden /> {t('scan.button')}
         </Button>
-        {!q.trim() && recent.length ? (
+        {!q.trim() && frequent.length ? (
           <>
-            <p className="mb-1 text-sm font-semibold text-ink-2">{t('scan.recent')}</p>
+            <p className="mb-1 text-sm font-semibold text-ink-2">{t('manual.yourFoods')}</p>
             <ul className="mb-3 grid gap-1">
-              {recent.slice(0, 5).map((p) => (
-                <li key={p.code}>
-                  <button onClick={() => setProduct(p)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{p.name}</span>
-                      <span className="block text-sm text-ink-2">
-                        {p.brand ? `${p.brand} · ` : ''}
-                        {t('manual.per100', { kcal: p.per100.kcal, p: p.per100.protein_g })}
-                      </span>
-                    </span>
-                    <Plus className="size-5 text-brand" aria-hidden />
-                  </button>
-                </li>
+              {frequent.map((p) => (
+                <PickRow key={`${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
               ))}
             </ul>
           </>
         ) : null}
         <div className="relative mb-3">
           <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('manual.search')} className="pl-10" />
+          <Input
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value)
+              setOnline(null)
+            }}
+            placeholder={t('manual.search')}
+            className="pl-10"
+          />
         </div>
         <ul className="grid gap-1">
-          {results.map((f) => (
-            <li key={f.id}>
-              <button
-                onClick={() => {
-                  setPicked(f)
-                  setGrams(f.portion)
-                }}
-                className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">{l(f.name)}</span>
-                  <span className="block text-sm text-ink-2">
-                    {t('manual.per100', { kcal: f.kcal, p: f.protein })}
-                  </span>
-                </span>
-                <Plus className="size-5 text-brand" aria-hidden />
-              </button>
-            </li>
+          {results.map((p) => (
+            <PickRow key={`${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
           ))}
         </ul>
+        {/* Open Food Facts: millions of products, many Italian, found by name. */}
+        {q.trim().length >= 3 ? (
+          online ? (
+            <>
+              <p className="mt-3 mb-1 text-sm font-semibold text-ink-2">{online.length ? t('manual.online') : t('manual.onlineNone')}</p>
+              <ul className="grid gap-1">
+                {online.map((p) => (
+                  <li key={p.code}>
+                    <button onClick={() => setProduct(p)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
+                      {p.image ? <img src={p.image} alt="" className="size-10 shrink-0 rounded-lg bg-white object-contain" /> : null}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{p.name}</span>
+                        <span className="block text-sm text-ink-2">
+                          {p.brand ? `${p.brand} · ` : ''}
+                          {t('manual.per100', { kcal: p.per100.kcal, p: p.per100.protein_g })}
+                        </span>
+                      </span>
+                      <Plus className="size-5 text-brand" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <Button variant="secondary" block className="mt-2" onClick={() => void findOnline()} loading={onlineBusy}>
+              <Globe className="size-5" aria-hidden /> {t('manual.searchOnline')}
+            </Button>
+          )
+        ) : null}
+        {onlineError ? <p className="mt-2 rounded-2xl bg-sun-soft p-3 text-sm">{t('manual.onlineFailed')}</p> : null}
         <Button variant="ghost" block onClick={() => setCustom(true)}>
           {t('manual.custom')}
         </Button>
@@ -298,18 +333,49 @@ export function FoodManual() {
   )
 }
 
-function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (i: FoodItem) => void }) {
+/** One food in a list: the person's usual ones have a star, family ones their brand. */
+function PickRow({ pick, onPick }: { pick: Pick; onPick: (p: Pick) => void }) {
+  const { t, l } = useI18n()
+  const name = pick.kind === 'builtin' ? l(pick.food.name) : pick.food.name
+  const per100 = pick.kind === 'builtin' ? { kcal: pick.food.kcal, p: pick.food.protein } : { kcal: Math.round(Number(pick.food.kcal)), p: Number(pick.food.protein_g) }
+  return (
+    <li>
+      <button onClick={() => onPick(pick)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1 font-semibold">
+            {pick.uses ? <Star className="size-4 shrink-0 fill-sun text-sun" aria-label={t('food.usual')} /> : null}
+            <span className="truncate">{name}</span>
+          </span>
+          <span className="block text-sm text-ink-2">
+            {pick.kind === 'db' && pick.food.brand ? `${pick.food.brand} · ` : ''}
+            {t('manual.per100', per100)}
+            {pick.kind === 'db' ? ` · ${t('manual.family')}` : ''}
+          </span>
+        </span>
+        <Plus className="size-5 text-brand" aria-hidden />
+      </button>
+    </li>
+  )
+}
+
+/** A food that is in no list: its values for the amount eaten (it joins the family's foods once logged). */
+function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (i: LoggedItem) => void }) {
   const { t } = useI18n()
   const [name, setName] = useState('')
+  const [grams, setGrams] = useState<number | null>(100)
   const [kcal, setKcal] = useState<number | null>(null)
   const [p, setP] = useState<number | null>(null)
   const [c, setC] = useState<number | null>(null)
   const [f, setF] = useState<number | null>(null)
+  const [salt, setSalt] = useState<number | null>(null)
   return (
     <Sheet open={open} onClose={onClose} title={t('manual.custom')}>
       <div className="grid gap-3">
         <Field label={t('picker.name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label={t('manual.customGrams')} hint={t('manual.customHint')}>
+          <NumberInput decimals={false} value={grams} onChange={setGrams} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="kcal">
@@ -324,12 +390,17 @@ function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () 
           <Field label={`${t('macro.fat')} (g)`}>
             <NumberInput value={f} onChange={setF} />
           </Field>
+          <Field label={`${t('macro.salt')} (g)`} hint={t('manual.optional')}>
+            <NumberInput value={salt} onChange={setSalt} />
+          </Field>
         </div>
         <Button
           size="lg"
           block
           disabled={!name.trim() || !kcal}
-          onClick={() => onAdd({ name: name.trim(), grams: 0, kcal: kcal ?? 0, protein_g: p ?? 0, carbs_g: c ?? 0, fat_g: f ?? 0, fiber_g: 0, sugar_g: 0 })}
+          onClick={() =>
+            onAdd({ name: name.trim(), grams: grams ?? 0, kcal: kcal ?? 0, protein_g: p ?? 0, carbs_g: c ?? 0, fat_g: f ?? 0, fiber_g: 0, sugar_g: 0, ...(salt != null ? { salt_g: salt } : {}), origin: 'manual' })
+          }
         >
           {t('manual.add')}
         </Button>
@@ -365,7 +436,7 @@ function ProductSheet({ product, onClose, onAdd }: { product: Product | null; on
             <div className="min-w-0 text-sm text-ink-2">
               {product.brand ? <p className="font-semibold text-ink">{product.brand}</p> : null}
               <p>{t('manual.per100', { kcal: product.per100.kcal, p: product.per100.protein_g })}</p>
-              <p className="text-ink-3">{product.source === 'label' ? t('scan.fromLabel') : t('scan.fromOff')}</p>
+              <p className="text-ink-3">{product.source === 'label' ? t('scan.fromLabel') : product.source === 'family' ? t('manual.fromFamily') : t('scan.fromOff')}</p>
             </div>
           </div>
           <Field label={t('manual.howMuch')}>

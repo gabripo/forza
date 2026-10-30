@@ -1,4 +1,5 @@
-// Estimates calories and macronutrients from a photo: a plate of food, or a nutrition facts label.
+// Estimates calories and macronutrients from a photo: a plate of food, or a nutrition facts label; also a meal
+// described in words, a voice note turned into words (Gemini only), and dictated words tidied into a list.
 // The AI key never leaves the server. Each person has a daily limit (FOOD_AI_DAILY_LIMIT, default 25)
 // so a shared key cannot be drained.
 //
@@ -61,7 +62,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 // A model that does not answer in time counts as busy: the next one in the order gets the photo.
 const STEP_TIMEOUT_MS = Number(Deno.env.get('FOOD_AI_STEP_TIMEOUT_MS') ?? 30_000)
 
-type Mode = 'plate' | 'label' | 'text'
+type Mode = 'plate' | 'label' | 'text' | 'transcribe' | 'tidy'
 type Schema = Record<string, unknown>
 
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g'] as const
@@ -72,8 +73,9 @@ const itemSchema: Schema = {
     name: { type: 'STRING' },
     grams: { type: 'NUMBER' },
     ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])),
+    salt_g: { type: 'NUMBER' },
   },
-  required: ['name', 'grams', ...NUTRIENTS],
+  required: ['name', 'grams', ...NUTRIENTS, 'salt_g'],
 }
 
 const plateSchema: Schema = {
@@ -89,7 +91,11 @@ const plateSchema: Schema = {
   required: ['is_food', 'title', 'items', 'ultra_processed', 'confidence', 'tip'],
 }
 
+const wordsSchema: Schema = { type: 'OBJECT', properties: { text: { type: 'STRING' } }, required: ['text'] }
+
 const SCHEMAS: Record<Mode, Schema> = {
+  transcribe: wordsSchema,
+  tidy: wordsSchema,
   text: plateSchema,
   plate: plateSchema,
   label: {
@@ -99,9 +105,10 @@ const SCHEMAS: Record<Mode, Schema> = {
       name: { type: 'STRING' },
       brand: { type: 'STRING' },
       ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])),
+      salt_g: { type: 'NUMBER' },
       serving_g: { type: 'NUMBER' },
     },
-    required: ['is_label', 'name', 'brand', ...NUTRIENTS, 'serving_g'],
+    required: ['is_label', 'name', 'brand', ...NUTRIENTS, 'salt_g', 'serving_g'],
   },
 }
 
@@ -119,6 +126,7 @@ function platePrompt(language: string, goal: string, meal: string, note: string)
     note ? `The person adds this description (trust it over the photo when they conflict): "${note}".` : '',
     'List every visible food item with a realistic portion in grams and its nutrients for that portion.',
     'Include cooking oil, sauces and dressings you can reasonably infer. Use standard nutrition tables.',
+    'salt_g is the salt in grams in that portion (sodium × 2.5), including the salt usually added when cooking it at home.',
     'Mark ultra_processed true if most of the calories come from ultra-processed products.',
     'If the photo does not show food, set is_food false and return an empty items list.',
     `Write "title", item names and "tip" in ${language}.`,
@@ -135,6 +143,7 @@ function textPrompt(language: string, goal: string, meal: string, text: string):
     `Their words: "${text}".`,
     'List every food they mention with its nutrients. Use the quantity they say (grams, pieces, spoons, plates);',
     'when they give none, use a typical Italian home portion. Use standard nutrition tables.',
+    'salt_g is the salt in grams in that portion (sodium × 2.5), including the salt usually added when cooking it at home.',
     'Mark ultra_processed true if most of the calories come from ultra-processed products.',
     'If the words do not describe food, set is_food false and return an empty items list.',
     `Write "title", item names and "tip" in ${language}.`,
@@ -142,11 +151,31 @@ function textPrompt(language: string, goal: string, meal: string, text: string):
   ].join('\n')
 }
 
+/** A voice note about a meal, written down word for word. */
+function transcribePrompt(language: string): string {
+  return [
+    `Write down exactly what is said in this voice note, in ${language}. It describes food and drinks someone had.`,
+    'Write numbers as digits (2 eggs, 80 g). No comments, no translation: only the words said, in "text".',
+    'If nothing is said, return an empty "text".',
+  ].join('\n')
+}
+
+/** Dictated words (with speech recognition mistakes) as a clean list, ready for the food parser. */
+function tidyPrompt(language: string, text: string): string {
+  return [
+    'Someone dictated what they ate; speech recognition may have made mistakes, repeated words or joined foods.',
+    `Their words: "${text}".`,
+    `Rewrite them in ${language} as a clean list in "text": one food or drink per line, each with the amount they said`,
+    '(grams, pieces, spoons, a plate), digits for numbers, everyday food names, and fix obvious recognition mistakes.',
+    'Do not add foods or amounts they did not say, and do not add calories or comments. Same language as their words.',
+  ].join('\n')
+}
+
 function labelPrompt(language: string): string {
   return [
     'The photo shows the nutrition facts table of a packaged food (any language, any country).',
     'Copy the values PER 100 g (or per 100 ml for drinks): energy in kcal (convert from kJ by dividing by 4.184 if only kJ is given),',
-    'protein, carbohydrates, fat, fibre and sugars in grams. Use 0 for a value that is not printed.',
+    'protein, carbohydrates, fat, fibre, sugars and salt in grams (salt = sodium × 2.5 when only sodium is printed). Use 0 for a value that is not printed.',
     'If the table only gives values per serving, convert them to per 100 g using the serving size.',
     'serving_g is the serving size in grams if printed, otherwise 0.',
     `name: the product name if visible, in ${language}, otherwise an empty string. brand: the brand if visible, otherwise an empty string.`,
@@ -161,7 +190,7 @@ function labelPrompt(language: string): string {
 interface Ask {
   prompt: string
   schema: Schema
-  /** Empty for a meal described in words. */
+  /** A photo or a voice note, base64; empty for words. */
   image: string
   mime: string
 }
@@ -203,7 +232,7 @@ async function askOpenAiCompatible(step: Step, { prompt, schema, image, mime }: 
   const base = (p.base ?? Deno.env.get(p.baseEnv!)!).replace(/\/$/, '')
   const messages = [
     { role: 'system', content: `${prompt}\nAnswer with one JSON object only, matching this JSON Schema:\n${JSON.stringify(jsonSchema(schema))}` },
-    { role: 'user', content: image ? [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] : 'Estimate the meal described above.' },
+    { role: 'user', content: image ? [{ type: 'image_url', image_url: { url: `data:${mime};base64,${image}` } }] : 'Answer for the words above.' },
   ]
   const post = (jsonMode: boolean) =>
     fetch(`${base}/chat/completions`, {
@@ -272,6 +301,7 @@ function cleanPlate(a: Record<string, unknown>) {
       name: str(i.name),
       grams: num(i.grams, 3000),
       ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(i[k], k === 'kcal' ? 5000 : 500)])),
+      salt_g: num(i.salt_g, 50),
     })),
     ultra_processed: a.ultra_processed === true,
     confidence: ['low', 'medium', 'high'].includes(String(a.confidence)) ? a.confidence : 'low',
@@ -285,6 +315,7 @@ function cleanLabel(a: Record<string, unknown>) {
     name: str(a.name),
     brand: str(a.brand, 60),
     ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(a[k], k === 'kcal' ? 950 : 100)])),
+    salt_g: num(a.salt_g, 100),
     serving_g: num(a.serving_g, 2000),
   }
 }
@@ -300,19 +331,25 @@ Deno.serve(async (req) => {
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
+  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
-  const mode: Mode = body.mode === 'label' ? 'label' : body.mode === 'text' ? 'text' : 'plate'
-  const text = (body.text ?? '').trim().slice(0, 500)
-  const image = mode === 'text' ? '' : body.image ?? ''
-  const mime = body.mime ?? 'image/jpeg'
-  if (mode === 'text' ? !text : !image || image.length * 0.75 > MAX_IMAGE_BYTES || !/^image\/(jpeg|png|webp)$/.test(mime)) {
-    return json({ error: mode === 'text' ? 'bad_request' : 'bad_image' }, 400)
+  const mode: Mode = (['label', 'text', 'transcribe', 'tidy'] as const).find((m) => m === body.mode) ?? 'plate'
+  const words = mode === 'text' || mode === 'tidy'
+  const text = (body.text ?? '').trim().slice(0, mode === 'tidy' ? 1000 : 500)
+  const image = words ? '' : mode === 'transcribe' ? (body.audio ?? '') : (body.image ?? '')
+  // "audio/webm;codecs=opus" → "audio/webm"
+  const mime = (body.mime ?? 'image/jpeg').split(';')[0].trim()
+  if (words ? !text : !image || image.length * 0.75 > MAX_IMAGE_BYTES) return json({ error: words ? 'bad_request' : 'bad_image' }, 400)
+  if (mode === 'transcribe' ? !/^audio\/(webm|ogg|mp4|mpeg|wav|aac|flac|x-m4a)$/.test(mime) : !words && !/^image\/(jpeg|png|webp)$/.test(mime)) {
+    return json({ error: 'bad_image' }, 400)
   }
+  // Only Gemini listens to audio: the other services in the order are skipped for a voice note.
+  const usable = mode === 'transcribe' ? steps.filter((s) => s.provider === 'gemini') : steps
+  if (!usable.length) return json({ error: 'not_configured' }, 503)
 
   if (userId) {
     const { error: limitError } = await admin.rpc('bump_ai_usage', { p_user: userId, p_limit: DAILY_LIMIT })
@@ -325,15 +362,20 @@ Deno.serve(async (req) => {
   const language = body.locale === 'it' ? 'Italian' : 'English'
   const prompt = mode === 'label'
     ? labelPrompt(language)
-    : mode === 'text'
-      ? textPrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', text)
-      : platePrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', (body.note ?? '').slice(0, 300))
+    : mode === 'transcribe'
+      ? transcribePrompt(language)
+      : mode === 'tidy'
+        ? tidyPrompt(language, text)
+        : mode === 'text'
+          ? textPrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', text)
+          : platePrompt(language, body.goal ?? 'maintain', body.meal ?? 'a meal', (body.note ?? '').slice(0, 300))
   const started = Date.now()
   // Coach can test one entry of the order on its own.
-  const use = coachTest && Number.isInteger(body.only) ? steps.slice(Number(body.only), Number(body.only) + 1) : steps
+  const use = coachTest && Number.isInteger(body.only) ? usable.slice(Number(body.only), Number(body.only) + 1) : usable
   try {
     const { answer, model, tried } = await ask({ prompt, schema: SCHEMAS[mode], image, mime }, use)
-    const result = mode === 'label' ? cleanLabel(answer as Record<string, unknown>) : cleanPlate(answer as Record<string, unknown>)
+    const a = answer as Record<string, unknown>
+    const result = mode === 'label' ? cleanLabel(a) : mode === 'transcribe' || mode === 'tidy' ? { text: str(a.text, 1000) } : cleanPlate(a)
     return json(coachTest ? { ...result, model, ms: Date.now() - started, tried } : result)
   } catch (e) {
     const tried = (e as { tried?: string[] }).tried ?? []

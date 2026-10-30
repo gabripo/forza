@@ -2,9 +2,13 @@
 // logging, moving), never for a number on the scale, so everyone can earn them from day one.
 // The points use the same rules as the family challenge (family_board in the database).
 import { daysAgo, localDay } from './calc'
-import type { BodyWeight, DailySteps, FoodLog, L10n } from './types'
+import type { BodyWeight, DailySteps, FoodLog, Goal, L10n } from './types'
 
-export const POINTS = { workout: 20, lesson: 10, quiz: 20, dailyQuiz: 5, weighIn: 5, mealsDay: 10, stepsDay: 10 }
+export const POINTS = { workout: 20, lesson: 10, quiz: 20, dailyQuiz: 5, goodMeal: 5, weighIn: 5, mealsDay: 10, stepsDay: 10 }
+
+/** A meal scoring this much or more for the person's goal is a good meal (points, up to GOOD_MEALS_A_DAY a day). */
+export const GOOD_MEAL_SCORE = 70
+export const GOOD_MEALS_A_DAY = 3
 
 export interface LessonRow {
   lesson_id: string
@@ -21,6 +25,8 @@ export interface RewardInput {
   workouts: { started_at: string }[]
   /** Answers of the daily points quiz ("Gain Family Points"). */
   quizAnswers?: { day: string; correct: boolean }[]
+  /** Which meal score counts: fat loss or muscle gain. */
+  goal?: Goal | null
   targets: { kcal: number; protein_g: number }
   stepsGoal: number
   baseIds: string[]
@@ -61,6 +67,8 @@ export function weekPoints(x: RewardInput): number {
   const inWeek = (d: string) => new Date(d) >= since
   const days = (dates: string[]) => new Set(dates.filter(inWeek).map((d) => localDay(new Date(d)))).size
   const mealDays = [...countBy(x.food.filter((f) => inWeek(f.eaten_at)).map((f) => localDay(new Date(f.eaten_at))))].filter(([, n]) => n >= 2).length
+  const score = (f: FoodLog) => (x.goal === 'muscle_gain' ? f.score_muscle_gain : f.score_fat_loss) ?? 0
+  const goodMeals = [...countBy(x.food.filter((f) => inWeek(f.eaten_at) && score(f) >= GOOD_MEAL_SCORE).map((f) => localDay(new Date(f.eaten_at))))].reduce((s, [, n]) => s + Math.min(n, GOOD_MEALS_A_DAY), 0)
   return (
     x.workouts.filter((w) => inWeek(w.started_at)).length * POINTS.workout +
     x.lessons.filter((l) => inWeek(l.read_at)).length * POINTS.lesson +
@@ -68,6 +76,7 @@ export function weekPoints(x: RewardInput): number {
     (x.quizAnswers ?? []).filter((a) => a.correct && new Date(`${a.day}T12:00:00`) >= since).length * POINTS.dailyQuiz +
     days(x.weights.map((w) => w.measured_at)) * POINTS.weighIn +
     mealDays * POINTS.mealsDay +
+    goodMeals * POINTS.goodMeal +
     x.steps.filter((s) => new Date(`${s.day}T12:00:00`) >= since && s.steps >= x.stepsGoal).length * POINTS.stepsDay
   )
 }

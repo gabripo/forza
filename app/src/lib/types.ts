@@ -31,7 +31,11 @@ export interface Profile {
   /** kcal a day added by the person or their coach, on top of the weekly check-ins. */
   kcal_manual: number
   /** 'forza': worked out by Forza!; 'bws': the target Build With Science shows (read on the phone). */
-  kcal_source: 'forza' | 'bws'
+  kcal_source: 'forza' | 'bws' | 'manual'
+  /** The daily calories, with kcal_source 'manual'. */
+  kcal_target?: number | null
+  /** Salt and sodium shown in the food log. */
+  track_salt?: boolean
   /** Build With Science's daily targets, as ranges: { kcal: [2350, 2450], protein: [109, 184], … } */
   bws_targets: { kcal: [number, number]; protein?: [number, number]; carbs?: [number, number]; fat?: [number, number] } | null
   bws_targets_at: string | null
@@ -123,6 +127,8 @@ export interface FoodItem {
   fat_g: number
   fiber_g: number
   sugar_g: number
+  /** Salt in grams (sodium × 2.5), when known. */
+  salt_g?: number
 }
 
 export interface FoodLog {
@@ -137,6 +143,7 @@ export interface FoodLog {
   fat_g: number
   fiber_g: number
   sugar_g: number
+  salt_g?: number | null
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null
@@ -168,6 +175,8 @@ export interface Exercise {
   tip?: L10n
   video_url?: string | null
   custom?: boolean
+  /** Retired in Forza! Coach: kept for plans and history, not offered in the lists. */
+  archived?: boolean
 }
 
 export interface Activity {

@@ -187,7 +187,9 @@ diary arrives through Health Connect (step 4), or is read on their phone (below)
 
 Open Forza! Coach whenever you like:
 
-- **Overview**: weight trend, strength gained per exercise, workouts, steps, lessons read, calorie check-ins.
+- **Overview**: weight trend, strength gained per exercise, workouts, steps, lessons read, calorie check-ins,
+  and the **daily targets** as their phone shows them (calories, protein, carbohydrates, fat, fibre, salt) with
+  what they ate today.
 - **Workout plan**: change exercises, sets, repetitions, rest, days of the week, supersets. Their phone gets
   the new plan the next time they open the app. Every save keeps the previous version (**Versions** → **Restore**).
   To give someone a workout that works for another person, pick the person next to the workout and click
@@ -195,19 +197,25 @@ Open Forza! Coach whenever you like:
   replaced, and starting weights are left out: the app works them out from the new person's own sets.
 - **Food**: their meals. **Change** fixes a portion (changing the grams changes the calories and nutrients
   with them, or **× 0.5** … **× 2** for the whole meal), removes or adds foods; **Delete** removes a meal; **Add
-  a meal** logs one for them, from the built-in food table or typed in. The app scores the changed meal again.
+  a meal** logs one for them, from the built-in food table or typed in. **Meal** moves it to another part of the
+  day, and **Salt** is optional (blank means not known). The app scores the changed meal again.
   Meals logged in another app (through Health Connect, or Build With Science) are changed in that app.
 - **Workouts**, **Check-ins**: what they logged.
 - **Profile → Pace towards the goal**: how fast to lose fat (slow, normal or fast: 250, 500 or 750 kcal a day
   below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or
   takes away a fixed amount every day, and **Calorie target from** can follow Build With Science's daily target
-  instead (read on their phone with the food log). They can change the same in the app: **Food → Adjust**.
+  instead (read on their phone with the food log), or **A number set by hand**: write the **Daily calories**,
+  and protein, carbohydrates and fat follow. **Salt and sodium** shows salt in their food log (limit 5 g a day).
+  They can change the same in the app: **Food → Adjust** and **Settings**.
 - **Lessons & tips** (at the top): change any lesson's text, cards, references and quiz, hide or reorder
   lessons, write new ones, and change the tips of the day. Quiz questions are also asked in **Gain Family
   Points**, the daily quiz that keeps earning points after every lesson is read (2 questions a day from the
   lessons read, 5 points for each right answer; the Overview shows how it goes). Everyone sees the change the next time they open Learn;
   **Back to the original** returns a lesson to the built-in version, which keeps getting the app's own updates.
-- **Exercises & videos**: add a video link or your own tip to any exercise, or add new exercises for everyone.
+- **Exercises & videos**: every exercise as the app shows it. **Edit** one to add photos, a GIF or a short
+  video (from your computer, or a web address), put them in order, add a video link or your own tip; **Back to
+  the built-in photos** undoes it. **+ New exercise** adds one for everyone; **Delete** removes it, or retires
+  it when it is already in a plan or in past workouts (nobody can pick it any more, history keeps it).
 - **Profile → Training section**: choose **Hidden** for someone who will never log workouts in the app (for
   example, they only want to eat better). The Train tab and the workout items on Home disappear; they can
   change it back in Settings.

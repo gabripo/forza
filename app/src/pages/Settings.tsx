@@ -148,6 +148,19 @@ export function Settings() {
               ]}
             />
           </Field>
+          <Field label={t('settings.salt')} hint={t('settings.saltHint')}>
+            <Segmented<'show' | 'hide'>
+              value={draft.track_salt ? 'show' : 'hide'}
+              onChange={(v) => {
+                set('track_salt', v === 'show')
+                void saveProfile({ track_salt: v === 'show' })
+              }}
+              options={[
+                { value: 'hide', label: t('settings.saltHide') },
+                { value: 'show', label: t('settings.saltShow') },
+              ]}
+            />
+          </Field>
           <Field label={t('onb.perWeek')}>
             <Segmented<number>
               value={draft.workouts_per_week}

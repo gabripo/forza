@@ -150,6 +150,37 @@ function detailView() {
     </div>${body}`
 }
 
+/** The daily targets as their phone shows them, and how they come about. */
+function targetsView(d) {
+  const e = d.energy
+  if (!e) return ''
+  const t = e.targets
+  const pr = p(d)
+  const today = new Date().toDateString()
+  const eaten = d.food.filter((f) => new Date(f.eaten_at).toDateString() === today)
+  const sum = (k) => eaten.reduce((s, f) => s + Number(f[k] ?? 0), 0)
+  const pct = (g, kcalPerG) => (t.kcal ? Math.round(((g * kcalPerG) / t.kcal) * 100) : 0)
+  const rows = [
+    ['Protein', t.protein_g, 'g', `${pct(t.protein_g, 4)}% of calories`, sum('protein_g')],
+    ['Carbohydrates', t.carbs_g, 'g', `${pct(t.carbs_g, 4)}%`, sum('carbs_g')],
+    ['Fat', t.fat_g, 'g', `${pct(t.fat_g, 9)}%`, sum('fat_g')],
+    ['Fibre', t.fiber_g, 'g', 'at least', sum('fiber_g')],
+    ...(pr.track_salt ? [['Salt', t.salt_g, 'g', `at most · sodium ${fmtNum(t.salt_g * 400)} mg`, sum('salt_g')]] : []),
+  ]
+  const source =
+    pr.kcal_source === 'manual' && pr.kcal_target
+      ? 'Set by hand'
+      : pr.kcal_source === 'bws' && pr.bws_targets?.kcal
+        ? `Build With Science's target (middle of ${pr.bws_targets.kcal[0]}–${pr.bws_targets.kcal[1]} kcal)`
+        : `Forza!: ${fmtNum(e.tdee.tdee)} kcal used a day (${e.tdee.method === 'blended' ? 'formula and food log' : e.tdee.method === 'steps_and_workouts' ? 'from steps and workouts' : 'from the activity level'}), ${pr.goal === 'maintain' ? 'kept' : `${pr.goal_pace ?? 'normal'} pace`}${pr.kcal_adjust ? `, check-ins ${pr.kcal_adjust > 0 ? '+' : ''}${pr.kcal_adjust}` : ''}${pr.kcal_manual ? `, adjustment ${pr.kcal_manual > 0 ? '+' : ''}${pr.kcal_manual}` : ''}`
+  return `<div class="card"><h2>Daily targets</h2>
+    <p class="muted small">${esc(source)}. Change them in Profile; they can change them too in Food → Adjust.</p>
+    <table><thead><tr><th></th><th class="num">Target</th><th></th><th class="num">Eaten today</th></tr></thead><tbody>
+      <tr><td><b>Calories</b></td><td class="num"><b>${fmtNum(t.kcal)} kcal</b></td><td class="small muted">${pr.kcal_source === 'manual' ? '' : `body uses about ${fmtNum(e.tdee.tdee)}`}</td><td class="num">${fmtNum(sum('kcal'))}</td></tr>
+      ${rows.map(([label, v, unit, note, today]) => `<tr><td>${label}</td><td class="num">${fmtNum(v)} ${unit}</td><td class="small muted">${note}</td><td class="num">${fmtNum(today, 1)} ${unit}</td></tr>`).join('')}
+    </tbody></table></div>`
+}
+
 function overview(d) {
   const weights = d.weights.map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.weight_kg) }))
   const first = weights[0]?.v
@@ -190,6 +221,7 @@ function overview(d) {
       <div class="tile"><div class="label">Calorie check-ins</div><div class="value" style="font-size:18px">${p(d).kcal_adjust ? `${p(d).kcal_adjust > 0 ? '+' : ''}${p(d).kcal_adjust} kcal` : 'no change'}</div><div class="small muted">${p(d).kcal_checkin_at ? 'last ' + fmtDate(p(d).kcal_checkin_at) : ''}</div></div>
       <div class="tile"><div class="label">Health sync</div><div class="value" style="font-size:15px">${d.sync?.last_used_at ? fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not connected'}</div></div>
     </div></div>
+    ${targetsView(d)}
     ${syncReportView(d)}
     <div class="card"><h2>Weight</h2><div class="chart">${lineChart(weights, (v) => `${fmtNum(v, 1)}`)}</div></div>
     <div class="card"><h2>Steps (90 days)</h2><div class="chart">${barChart(d.steps.map((s) => ({ label: s.day.slice(5), v: s.steps })), p(d).steps_goal)}</div></div>
@@ -358,34 +390,38 @@ function localInput(d) {
   return new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
-/** Nutrients per gram, so a new amount scales the food (none for a food without grams). */
+/** Nutrients per gram, so a new amount scales the food (none for a food without grams; salt only when known). */
 function withPer(item) {
   const grams = Number(item.grams) || 0
-  return { ...item, per: grams > 0 ? Object.fromEntries(NUTRIENTS.map((k) => [k, (Number(item[k]) || 0) / grams])) : null }
+  const per = grams > 0 ? Object.fromEntries(NUTRIENTS.map((k) => [k, (Number(item[k]) || 0) / grams])) : null
+  if (per) per.salt_g = item.salt_g == null || item.salt_g === '' ? null : Number(item.salt_g) / grams
+  return { ...item, per }
 }
 
 const nutrientValue = (k, v) => (k === 'kcal' ? Math.round(v) : Math.round(v * 10) / 10)
 
 function mealTotalsText() {
   const t = Object.fromEntries(NUTRIENTS.map((k) => [k, state.mealEdit.items.reduce((s, i) => s + (Number(i[k]) || 0), 0)]))
-  return `Total: ${fmtNum(t.kcal)} kcal · protein ${fmtNum(t.protein_g, 1)} g · carbs ${fmtNum(t.carbs_g, 1)} g · fat ${fmtNum(t.fat_g, 1)} g · fibre ${fmtNum(t.fiber_g, 1)} g`
+  const salted = state.mealEdit.items.filter((i) => i.salt_g != null && i.salt_g !== '')
+  const salt = salted.length ? ` · salt ${fmtNum(salted.reduce((s, i) => s + Number(i.salt_g), 0), 2)} g` : ''
+  return `Total: ${fmtNum(t.kcal)} kcal · protein ${fmtNum(t.protein_g, 1)} g · carbs ${fmtNum(t.carbs_g, 1)} g · fat ${fmtNum(t.fat_g, 1)} g · fibre ${fmtNum(t.fiber_g, 1)} g${salt}`
 }
 
 function mealEditor(d) {
   const m = state.mealEdit
   const lang = d.profile?.locale === 'it' ? 'it' : 'en'
-  const cell = (i, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-meal-item="${i}" data-field="${k}" value="${m.items[i][k] ?? 0}"></td>`
+  const cell = (i, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-meal-item="${i}" data-field="${k}" value="${m.items[i][k] ?? (k === 'salt_g' ? '' : 0)}"${k === 'salt_g' ? ' placeholder="—"' : ''}></td>`
   return `<div class="card" id="meal-editor"><h2>${m.id ? 'Change the meal' : 'Add a meal'}</h2>
     <div class="grid2">
       <label class="field">Meal <select data-meal-field="meal">${MEALS.map((x) => `<option value="${x}"${m.meal === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
       <label class="field">When <input type="datetime-local" data-meal-field="at" value="${esc(m.at)}"></label>
       <label class="field">Name <input data-meal-field="title" value="${esc(m.title)}" placeholder="The foods' names if empty"></label>
     </div>
-    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th></th></tr></thead><tbody>
+    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th class="num">Salt</th><th></th></tr></thead><tbody>
       ${m.items
         .map(
           (it, i) => `<tr><td><input data-meal-item="${i}" data-field="name" value="${esc(it.name)}" style="width:100%;min-width:180px"></td>
-          ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}
+          ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}${cell(i, 'salt_g', 0.01)}
           <td><button class="btn small danger" data-action="meal-item-del" data-i="${i}" aria-label="Remove">✕</button></td></tr>`,
         )
         .join('')}
@@ -423,6 +459,7 @@ async function mealAction(action, btn) {
     for (const it of m.items) {
       it.grams = Math.round((Number(it.grams) || 0) * k)
       for (const n of NUTRIENTS) it[n] = nutrientValue(n, (Number(it[n]) || 0) * k)
+      if (it.salt_g != null && it.salt_g !== '') it.salt_g = Math.round(Number(it.salt_g) * k * 100) / 100
     }
   }
   if (action === 'meal-add-food') {
@@ -433,7 +470,7 @@ async function mealAction(action, btn) {
     const lang = state.data.profile?.locale === 'it' ? 'it' : 'en'
     // The table's values are per 100 g.
     const per100 = { kcal: food.kcal, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat, fiber_g: food.fiber, sugar_g: food.sugar }
-    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])) }))
+    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])), salt_g: Math.round((food.salt ?? 0) * grams) / 100 }))
   }
   if (action === 'meal-save') {
     if (!m.items.length) return toast('Add at least one food')
@@ -472,10 +509,11 @@ function mealItemInput(el) {
     return
   }
   const v = Math.max(0, Number(el.value) || 0)
-  it[k] = v
+  it[k] = k === 'salt_g' && el.value === '' ? null : v
   if (k === 'grams' && it.per) {
-    for (const n of NUTRIENTS) {
-      it[n] = nutrientValue(n, it.per[n] * v)
+    for (const n of [...NUTRIENTS, 'salt_g']) {
+      if (it.per[n] == null) continue
+      it[n] = n === 'salt_g' ? Math.round(it.per[n] * v * 100) / 100 : nutrientValue(n, it.per[n] * v)
       const field = app.querySelector(`[data-meal-item="${i}"][data-field="${n}"]`)
       if (field) field.value = it[n]
     }
@@ -608,38 +646,158 @@ function lessonEditor(l) {
   </form>`
 }
 
+const isVideo = (u) => /\.(mp4|webm|mov)(\?|#|$)/i.test(u)
+
+/** The exercise as the app shows it: photos in turn like a slow animation, a GIF, or a video playing on its own. */
+function mediaPreview(urls, cls = '') {
+  if (!urls.length) return `<div class="ex-media empty ${cls}" aria-hidden="true">🏋️</div>`
+  const video = urls.find(isVideo)
+  if (video) return `<div class="ex-media ${cls}"><video src="${esc(video)}" autoplay muted loop playsinline></video></div>`
+  return `<div class="ex-media ${cls}" ${urls.length > 1 ? 'data-frames' : ''}>${urls.map((u, i) => `<img src="${esc(u)}" alt="" loading="lazy" class="${i ? '' : 'on'}">`).join('')}</div>`
+}
+
+// Photos shown in turn every 1.1 s, as in the app.
+setInterval(() => {
+  for (const box of document.querySelectorAll('.ex-media[data-frames]')) {
+    const imgs = [...box.querySelectorAll('img')]
+    const i = imgs.findIndex((x) => x.classList.contains('on'))
+    imgs[i]?.classList.remove('on')
+    imgs[(i + 1) % imgs.length]?.classList.add('on')
+  }
+}, 1100)
+
+/** Every exercise with what the app shows for it. */
+function exerciseList() {
+  const c = state.catalogue
+  const ov = new Map(c.overrides.map((o) => [o.exercise_id, o]))
+  const builtIn = c.builtIn.map((e) => {
+    const own = e.src ? [`/builtin-exercises/${e.id}/0.jpg`, `/builtin-exercises/${e.id}/1.jpg`] : []
+    const o = ov.get(e.id) ?? {}
+    return { id: e.id, custom: false, name_en: e.name.en, name_it: e.name.it, kind: e.kind, own, media: o.media_urls?.length ? o.media_urls : own, changed: Boolean(o.media_urls?.length), video_url: o.video_url ?? '', note_en: o.note_en ?? '', note_it: o.note_it ?? '' }
+  })
+  const custom = c.custom.map((x) => ({ ...x, custom: true, own: [], media: x.image_urls ?? [], shared: !x.owner_id }))
+  return [...custom, ...builtIn]
+}
+
 function exercisesView() {
   const c = state.catalogue
   if (!c) return '<p class="pad muted">Loading…</p>'
-  const ov = new Map(c.overrides.map((o) => [o.exercise_id, o]))
+  if (state.exEdit) return `<div class="pad">${exerciseEditor(state.exEdit)}</div>`
+  const q = (state.exQuery ?? '').trim().toLowerCase()
+  const list = exerciseList().filter((e) => !q || `${e.name_en} ${e.name_it}`.toLowerCase().includes(q))
+  const kinds = { reps: 'weight × reps', bodyweight: 'bodyweight', time: 'time', cardio: 'cardio' }
   return `<div class="pad">
-    <div class="card"><h2>Exercise videos and coach notes</h2>
-    <p class="muted">Paste a YouTube link to replace the automatic "Find a video" search for everyone. Coach notes replace the built-in tip.</p>
-    <table><thead><tr><th>Exercise</th><th>Video link</th><th>Coach note (EN)</th><th>Coach note (IT)</th><th></th></tr></thead><tbody>
-    ${c.builtIn
-      .map((e) => {
-        const o = ov.get(e.id) ?? {}
-        return `<tr data-row="${esc(e.id)}"><td><b>${esc(e.name.en)}</b><div class="muted small">${esc(e.name.it)}</div></td>
-          <td><input name="video_url" value="${esc(o.video_url ?? '')}" placeholder="https://youtube.com/…" style="width:100%"></td>
-          <td><input name="note_en" value="${esc(o.note_en ?? '')}" style="width:100%"></td>
-          <td><input name="note_it" value="${esc(o.note_it ?? '')}" style="width:100%"></td>
-          <td><button class="btn small" data-action="override-save" data-id="${esc(e.id)}">Save</button></td></tr>`
-      })
-      .join('')}
-    </tbody></table></div>
-    <div class="card"><h2>Add a shared exercise</h2>
-      <form class="stack" data-form="custom-exercise" style="max-width:520px">
-        <label class="field">Name (English)<input name="name_en" required></label>
-        <label class="field">Name (Italian)<input name="name_it"></label>
-        <label class="field">How it is measured<select name="kind"><option value="reps">Weight × reps</option><option value="bodyweight">Bodyweight reps</option><option value="time">Time</option><option value="cardio">Cardio (minutes)</option></select></label>
-        <label class="field">Main muscles (comma separated: quads, glutes, chest, back, lats, shoulders, biceps, triceps, abs, …)<input name="muscles"></label>
-        <label class="field">Steps (one per line, English)<textarea name="steps_en" rows="3"></textarea></label>
-        <label class="field">Steps (one per line, Italian)<textarea name="steps_it" rows="3"></textarea></label>
-        <label class="field">Video link<input name="video_url"></label>
-        <button class="btn">Add for everyone</button>
-      </form>
-      ${c.custom.length ? `<h3 style="margin-top:16px">Custom exercises</h3><ul>${c.custom.map((x) => `<li>${esc(x.name_en)} <span class="muted small">${x.owner_id ? '(made by a user)' : '(shared)'}</span></li>`).join('')}</ul>` : ''}
+    <div class="card"><h2>Exercises, photos and videos</h2>
+      <p class="muted">What everyone sees in Forza!: change the photos, add a GIF or a short video, a video link and your own tip. The family's own exercises are at the top.</p>
+      <div class="row" style="margin-bottom:10px"><input id="ex-search" placeholder="Search" value="${esc(state.exQuery ?? '')}" style="flex:1;min-width:200px"><button class="btn" data-action="exm-new">+ New exercise</button></div>
+      <table><tbody>${list
+        .map(
+          (e) => `<tr${e.archived ? ' class="muted"' : ''}><td style="width:110px">${mediaPreview(e.media, 'small')}</td>
+          <td><b>${esc(e.name_en)}</b><div class="small muted">${esc(e.name_it ?? '')} · ${kinds[e.kind] ?? e.kind}</div></td>
+          <td>${e.custom ? `<span class="pill ${e.archived ? 'warn' : 'good'}">${e.archived ? 'retired' : e.shared ? 'family' : 'made by a person'}</span>` : e.changed ? '<span class="pill info">your media</span>' : ''}${e.video_url ? ' <span class="pill info">video link</span>' : ''}</td>
+          <td><button class="btn small secondary" data-action="exm-edit" data-id="${esc(e.id)}">Edit</button></td></tr>`,
+        )
+        .join('')}</tbody></table>
     </div></div>`
+}
+
+function exerciseEditor(e) {
+  const field = (name, label, value, extra = '') => `<label class="field">${label}<input name="${name}" value="${esc(value ?? '')}" ${extra}></label>`
+  const area = (name, label, value) => `<label class="field">${label}<textarea name="${name}" rows="3">${esc(Array.isArray(value) ? value.join('\n') : (value ?? ''))}</textarea></label>`
+  return `<form class="card stack" data-form="exercise">
+    <h2>${e.isNew ? 'New exercise' : esc(e.name_en)}</h2>
+    <div class="ex-edit">
+      <div class="stack">
+        ${mediaPreview(e.media)}
+        <p class="small muted">As the app shows it: photos take turns (start and end of the movement), a GIF moves, a video plays on its own without sound.</p>
+      </div>
+      <div class="stack">
+        <b>Photos, GIFs and videos</b>
+        ${e.media.length ? `<ul class="media-list">${e.media
+          .map(
+            (u, i) => `<li>${isVideo(u) ? '🎬' : '🖼️'} <a href="${esc(u)}" target="_blank" rel="noreferrer" class="small">${esc(decodeURIComponent(u.split('/').pop()).slice(0, 40))}</a>
+              <span class="row" style="margin-left:auto;flex-wrap:nowrap"><button type="button" class="btn small secondary" data-action="media-move" data-i="${i}" data-dir="-1" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn small secondary" data-action="media-move" data-i="${i}" data-dir="1" ${i < e.media.length - 1 ? '' : 'disabled'}>↓</button><button type="button" class="btn small danger" data-action="media-del" data-i="${i}">✕</button></span></li>`,
+          )
+          .join('')}</ul>`
+          : '<p class="muted small">None: the app shows a dumbbell.</p>'}
+        <label class="btn secondary" style="text-align:center">Add photos, GIFs or a video<input type="file" id="media-file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple hidden></label>
+        <div class="row"><input id="media-url" placeholder="…or paste the address of a picture or video" style="flex:1"><button type="button" class="btn small secondary" data-action="media-url">Add</button></div>
+        ${!e.custom && JSON.stringify(e.media) !== JSON.stringify(e.own) ? `<button type="button" class="btn small secondary" data-action="media-reset">Back to the built-in photos</button>` : ''}
+        <p class="small muted">Photos and GIFs: JPEG, PNG, WebP or GIF. Videos: MP4, WebM or MOV, up to 25 MB; a few seconds on a loop is best.</p>
+      </div>
+    </div>
+    ${
+      e.custom
+        ? `<div class="grid2">${field('name_en', 'Name (English)', e.name_en, 'required')}${field('name_it', 'Nome (italiano)', e.name_it)}
+            <label class="field">How it is measured<select name="kind">${[['reps', 'Weight × reps'], ['bodyweight', 'Bodyweight reps'], ['time', 'Time'], ['cardio', 'Cardio (minutes)']].map(([v, l]) => `<option value="${v}" ${e.kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+            ${field('muscles', 'Main muscles (comma separated)', Array.isArray(e.muscles) ? e.muscles.join(', ') : e.muscles)}</div>
+          ${area('steps_en', 'Steps (one per line, English)', e.steps_en)}${area('steps_it', 'Passaggi (uno per riga, italiano)', e.steps_it)}`
+        : `<div class="grid2">${field('note_en', 'Your tip (English), instead of the built-in one', e.note_en)}${field('note_it', 'Il tuo consiglio (italiano)', e.note_it)}</div>`
+    }
+    ${field('video_url', 'Video link (YouTube or any page), instead of the automatic "Find a video" search', e.video_url, 'placeholder="https://…"')}
+    <div class="row"><button class="btn">Save</button><button type="button" class="btn secondary" data-action="exm-cancel">Cancel</button>
+      ${e.custom && !e.isNew ? `<button type="button" class="btn danger" data-action="exm-delete">${e.archived ? 'Delete for good' : 'Delete'}</button>${e.archived ? '<button type="button" class="btn secondary" data-action="exm-restore">Bring back</button>' : ''}` : ''}</div>
+    ${e.archived ? '<p class="small muted">Retired: it is in a plan or in past workouts, so it stays there, but nobody can pick it any more.</p>' : ''}
+  </form>`
+}
+
+const readAsBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result).split(',')[1])
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+
+async function exerciseAction(action, btn) {
+  const e = state.exEdit
+  if (action === 'exm-new') state.exEdit = { isNew: true, custom: true, id: `new-${Date.now()}`, name_en: '', name_it: '', kind: 'reps', muscles: [], steps_en: [], steps_it: [], media: [], own: [], video_url: '' }
+  if (action === 'exm-edit') {
+    const x = exerciseList().find((y) => y.id === btn.dataset.id)
+    state.exEdit = { ...x, media: [...x.media] }
+  }
+  if (action === 'exm-cancel') state.exEdit = null
+  if (action === 'media-move') {
+    const i = Number(btn.dataset.i)
+    const j = i + Number(btn.dataset.dir)
+    ;[e.media[i], e.media[j]] = [e.media[j], e.media[i]]
+  }
+  if (action === 'media-del') e.media.splice(Number(btn.dataset.i), 1)
+  if (action === 'media-reset') e.media = [...e.own]
+  if (action === 'media-url') {
+    const url = document.getElementById('media-url').value.trim()
+    if (!/^https?:\/\/\S+$/.test(url)) return toast('Paste a web address (https://…)')
+    e.media.push(url)
+  }
+  if (action === 'exm-delete') {
+    if (!confirm(`Delete “${e.name_en}”? If it is in a plan or in past workouts it is retired instead: nobody can pick it, the history keeps it.`)) return
+    const r = await api(`/api/custom-exercises/${e.id}`, { method: 'DELETE' })
+    toast(r.archived ? `Retired: it is in ${r.plans} plan(s) and ${r.sets} logged set(s)` : 'Deleted')
+    state.exEdit = null
+    state.catalogue = await api('/api/catalogue')
+  }
+  if (action === 'exm-restore') {
+    await api(`/api/custom-exercises/${e.id}`, { method: 'PUT', body: { ...e, image_urls: e.media, archived: false } })
+    state.exEdit = null
+    state.catalogue = await api('/api/catalogue')
+    toast('Back in the exercise lists')
+  }
+  render()
+}
+
+/** Files chosen in the editor: uploaded one by one, then shown in the preview. */
+async function uploadExerciseFiles(files) {
+  const e = state.exEdit
+  for (const file of files) {
+    if (file.size > 25 * 1024 * 1024) {
+      toast(`${file.name} is over 25 MB`)
+      continue
+    }
+    toast(`Uploading ${file.name}…`)
+    const { url } = await api('/api/exercise-media', { method: 'POST', body: { exercise_id: e.id, mime: file.type, data: await readAsBase64(file) } })
+    e.media.push(url)
+    render()
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -810,7 +968,9 @@ function profileView(d) {
         <label class="field">Daily steps goal<input name="steps_goal" inputmode="numeric" value="${esc(p.steps_goal ?? 7000)}"></label>
         <label class="field">Pace towards the goal${opt('goal_pace', ['slow', 'normal', 'fast'], ['Slow (fat loss −250 · muscle +150 kcal/day)', 'Normal (−500 · +250 kcal/day)', 'Fast (−750 · +400 kcal/day)'])}</label>
         <label class="field">Calorie adjustment (kcal/day)<input name="kcal_manual" inputmode="numeric" value="${esc(p.kcal_manual ?? 0)}" title="Added every day to what Forza! works out; negative to lower it"></label>
-        <label class="field">Calorie target from<select name="kcal_source"><option value="forza" ${p.kcal_source === 'bws' ? '' : 'selected'}>Forza! (worked out from their data)</option><option value="bws" ${p.kcal_source === 'bws' ? 'selected' : ''} ${p.bws_targets ? '' : 'disabled'}>Build With Science${p.bws_targets?.kcal ? ` (${p.bws_targets.kcal[0]}–${p.bws_targets.kcal[1]} kcal, read ${fmtDate(p.bws_targets_at)})` : ' (not read yet: needs a workout sync on their phone)'}</option></select></label>
+        <label class="field">Calorie target from<select name="kcal_source"><option value="forza" ${p.kcal_source === 'bws' || p.kcal_source === 'manual' ? '' : 'selected'}>Forza! (worked out from their data)</option><option value="manual" ${p.kcal_source === 'manual' ? 'selected' : ''}>A number set by hand (below)</option><option value="bws" ${p.kcal_source === 'bws' ? 'selected' : ''} ${p.bws_targets ? '' : 'disabled'}>Build With Science${p.bws_targets?.kcal ? ` (${p.bws_targets.kcal[0]}–${p.bws_targets.kcal[1]} kcal, read ${fmtDate(p.bws_targets_at)})` : ' (not read yet: needs a workout sync on their phone)'}</option></select></label>
+        <label class="field">Daily calories, set by hand<input name="kcal_target" inputmode="numeric" value="${esc(p.kcal_target ?? '')}" placeholder="e.g. 1800" title="Used with “A number set by hand”: protein, carbs and fat follow it"></label>
+        <label class="field">Salt and sodium<select name="track_salt"><option value="false" ${p.track_salt ? '' : 'selected'}>Not shown</option><option value="true" ${p.track_salt ? 'selected' : ''}>Shown in the food log (limit 5 g of salt a day)</option></select></label>
         <label class="field">Training section<select name="hide_training"><option value="false" ${p.hide_training ? '' : 'selected'}>Shown</option><option value="true" ${p.hide_training ? 'selected' : ''}>Hidden (never logs workouts in the app)</option></select></label>
       </div>
       ${p.onboarded_at ? `<p class="muted small">Set-up done on ${fmtDate(p.onboarded_at)}.</p>` : '<label class="row small"><input type="checkbox" name="finish_setup" value="1"> Set-up done: they go straight to the home screen</label>'}
@@ -1102,6 +1262,10 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
 })
 
 app.addEventListener('change', async (e) => {
+  if (e.target.id === 'media-file') {
+    await uploadExerciseFiles([...e.target.files]).catch((err) => toast(`Error: ${err.message}`))
+    return
+  }
   if (e.target.dataset?.ai !== undefined && e.target.dataset.field === 'provider') {
     await loadModels(e.target.value)
     return render()
@@ -1114,6 +1278,19 @@ app.addEventListener('change', async (e) => {
 
 app.addEventListener('input', (e) => {
   const el = e.target
+  if (el.id === 'ex-search') {
+    state.exQuery = el.value
+    render()
+    const box = document.getElementById('ex-search')
+    box.focus()
+    box.setSelectionRange(box.value.length, box.value.length)
+    return
+  }
+  // What is typed in the exercise editor survives the redraw after an upload.
+  if (el.name && el.closest('form[data-form="exercise"]')) {
+    state.exEdit[el.name] = el.value
+    return
+  }
   if (el.dataset.mealField) {
     state.mealEdit[el.dataset.mealField] = el.value
     return
@@ -1311,6 +1488,7 @@ app.addEventListener('click', async (e) => {
     }
     if (action.startsWith('kb-') || action.startsWith('tip-')) return knowledgeAction(action, btn)
     if (action.startsWith('meal-')) return mealAction(action, btn)
+    if (action.startsWith('exm-') || action.startsWith('media-')) return exerciseAction(action, btn)
     if (action === 'tpl-copy') {
       const t = state.data.templates[Number(btn.dataset.plan)]
       const select = document.getElementById(`copy-to-${btn.dataset.plan}`)
@@ -1318,14 +1496,6 @@ app.addEventListener('click', async (e) => {
       if (!confirm(`Copy "${t.name}" to ${name}'s plan? A workout with the same name there is replaced; starting weights are not copied.`)) return
       const r = await api(`/api/users/${state.selected}/copy-workouts`, { method: 'POST', body: { to: select.value, ids: [t.id] } })
       toast(r.replaced ? `Replaced "${t.name}" in ${name}'s plan` : `Added "${t.name}" to ${name}'s plan`)
-      return
-    }
-    if (action === 'override-save') {
-      const row = app.querySelector(`[data-row="${CSS.escape(btn.dataset.id)}"]`)
-      const body = Object.fromEntries([...row.querySelectorAll('input')].map((i) => [i.name, i.value.trim()]))
-      await api(`/api/overrides/${btn.dataset.id}`, { method: 'PUT', body })
-      toast('Saved')
-      state.catalogue = await api('/api/catalogue')
       return
     }
     render()
@@ -1458,14 +1628,14 @@ app.addEventListener('submit', async (e) => {
       await loadUsers()
       render()
     }
-    if (form.dataset.form === 'custom-exercise') {
-      const lines = (s) => String(s ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
-      await api('/api/custom-exercises', {
-        method: 'POST',
-        body: { ...data, muscles: lines(String(data.muscles).replaceAll(',', '\n')), steps_en: lines(data.steps_en), steps_it: lines(data.steps_it) },
-      })
+    if (form.dataset.form === 'exercise') {
+      const e = state.exEdit
+      if (!e.custom) await api(`/api/overrides/${e.id}`, { method: 'PUT', body: { ...data, media_urls: JSON.stringify(e.media) === JSON.stringify(e.own) ? [] : e.media } })
+      else if (e.isNew) await api('/api/custom-exercises', { method: 'POST', body: { ...data, image_urls: e.media } })
+      else await api(`/api/custom-exercises/${e.id}`, { method: 'PUT', body: { ...data, image_urls: e.media, archived: e.archived ?? false } })
+      state.exEdit = null
       state.catalogue = await api('/api/catalogue')
-      toast('Exercise added')
+      toast('Saved: everyone sees it the next time they open the exercise')
       render()
     }
   } catch (err) {

@@ -1,4 +1,4 @@
-import { Mic, Sparkles, Square, Trash2 } from 'lucide-react'
+import { Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlateAdvice } from '../../components/PlateAdvice'
@@ -7,13 +7,14 @@ import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, cx } 
 import { PROCESSED_FOODS } from '../../data/foods'
 import { useApp } from '../../lib/auth'
 import { round1, scorePlate, sumItems } from '../../lib/calc'
-import { addFood, estimateText } from '../../lib/data'
+import { addFood, estimateText, tidyText, transcribeAudio } from '../../lib/data'
+import { plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import type { FoodItem, Meal } from '../../lib/types'
+import type { Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 import { mergeSpeech, parseMeal } from '../../lib/voice'
 
-type Item = FoodItem & { foodId?: string }
+type Item = LoggedItem & { usual?: boolean }
 
 interface Recognition {
   lang: string
@@ -29,6 +30,17 @@ interface Recognition {
 /** The phone's own speech recognition (Chrome on Android, Safari on iPhone): nothing to install, no model to run. */
 const SpeechRecognition = (window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }).SpeechRecognition ??
   (window as unknown as { webkitSpeechRecognition?: new () => Recognition }).webkitSpeechRecognition
+
+/** Without it (Firefox): the voice is recorded and the food AI writes it down. */
+const CAN_RECORD = typeof window.MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
+
+const toBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result).split(',')[1] ?? '')
+    r.onerror = reject
+    r.readAsDataURL(blob)
+  })
 
 /**
  * Log a meal by saying it: "two eggs, a slice of wholegrain bread and a coffee". The words are matched
@@ -52,14 +64,66 @@ export function FoodVoice() {
   const [error, setError] = useState<string | null>(null)
   const [adjust, setAdjust] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
+  const [tidying, setTidying] = useState(false)
+  // The words before the AI tidied them, to go back with one tap.
+  const [untidy, setUntidy] = useState<string | null>(null)
   const rec = useRef<Recognition | null>(null)
+  const recorder = useRef<MediaRecorder | null>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  useFoodDb()
 
-  useEffect(() => () => rec.current?.stop(), [])
+  useEffect(
+    () => () => {
+      rec.current?.stop()
+      recorder.current?.stop()
+    },
+    [],
+  )
+
+  /** Records the voice and has the food AI write it down (browsers without speech recognition). */
+  async function record() {
+    if (listening) {
+      recorder.current?.stop()
+      return
+    }
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      setMicError(true)
+      return
+    }
+    const r = new MediaRecorder(stream)
+    const chunks: Blob[] = []
+    r.ondataavailable = (e) => chunks.push(e.data)
+    r.onstop = async () => {
+      stream.getTracks().forEach((tr) => tr.stop())
+      setListening(false)
+      const blob = new Blob(chunks, { type: r.mimeType || 'audio/ogg' })
+      if (!blob.size) return
+      setTranscribing(true)
+      try {
+        const { text: said } = await transcribeAudio({ audio: await toBase64(blob), mime: blob.type, locale })
+        if (said.trim()) setText((before) => [before.trim(), said.trim()].filter(Boolean).join(', '))
+      } catch (e) {
+        const code = (e as Error).message
+        setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'voice.noTranscribe' : 'voice.transcribeFailed'))
+      } finally {
+        setTranscribing(false)
+      }
+    }
+    recorder.current = r
+    reset()
+    setMicError(false)
+    setListening(true)
+    r.start()
+  }
 
   function listen() {
     if (!SpeechRecognition) {
-      textRef.current?.focus()
+      if (CAN_RECORD) void record()
+      else textRef.current?.focus()
       return
     }
     if (listening) {
@@ -98,11 +162,33 @@ export function FoodVoice() {
     setAdjust(false)
   }
 
+  /** The AI rewrites the dictated words as a clean list (one food and its amount per line), to check or edit. */
+  async function tidy() {
+    if (!text.trim()) return
+    setTidying(true)
+    setError(null)
+    try {
+      const { text: clean } = await tidyText({ text, locale })
+      if (clean.trim() && clean.trim() !== text.trim()) {
+        setUntidy(text)
+        setText(clean.trim())
+        reset()
+      }
+    } catch (e) {
+      const code = (e as Error).message
+      setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+    } finally {
+      setTidying(false)
+    }
+  }
+
   /** Known foods are read on the phone; the AI is asked only about the rest, or about everything on request. */
   async function analyse(wholeByAi = false) {
     if (!profile || !text.trim()) return
     rec.current?.stop()
-    const local = parseMeal(text, locale)
+    const parsed = parseMeal(text, locale)
+    // The person's own products stand for the foods they name: their mozzarella, their yogurt.
+    const local = { ...parsed, items: parsed.items.map((it) => withUsual(it, it.said, it.amountSaid)) }
     setError(null)
     if (!wholeByAi && !local.unknown.length) {
       setItems(local.items)
@@ -112,7 +198,7 @@ export function FoodVoice() {
     setBusy(true)
     try {
       const ai = await estimateText({ text: wholeByAi ? text : local.unknown.join(', '), locale, goal: profile.goal ?? 'maintain', meal })
-      const found = ai.is_food ? ai.items : []
+      const found = (ai.is_food ? ai.items : []).map((i) => withUsual({ ...i, origin: 'ai' as const }, i.name))
       setItems(wholeByAi ? found : [...local.items, ...found])
       setTip(ai.tip || null)
       setAiTitle(wholeByAi ? ai.title : null)
@@ -136,7 +222,7 @@ export function FoodVoice() {
       (xs ?? []).map((x, j) => {
         if (j !== i || !grams || x.grams <= 0) return x
         const k = grams / x.grams
-        return { ...x, grams, kcal: Math.round(x.kcal * k), protein_g: round1(x.protein_g * k), carbs_g: round1(x.carbs_g * k), fat_g: round1(x.fat_g * k), fiber_g: round1(x.fiber_g * k), sugar_g: round1(x.sugar_g * k) }
+        return { ...x, grams, kcal: Math.round(x.kcal * k), protein_g: round1(x.protein_g * k), carbs_g: round1(x.carbs_g * k), fat_g: round1(x.fat_g * k), fiber_g: round1(x.fiber_g * k), sugar_g: round1(x.sugar_g * k), ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}) }
       }),
     )
   }
@@ -155,7 +241,7 @@ export function FoodVoice() {
         eaten_at: now.toISOString(),
         meal,
         title: (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120),
-        items: items.map(({ foodId: _drop, ...rest }) => rest),
+        items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
         score_muscle_gain: s.muscleGain,
@@ -163,6 +249,7 @@ export function FoodVoice() {
         source: 'voice',
         ai_notes: tip,
       })
+      rememberItems(items, 'ai')
       navigate('/food', { state: { logged: true } })
     } finally {
       setSaving(false)
@@ -182,10 +269,11 @@ export function FoodVoice() {
         options={(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((m) => ({ value: m, label: t(`meal.${m}`) }))}
       />
 
-      {SpeechRecognition ? (
+      {SpeechRecognition || CAN_RECORD ? (
         <div className="grid justify-items-center gap-2 py-2">
           <button
             onClick={listen}
+            disabled={transcribing}
             className={cx(
               'grid size-28 place-items-center rounded-full text-white shadow-lg transition dark:text-black',
               listening ? 'animate-pulse bg-danger' : 'bg-brand active:scale-95',
@@ -194,7 +282,7 @@ export function FoodVoice() {
           >
             {listening ? <Square className="size-10" aria-hidden /> : <Mic className="size-12" aria-hidden />}
           </button>
-          <p className="text-center text-lg font-semibold">{listening ? t('voice.listening') : t('voice.speak')}</p>
+          <p className="text-center text-lg font-semibold">{transcribing ? t('voice.transcribing') : listening ? t(SpeechRecognition ? 'voice.listening' : 'voice.recording') : t('voice.speak')}</p>
           <p className="text-center text-sm text-ink-3">{t('voice.example')}</p>
           {micError ? <p className="rounded-2xl bg-danger-soft p-3 text-sm">{t('voice.micBlocked')}</p> : null}
         </div>
@@ -212,15 +300,38 @@ export function FoodVoice() {
         <textarea
           ref={textRef}
           value={text}
-          autoFocus={!SpeechRecognition}
+          autoFocus={!SpeechRecognition && !CAN_RECORD}
           rows={3}
           onChange={(e) => {
+            setUntidy(null)
             setText(e.target.value)
             reset()
           }}
           className="w-full rounded-2xl border border-line bg-card px-4 py-3 text-lg outline-none focus:border-sky"
         />
       </Field>
+
+      {/* The AI puts dictated words in order: one food and its amount per line, mistakes fixed. */}
+      {text.trim() && !listening ? (
+        <div className="-mt-2 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={() => void tidy()} loading={tidying} disabled={transcribing}>
+            <Wand2 className="size-4" aria-hidden /> {t('voice.tidy')}
+          </Button>
+          {untidy !== null ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setText(untidy)
+                setUntidy(null)
+                reset()
+              }}
+            >
+              <Undo2 className="size-4" aria-hidden /> {t('voice.untidy')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {!items ? (
         <Button size="lg" block onClick={() => analyse()} loading={busy} disabled={!text.trim() || listening}>
@@ -259,6 +370,7 @@ export function FoodVoice() {
                       <p className="text-sm text-ink-2">
                         {adjust ? `${it.kcal} kcal · P ${it.protein_g} · C ${it.carbs_g} · F ${it.fat_g}` : `${num(it.grams)} g · ${it.kcal} kcal`}
                       </p>
+                      {it.usual ? <p className="text-xs font-semibold text-leaf">★ {t('food.usual')}</p> : null}
                     </div>
                     {/* Quantities change only when asked for: one less thing to look at. */}
                     {adjust ? (

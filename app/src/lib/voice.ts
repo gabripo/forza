@@ -275,8 +275,15 @@ const INDEX: Alias[] = (() => {
   return out.sort((a, b) => b.stems.length - a.stems.length)
 })()
 
+/** A name as stored for matching: lower case, no accents, single spaces ("Mozzarella Bufala!" → "mozzarella bufala"). */
+export const nameKey = (name: string) => words(name).join(' ')
+
+/** The words that name a food, singular and plural alike: no filler, amounts or descriptions such as "cooked". */
+export const nameStems = (name: string) => words(name).filter((w) => !FILLER.has(w) && !DESCRIPTIONS.has(stem(w)) && Number.isNaN(Number(w)) && !isUnit(w)).map(stem)
+
 export interface VoiceResult {
-  items: (FoodItem & { foodId: string })[]
+  /** `said`: the words that named the food; `amountSaid`: whether an amount was said (else a typical portion). */
+  items: (FoodItem & { foodId: string; said: string; amountSaid: boolean })[]
   /** Parts of the sentence that did not match a known food. */
   unknown: string[]
 }
@@ -321,8 +328,9 @@ export function parseMeal(text: string, locale: Locale): VoiceResult {
       const before = ws.slice(k ? hits[k - 1].end : 0, h.start)
       const after = ws.slice(h.end, hits[k + 1]?.start ?? ws.length)
       const portion = h.portion ?? h.food.portion
-      const grams = Math.round(amount(before, h.food, portion) ?? amount(after, h.food, portion) ?? portion)
-      items.push({ foodId: h.food.id, name: h.food.name[locale], grams, ...foodAt(h.food, grams) })
+      const given = amount(before, h.food, portion) ?? amount(after, h.food, portion)
+      const grams = Math.round(given ?? portion)
+      items.push({ foodId: h.food.id, said: ws.slice(h.start, h.end).join(' '), amountSaid: given !== null, name: h.food.name[locale], grams, ...foodAt(h.food, grams) })
     })
   }
   return { items, unknown }

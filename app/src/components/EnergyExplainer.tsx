@@ -104,7 +104,15 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
 
       <Step n={4} title={t('food.explain.s4', { goal: t(`goal.${goal}`) })}>
         <p className="text-ink-2">{t(`food.explain.goal.${goal}`)}</p>
-        {bws ? (
+        {profile.kcal_source === 'manual' && profile.kcal_target ? (
+          <>
+            <p className="rounded-2xl bg-sky-soft p-3 text-sm">{t('food.explain.byHand')}</p>
+            <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
+              <Row label={t('food.explain.tdee')} value={kcal(tdee.tdee)} />
+              <Row label={t('food.explain.byHandRow')} value={kcal(targets.kcal)} strong />
+            </ul>
+          </>
+        ) : bws ? (
           <>
             <p className="rounded-2xl bg-sky-soft p-3 text-sm">{t('food.explain.bws', { range: range(bws.kcal) })}</p>
             <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">

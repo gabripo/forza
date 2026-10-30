@@ -4,16 +4,30 @@ import { useI18n } from '../lib/i18n'
 import type { Exercise } from '../lib/types'
 import { cx } from './ui'
 
-/** Start and end photos shown in turn, so the movement reads like a slow animation. */
+const isVideo = (url: string) => /\.(mp4|webm|mov)(\?|#|$)/i.test(url)
+
+/**
+ * Start and end photos shown in turn, so the movement reads like a slow animation; a GIF moves by itself,
+ * and a video (set by the coach) plays on a loop without sound.
+ */
 export function ExerciseMedia({ exercise, className, still }: { exercise: Exercise | undefined; className?: string; still?: boolean }) {
   const [frame, setFrame] = useState(0)
-  const images = exercise?.images ?? []
+  const media = exercise?.images ?? []
+  const video = media.find(isVideo)
+  const images = video ? [] : media
   useEffect(() => {
     if (still || images.length < 2) return
     const id = window.setInterval(() => setFrame((f) => (f + 1) % images.length), 1100)
     return () => window.clearInterval(id)
   }, [still, images.length])
 
+  if (video) {
+    return (
+      <div className={cx('relative aspect-[3/2] overflow-hidden rounded-2xl bg-white', className)}>
+        <video src={video} autoPlay={!still} muted loop playsInline preload="metadata" className="absolute inset-0 size-full object-contain" />
+      </div>
+    )
+  }
   if (!images.length) {
     return (
       <div className={cx('grid aspect-[3/2] place-items-center rounded-2xl bg-card-2 text-ink-3', className)}>

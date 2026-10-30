@@ -7,8 +7,9 @@ import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented
 import { useApp } from '../../lib/auth'
 import { round1, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, estimatePlate, uploadFoodPhoto, type AiPlate } from '../../lib/data'
+import { plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import type { FoodItem, Meal } from '../../lib/types'
+import type { Meal } from '../../lib/types'
 import { compressPhoto as compress } from '../../lib/image'
 import { useEnergy } from '../../lib/useEnergy'
 
@@ -25,7 +26,8 @@ export function FoodSnap() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AiPlate | null>(null)
-  const [items, setItems] = useState<FoodItem[]>([])
+  const [items, setItems] = useState<(LoggedItem & { usual?: boolean })[]>([])
+  useFoodDb()
   const [title, setTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [details, setDetails] = useState(false)
@@ -49,7 +51,8 @@ export function FoodSnap() {
       }
       setResult(r)
       setTitle(r.title)
-      setItems(r.items.map((i) => ({ ...i, grams: Math.round(i.grams) })))
+      // A food the person usually has (a product they logged) stands for what the AI saw: their mozzarella.
+      setItems(r.items.map((i) => withUsual({ ...i, grams: Math.round(i.grams), origin: 'ai' as const }, i.name)))
     } catch (e) {
       const code = (e as Error).message
       setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
@@ -73,6 +76,7 @@ export function FoodSnap() {
           fat_g: round1(x.fat_g * k),
           fiber_g: round1(x.fiber_g * k),
           sugar_g: round1(x.sugar_g * k),
+          ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}),
         }
       }),
     )
@@ -95,7 +99,7 @@ export function FoodSnap() {
         eaten_at: now.toISOString(),
         meal,
         title: title.trim() || result.title,
-        items,
+        items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
         score_muscle_gain: s.muscleGain,
@@ -103,6 +107,7 @@ export function FoodSnap() {
         source: 'ai',
         ai_notes: result.tip,
       })
+      rememberItems(items, 'ai')
       navigate('/food', { state: { logged: true } })
     } finally {
       setSaving(false)
@@ -198,6 +203,7 @@ export function FoodSnap() {
                         <p className="text-sm text-ink-2">
                           {it.kcal} kcal · P {it.protein_g} · C {it.carbs_g} · F {it.fat_g}
                         </p>
+                        {it.usual ? <p className="text-xs font-semibold text-leaf">★ {t('food.usual')}</p> : null}
                       </div>
                       <div className="w-20">
                         <NumberInput decimals={false} value={it.grams} onChange={(v) => setGrams(i, v)} aria-label={t('snap.grams', { name: it.name })} />

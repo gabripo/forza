@@ -15,6 +15,8 @@ export interface Food {
   fiber: number
   sugar: number
   portion: number
+  /** Salt, g per 100 g (sodium × 2.5). */
+  salt: number
   /** Optional unit name for the portion, e.g. "1 egg". */
   unit?: L10n
 }
@@ -268,6 +270,34 @@ const ROWS: Row[] = [
   ['liqueur', 'Liqueur / amaro', 'Amaro / liquore', 'drinks', 280, 0, 30, 0, 0, 28, 40, '1 small glass', '1 bicchierino'],
 ]
 
+/**
+ * Salt in grams per 100 g, typical values (CREA and USDA tables, Italian labels for cured meats and cheeses;
+ * dishes, cooked pasta, rice and legumes as salted at home). Foods not listed have almost none.
+ */
+const SALT: Record<string, number> = {
+  chicken_breast: 0.2, turkey_breast: 0.2, lean_beef: 0.15, salmon: 0.15, white_fish: 0.25, tuna_water: 1, tuna_oil: 0.9, egg: 0.35, egg_white: 0.42,
+  bresaola: 4.4, prosciutto: 5, cooked_ham: 2, whey: 0.5, turkey_burger: 1.2, chicken_burger: 1.2, beef_burger: 0.9, chicken_thigh: 0.25, pork_loin: 0.15,
+  sausage: 2, veal: 0.2, rabbit: 0.15, lamb: 0.2, roast_beef: 1.2, salami: 4.5, mortadella: 2.5, speck: 5, frankfurter: 2.2, deli_turkey: 2,
+  tuna_fresh: 0.1, swordfish: 0.25, sea_bream: 0.2, trout: 0.15, mackerel: 0.25, sardines: 0.3, sardines_oil: 1, mackerel_oil: 1, smoked_salmon: 3,
+  prawns: 0.5, mussels: 0.7, clams: 0.9, squid: 0.6, octopus: 0.6, protein_bar: 0.5,
+  greek_yogurt_0: 0.1, greek_yogurt: 0.1, skyr: 0.1, yogurt: 0.13, cottage: 0.9, ricotta: 0.2, mozzarella: 0.5, parmesan: 1.6, milk: 0.11, stracchino: 1.2,
+  gorgonzola: 1.8, pecorino: 4.5, feta: 2.8, scamorza: 1.2, emmental: 1, burrata: 0.5, cream_cheese: 0.8, fruit_yogurt: 0.12, kefir: 0.1, whole_milk: 0.11,
+  skim_milk: 0.11, soy_drink: 0.1, oat_drink: 0.1, cream: 0.08,
+  lentils: 0.4, chickpeas: 0.5, beans: 0.5, peas: 0.3, veggie_burger: 1.2, broad_beans: 0.3, lupins: 2, edamame: 0.1, seitan: 1, hummus: 1,
+  pasta_cooked: 0.4, rice_cooked: 0.3, bread: 1.3, bread_wholegrain: 1.2, potatoes: 0.2, rusks: 1.2, focaccia: 2, piadina: 1.8, crackers: 2, breadsticks: 2,
+  sandwich_bread: 1.2, rice_cakes: 0.6, cornflakes: 1.6, muesli: 0.2, granola: 0.3, gnocchi: 1, tortellini: 1.5, ravioli: 1, couscous: 0.3, polenta: 0.4,
+  brown_rice: 0.3, sweet_potato: 0.1, corn: 0.6,
+  broccoli: 0.08, carrots: 0.15, spinach: 0.2, mixed_veg: 0.1, tomato_sauce: 0.9, cauliflower: 0.08, fennel: 0.1, artichokes: 0.25, rocket: 0.07, greens_cooked: 0.3,
+  peanut_butter: 1, olives: 3.5, pesto: 2, mayonnaise: 1.4, pistachios: 1, peanuts: 1,
+  biscuits: 0.8, croissant: 0.9, pizza: 1.6, ice_cream: 0.2, pizza_slice: 1.8, ketchup: 2.5, hazelnut_spread: 0.1, milk_chocolate: 0.25, wholegrain_biscuits: 0.8,
+  jam_tart: 0.3, cake: 0.6, tiramisu: 0.2, panettone: 0.5, snack_cake: 0.6, cereal_bar: 0.4, crisps: 1.4, popcorn: 1.5, pudding: 0.2,
+  cappuccino: 0.1, hot_chocolate: 0.2,
+  pasta_tomato: 0.8, pasta_ragu: 0.9, pasta_pesto: 1, carbonara: 1.3, pasta_clams: 1, pasta_beans: 0.8, pasta_chickpeas_dish: 0.8, lasagne: 1, risotto: 0.8,
+  minestrone: 0.7, veg_cream_soup: 0.7, parmigiana: 1, frittata: 0.8, caprese: 0.6, meatballs: 1.2, chicken_cutlet: 1, fish_fingers: 0.8, fried_squid: 1,
+  grilled_veg: 0.4, roast_potatoes: 0.7, mashed_potatoes: 0.7, fries: 0.8, toast_ham_cheese: 1.7, tramezzino: 1.3, burger_sandwich: 1.2, kebab: 1.4, sushi: 0.9,
+  arancino: 1, ragu: 1,
+}
+
 export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs, fat, fiber, sugar, portion, uen, uit]) => ({
   id,
   name: { en, it },
@@ -279,6 +309,7 @@ export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs,
   fiber,
   sugar,
   portion,
+  salt: SALT[id] ?? (group === 'fruit' || group === 'drinks' || group === 'fats' ? 0 : 0.05),
   unit: uen ? { en: uen, it: uit ?? uen } : undefined,
 }))
 
@@ -291,5 +322,5 @@ export const PROCESSED_FOODS = new Set([
 export function foodAt(food: Food, grams: number) {
   const k = grams / 100
   const r = (n: number) => Math.round(n * k * 10) / 10
-  return { kcal: Math.round(food.kcal * k), protein_g: r(food.protein), carbs_g: r(food.carbs), fat_g: r(food.fat), fiber_g: r(food.fiber), sugar_g: r(food.sugar) }
+  return { kcal: Math.round(food.kcal * k), protein_g: r(food.protein), carbs_g: r(food.carbs), fat_g: r(food.fat), fiber_g: r(food.fiber), sugar_g: r(food.sugar), salt_g: Math.round(food.salt * k * 100) / 100 }
 }

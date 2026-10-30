@@ -52,7 +52,7 @@ What `install` does, through the [Supabase Management API](https://supabase.com/
 1. applies the files in `supabase/migrations/` that the project does not have yet, each one in a single
    transaction, recording them in `supabase_migrations.schema_migrations` (the same table the Supabase CLI
    uses, so both tools can manage one project);
-2. deploys `supabase/functions/food-estimate`, `health-ingest` and `bws-ingest` with JWT verification off
+2. deploys `supabase/functions/food-estimate`, `food-search`, `health-ingest` and `bws-ingest` with JWT verification off
    (all three check the caller themselves);
 3. closes public sign-ups, sets one-time sign-in links to last 24 hours, and adds the app address to the
    allowed redirect URLs;
@@ -92,6 +92,7 @@ supabase login
 supabase link --project-ref <project-ref>
 supabase db push --linked
 supabase functions deploy food-estimate --no-verify-jwt
+supabase functions deploy food-search --no-verify-jwt
 supabase functions deploy health-ingest --no-verify-jwt
 supabase functions deploy bws-ingest --no-verify-jwt
 supabase secrets set GEMINI_API_KEY=AIza…
@@ -195,6 +196,7 @@ Add `COACH_URL=<the link Coach prints with --local>` for the Coach pictures.
 Checks (also run by CI): `cd app && npx tsc -b && npm run lint && npm run build`, `cd coach && npm test`,
 `deno check supabase/functions/*/index.ts`.
 
-After changing the built-in lessons, tips, references or foods, run `cd app && npm run export-knowledge`
-and commit `shared/knowledge.json` and `shared/foods.json`: Forza! Coach reads them (it edits lessons and
-adds meals but cannot read the app's TypeScript), and CI fails if they are out of date.
+After changing the built-in lessons, tips, references, foods or the target and score calculations
+(`app/src/lib/calc.ts`, `energy.ts`), run `cd app && npm run export-knowledge` and commit `shared/knowledge.json`,
+`shared/foods.json` and `shared/energy.mjs`: Forza! Coach reads them (it cannot read the app's TypeScript), and
+CI fails if they are out of date.
