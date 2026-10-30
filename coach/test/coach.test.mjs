@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { parseNodes, parsePower } from '../lib/adb.mjs'
 import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } from '../lib/bws-convert.mjs'
-import { BwsExtractor, cleanName, monthsSince } from '../lib/bws-extract.mjs'
+import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
 
 test('session ids match the first import (re-importing never duplicates)', () => {
@@ -249,5 +249,12 @@ test('food log: every meal and food of a day, each under its own meal while scro
   assert.equal(lunch.items[2].grams, 300)
   // Same day and meal → same id, so reading the day again replaces it.
   assert.equal(convertFood([{ date: 'Oct 29', meals }], new Date(2026, 9, 30, 9))[1].id, lunch.id)
+})
+
+test("food log: today's targets from the top of the screen", () => {
+  const n = (x, y, label) => ({ x, y, top: y - 20, bottom: y + 20, label, click: false })
+  const top = [n(169, 496, '1340'), n(425, 518, '/ 2350-2450 cal'), n(211, 716, 'Protein'), n(540, 716, 'Carbs'), n(868, 716, 'Fat'), n(234, 805, '113 / 109-184g+'), n(517, 805, '170 / 207-388g'), n(818, 805, '19 / 46-93g')]
+  assert.deepEqual(foodTargets(top), { kcal: [2350, 2450], protein: [109, 184], carbs: [207, 388], fat: [46, 93] })
+  assert.equal(foodTargets([n(540, 300, 'Breakfast, 513 Cal, 39 P, 72 C, 8 F')]), null)
 })
 

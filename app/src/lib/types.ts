@@ -1,5 +1,7 @@
 export type Locale = 'en' | 'it'
 export type Goal = 'fat_loss' | 'muscle_gain' | 'maintain'
+/** How fast to go towards the goal. */
+export type Pace = 'slow' | 'normal' | 'fast'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
 export type Sex = 'male' | 'female'
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -25,6 +27,14 @@ export interface Profile {
   onboarded_at: string | null
   /** Weekly check-in correction on top of the estimated energy needs (kcal). */
   kcal_adjust: number
+  goal_pace: Pace
+  /** kcal a day added by the person or their coach, on top of the weekly check-ins. */
+  kcal_manual: number
+  /** 'forza': worked out by Forza!; 'bws': the target Build With Science shows (read on the phone). */
+  kcal_source: 'forza' | 'bws'
+  /** Build With Science's daily targets, as ranges: { kcal: [2350, 2450], protein: [109, 184], … } */
+  bws_targets: { kcal: [number, number]; protein?: [number, number]; carbs?: [number, number]; fat?: [number, number] } | null
+  bws_targets_at: string | null
   kcal_checkin_at: string | null
   /** The Train tab and training cards are hidden (people who never log training in the app). */
   hide_training: boolean

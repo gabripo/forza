@@ -279,6 +279,7 @@ function planView() {
       <div class="row" style="margin-top:10px">
         <button class="btn secondary" data-action="ex-add" data-plan="${ti}">+ Exercise</button>
         <span style="flex:1"></span>
+        ${t.id && others.length ? `<select id="copy-to-${ti}" title="Copy this workout to">${others.map((u) => `<option value="${esc(u.id)}">${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select><button class="btn secondary" data-action="tpl-copy" data-plan="${ti}">Copy to</button>` : ''}
         ${t.id ? `<button class="btn secondary" data-action="tpl-versions" data-plan="${ti}">Versions</button><button class="btn danger" data-action="tpl-del" data-plan="${ti}">Remove workout</button>` : ''}
         <button class="btn" data-action="tpl-save" data-plan="${ti}">Save</button>
       </div>
@@ -557,6 +558,9 @@ function profileView(d) {
         <label class="field">Experience${opt('experience', ['beginner', 'intermediate'], ['Beginner', 'Some experience'])}</label>
         <label class="field">Workouts a week<input name="workouts_per_week" inputmode="numeric" value="${esc(p.workouts_per_week ?? 3)}"></label>
         <label class="field">Daily steps goal<input name="steps_goal" inputmode="numeric" value="${esc(p.steps_goal ?? 7000)}"></label>
+        <label class="field">Pace towards the goal${opt('goal_pace', ['slow', 'normal', 'fast'], ['Slow (fat loss −250 · muscle +150 kcal/day)', 'Normal (−500 · +250 kcal/day)', 'Fast (−750 · +400 kcal/day)'])}</label>
+        <label class="field">Calorie adjustment (kcal/day)<input name="kcal_manual" inputmode="numeric" value="${esc(p.kcal_manual ?? 0)}" title="Added every day to what Forza! works out; negative to lower it"></label>
+        <label class="field">Calorie target from<select name="kcal_source"><option value="forza" ${p.kcal_source === 'bws' ? '' : 'selected'}>Forza! (worked out from their data)</option><option value="bws" ${p.kcal_source === 'bws' ? 'selected' : ''} ${p.bws_targets ? '' : 'disabled'}>Build With Science${p.bws_targets?.kcal ? ` (${p.bws_targets.kcal[0]}–${p.bws_targets.kcal[1]} kcal, read ${fmtDate(p.bws_targets_at)})` : ' (not read yet: needs a workout sync on their phone)'}</option></select></label>
         <label class="field">Training section<select name="hide_training"><option value="false" ${p.hide_training ? '' : 'selected'}>Shown</option><option value="true" ${p.hide_training ? 'selected' : ''}>Hidden (never logs workouts in the app)</option></select></label>
       </div>
       ${p.onboarded_at ? `<p class="muted small">Set-up done on ${fmtDate(p.onboarded_at)}.</p>` : '<label class="row small"><input type="checkbox" name="finish_setup" value="1"> Set-up done: they go straight to the home screen</label>'}
@@ -985,10 +989,19 @@ app.addEventListener('click', async (e) => {
     }
     if (action === 'plan-copy') {
       const from = document.getElementById('copy-from').value
-      if (!confirm('Add a copy of that person’s whole plan to this person?')) return
+      if (!confirm('Copy that person’s whole plan here? Workouts with the same name are replaced; starting weights are not copied.')) return
       const r = await api(`/api/users/${state.selected}/copy-plan`, { method: 'POST', body: { from } })
-      toast(`Copied ${r.copied} workouts`)
+      toast(`Copied ${r.copied} workouts (${r.added} new, ${r.replaced} replaced)`)
       return selectUser(state.selected)
+    }
+    if (action === 'tpl-copy') {
+      const t = state.data.templates[Number(btn.dataset.plan)]
+      const select = document.getElementById(`copy-to-${btn.dataset.plan}`)
+      const name = select.selectedOptions[0]?.textContent
+      if (!confirm(`Copy "${t.name}" to ${name}'s plan? A workout with the same name there is replaced; starting weights are not copied.`)) return
+      const r = await api(`/api/users/${state.selected}/copy-workouts`, { method: 'POST', body: { to: select.value, ids: [t.id] } })
+      toast(r.replaced ? `Replaced "${t.name}" in ${name}'s plan` : `Added "${t.name}" to ${name}'s plan`)
+      return
     }
     if (action === 'override-save') {
       const row = app.querySelector(`[data-row="${CSS.escape(btn.dataset.id)}"]`)

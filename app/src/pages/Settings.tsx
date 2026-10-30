@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom'
 import { Button, Card, Field, Input, NumberInput, PageHeader, Segmented } from '../components/ui'
 import { useApp } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
-import type { ActivityLevel, Goal, Locale, Profile, Sex } from '../lib/types'
+import { PACE_KCAL } from '../lib/calc'
+import type { ActivityLevel, Goal, Locale, Pace, Profile, Sex } from '../lib/types'
 
 export function Settings() {
-  const { t } = useI18n()
+  const { t, num } = useI18n()
   const { profile, saveProfile, signOut, session } = useApp()
   const [draft, setDraft] = useState<Profile | null>(profile)
   const [busy, setBusy] = useState(false)
@@ -22,8 +23,8 @@ export function Settings() {
     if (!draft) return
     setBusy(true)
     try {
-      const { display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training } = draft
-      await saveProfile({ display_name, locale, sex, birth_year, height_cm, goal, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training })
+      const { display_name, locale, sex, birth_year, height_cm, goal, goal_pace, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training } = draft
+      await saveProfile({ display_name, locale, sex, birth_year, height_cm, goal, goal_pace, activity_level, target_weight_kg, workouts_per_week, steps_goal, experience, hide_training })
       setSaved(true)
     } finally {
       setBusy(false)
@@ -87,6 +88,15 @@ export function Settings() {
               options={(['fat_loss', 'muscle_gain', 'maintain'] as const).map((g) => ({ value: g, label: t(`goal.${g}`) }))}
             />
           </Field>
+          {draft.goal && draft.goal !== 'maintain' ? (
+            <Field label={t('target.pace')} hint={t(`target.paceHint.${draft.goal}`, { kcal: num(Math.abs(PACE_KCAL[draft.goal][draft.goal_pace ?? 'normal'])), kg: num(Math.abs((PACE_KCAL[draft.goal][draft.goal_pace ?? 'normal'] * 7) / 7700), 2) })}>
+              <Segmented<Pace>
+                value={draft.goal_pace ?? 'normal'}
+                onChange={(v) => set('goal_pace', v)}
+                options={(['slow', 'normal', 'fast'] as const).map((p) => ({ value: p, label: t(`paceName.${p}`) }))}
+              />
+            </Field>
+          ) : null}
           <Field label={t('onb.activityTitle')}>
             <select
               value={draft.activity_level ?? 'light'}

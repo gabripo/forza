@@ -1,9 +1,10 @@
-import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, Mic, PenLine, Trash2 } from 'lucide-react'
+import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, Mic, PenLine, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { NextMealCard } from '../../components/NextMealCard'
+import { TargetSheet } from '../../components/TargetSheet'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../lib/calc'
@@ -24,6 +25,7 @@ export function FoodHome() {
   const [savingCheckin, setSavingCheckin] = useState(false)
   const [offset, setOffset] = useState(0)
   const [explain, setExplain] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
 
   if ((loading && !energy) || !profile) return <Loading />
   if (!energy) return null
@@ -233,9 +235,14 @@ export function FoodHome() {
       <Card
         title={t('food.energyTitle')}
         action={
-          <button onClick={() => setExplain(true)} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
-            <Info className="size-4" aria-hidden /> {t('food.how')}
-          </button>
+          <span className="flex gap-3">
+            <button onClick={() => setAdjusting(true)} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
+              <SlidersHorizontal className="size-4" aria-hidden /> {t('target.adjust')}
+            </button>
+            <button onClick={() => setExplain(true)} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
+              <Info className="size-4" aria-hidden /> {t('food.how')}
+            </button>
+          </span>
         }
       >
         <p className="text-ink-2">
@@ -244,6 +251,7 @@ export function FoodHome() {
         <p className="mt-1 text-sm text-ink-3">{t(`food.method.${energy.tdee.method}`)}</p>
       </Card>
 
+      <TargetSheet open={adjusting} onClose={() => setAdjusting(false)} onChanged={() => void reload()} />
       <Sheet open={explain} onClose={() => setExplain(false)} title={t('food.how')}>
         <EnergyExplainer energy={energy} profile={profile} />
       </Sheet>

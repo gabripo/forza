@@ -116,7 +116,11 @@ Deno.serve(async (req) => {
         if (gone.length) await admin.from('food_logs').delete().in('id', gone)
       }
       const now = new Date().toISOString()
-      await admin.from('profiles').update({ bws_synced_at: now }).eq('id', userId)
+      // Build With Science's daily targets (ranges), which the person may choose to follow in Forza!.
+      const t = file.bws_targets as Record<string, unknown> | null | undefined
+      const range = (v: unknown) => (Array.isArray(v) && v.length === 2 && v.every((n) => Number.isFinite(Number(n)) && Number(n) >= 0 && Number(n) < 10000) ? v.map(Number) : undefined)
+      const targets = t && range(t.kcal) ? { kcal: range(t.kcal), protein: range(t.protein), carbs: range(t.carbs), fat: range(t.fat) } : null
+      await admin.from('profiles').update({ bws_synced_at: now, ...(targets ? { bws_targets: targets, bws_targets_at: now } : {}) }).eq('id', userId)
       await admin.from('sync_tokens').update({ last_used_at: now }).eq('user_id', userId)
       return json(result)
     } catch (e) {

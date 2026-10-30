@@ -1,4 +1,4 @@
-import { adaptiveTdee, dailyTargets, dailyWeights, daysAgo, estimateTdee, localDay, weightTrend, type Targets, type TdeeEstimate } from './calc'
+import { adaptiveTdee, bwsTargets, dailyTargets, dailyWeights, daysAgo, estimateTdee, localDay, weightTrend, type Targets, type TdeeEstimate } from './calc'
 import type { SessionWithSets } from './data'
 import type { BodyWeight, DailySteps, FoodLog, Profile } from './types'
 
@@ -56,10 +56,11 @@ export function computeEnergy(
   }
 
   const tdee = estimateTdee({ profile, weightKg, avgSteps, workoutsPerWeek, avgWorkoutMinutes, adaptive })
+  const own = dailyTargets(profile, weightKg, tdee.tdee)
   return {
     weightKg,
     tdee,
-    targets: dailyTargets(profile, weightKg, tdee.tdee),
+    targets: bwsTargets(profile, own) ?? own,
     avgSteps,
     workoutsPerWeek,
     avgWorkoutMinutes,

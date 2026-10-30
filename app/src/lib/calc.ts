@@ -1,6 +1,6 @@
 // Health maths used across the app. Kept simple and explainable on purpose:
 // every number shown to the user can be traced back to one of these functions.
-import type { ActivityLevel, BodyWeight, FoodItem, Goal, Meal, Profile, SetLog } from './types'
+import type { ActivityLevel, BodyWeight, FoodItem, Goal, Meal, Pace, Profile, SetLog } from './types'
 
 export const DAY = 86_400_000
 
@@ -99,18 +99,45 @@ function proteinWeight(p: Profile, weightKg: number): number {
   return bmi > 30 ? 27 * h * h : weightKg
 }
 
+/**
+ * kcal a day added to (or taken from) the energy the body uses, per goal and pace. Normal fat loss is the
+ * classic 500 kcal a day: about 0.45 kg a week, since a kilo of body weight is about 7,700 kcal.
+ */
+export const PACE_KCAL: Record<Goal, Record<Pace, number>> = {
+  fat_loss: { slow: -250, normal: -500, fast: -750 },
+  muscle_gain: { slow: 150, normal: 250, fast: 400 },
+  maintain: { slow: 0, normal: 0, fast: 0 },
+}
+
+export const paceKcal = (p: Pick<Profile, 'goal' | 'goal_pace'>): number => PACE_KCAL[p.goal ?? 'maintain'][p.goal_pace ?? 'normal'] ?? 0
+
+/** The lowest daily target Forza! sets, whatever the goal. */
+export const kcalFloor = (p: Pick<Profile, 'sex'>): number => (p.sex === 'female' ? 1200 : 1500)
+
 export function dailyTargets(p: Profile, weightKg: number, tdee: number): Targets {
   const goal: Goal = p.goal ?? 'maintain'
-  const floor = p.sex === 'female' ? 1200 : 1500
-  const base = goal === 'fat_loss' ? Math.round(tdee * 0.8) : goal === 'muscle_gain' ? tdee + 250 : tdee
-  // Weekly check-ins nudge the target up or down based on what the scale really does.
-  const kcal = Math.max(floor, base + (p.kcal_adjust ?? 0))
+  const floor = kcalFloor(p)
+  const base = tdee + paceKcal(p)
+  // Weekly check-ins nudge the target up or down based on what the scale really does; the person or
+  // their coach can add their own adjustment on top.
+  const kcal = Math.max(floor, base + (p.kcal_adjust ?? 0) + (p.kcal_manual ?? 0))
   const perKg = goal === 'maintain' ? 1.4 : goal === 'fat_loss' ? 1.8 : 1.6
   const protein = Math.round(proteinWeight(p, weightKg) * (ageFrom(p.birth_year) >= 60 ? Math.max(perKg, 1.4) : perKg))
   const fat = Math.round((kcal * 0.3) / 9)
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   const fiber = Math.max(25, Math.round((kcal / 1000) * 14))
   return { kcal: Math.round(kcal / 10) * 10, protein_g: protein, fat_g: fat, carbs_g: carbs, fiber_g: fiber }
+}
+
+/**
+ * Build With Science's targets, for people who follow them: the middle of each range it shows (2,350–2,450
+ * kcal → 2,400). Fibre, which it does not show, stays Forza!'s.
+ */
+export function bwsTargets(p: Profile, own: Targets): Targets | null {
+  const t = p.bws_targets
+  if (p.kcal_source !== 'bws' || !t?.kcal) return null
+  const mid = (r?: [number, number]) => (r ? Math.round((r[0] + r[1]) / 2) : null)
+  return { kcal: mid(t.kcal) ?? own.kcal, protein_g: mid(t.protein) ?? own.protein_g, carbs_g: mid(t.carbs) ?? own.carbs_g, fat_g: mid(t.fat) ?? own.fat_g, fiber_g: own.fiber_g }
 }
 
 // ---------------------------------------------------------------------------
@@ -410,9 +437,6 @@ export function recordEvents(sets: SetLog[]): RecordEvent[] {
 // Weekly calorie check-in
 // ---------------------------------------------------------------------------
 
-/** Goal pace as % of body weight per week. */
-export const GOAL_PACE: Record<Goal, number> = { fat_loss: -0.5, muscle_gain: 0.25, maintain: 0 }
-
 export interface CalorieCheckin {
   due: boolean
   confidence: 'low' | 'medium' | 'high'
@@ -431,14 +455,16 @@ export interface CalorieCheckin {
 export function calorieCheckin(p: Profile, weights: BodyWeight[], now = new Date()): CalorieCheckin {
   const goal: Goal = p.goal ?? 'maintain'
   const last = p.kcal_checkin_at ? new Date(p.kcal_checkin_at) : p.onboarded_at ? new Date(p.onboarded_at) : now
-  const due = now.getTime() - last.getTime() >= 7 * DAY
+  // Build With Science adapts its own target: no check-in when the person follows it.
+  const due = p.kcal_source !== 'bws' && now.getTime() - last.getTime() >= 7 * DAY
   const since = localDay(daysAgo(21))
   const trend = weightTrend(dailyWeights(weights)).filter((x) => x.day >= since)
   const recent = trend.filter((x) => x.day >= localDay(daysAgo(14)))
   const span = trend.length ? (new Date(trend.at(-1)!.day).getTime() - new Date(trend[0].day).getTime()) / DAY : 0
   const confidence = recent.length >= 8 && span >= 14 ? 'high' : recent.length >= 4 && span >= 7 ? 'medium' : 'low'
   const weight = trend.at(-1)?.trend ?? Number(p.start_weight_kg ?? 70)
-  const goalKgPerWeek = (GOAL_PACE[goal] / 100) * weight
+  // The pace chosen for the goal, in kilos a week (7,700 kcal per kilo).
+  const goalKgPerWeek = Math.round(((paceKcal(p) * 7) / 7700) * 100) / 100
   const slope = slopePerWeek(trend.map((x) => ({ day: x.day, kg: x.trend })))
   if (confidence === 'low' || slope === null) {
     return { due, confidence, actualKgPerWeek: slope, goalKgPerWeek, change: 0, verdict: 'not_enough_data' }

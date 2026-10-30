@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
+import { copyWorkouts } from './lib/plans.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
 import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
 import { autostartEnabled, setAutostart } from './lib/autostart.mjs'
@@ -179,13 +180,16 @@ async function catalogue() {
   return { builtIn, custom: check(custom), overrides: check(overrides) }
 }
 
-const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training', 'home_order']
+const PROFILE_EDITABLE = ['display_name', 'locale', 'sex', 'birth_year', 'height_cm', 'goal', 'activity_level', 'experience', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'hide_training', 'home_order', 'goal_pace', 'kcal_manual', 'kcal_source']
 
 /** A coach can fill in the profile, so the person skips the questions on their phone. */
 async function saveProfile(id, body) {
   const patch = {}
   for (const k of PROFILE_EDITABLE) if (k in body) patch[k] = body[k] === '' ? null : body[k]
-  for (const k of ['birth_year', 'height_cm', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal']) if (patch[k] != null) patch[k] = Number(patch[k])
+  for (const k of ['birth_year', 'height_cm', 'start_weight_kg', 'target_weight_kg', 'workouts_per_week', 'steps_goal', 'kcal_manual']) if (patch[k] != null) patch[k] = Number(patch[k])
+  if ('kcal_manual' in patch) patch.kcal_manual = Math.max(-1500, Math.min(1500, Math.round(patch.kcal_manual ?? 0)))
+  if ('goal_pace' in patch) patch.goal_pace ??= 'normal'
+  if ('kcal_source' in patch) patch.kcal_source ??= 'forza'
   if ('hide_training' in patch) patch.hide_training = patch.hide_training === true || patch.hide_training === 'true'
   // The Home page order: complete and cleaned, or null for the default order.
   if ('home_order' in patch) patch.home_order = patch.home_order === null ? null : homeOrder(patch.home_order)
@@ -449,17 +453,10 @@ const routes = [
   ['POST', /^\/api\/users\/([\w-]+)\/templates$/, async (m, body) => check(await need().from('workout_templates').insert({ ...cleanTemplate(body), managed_by_admin: true, user_id: m[1] }).select().single())],
   ['PUT', /^\/api\/templates\/([\w-]+)$/, async (m, body) => check(await need().from('workout_templates').update({ ...cleanTemplate(body), managed_by_admin: true }).eq('id', m[1]).select().single())],
   ['DELETE', /^\/api\/templates\/([\w-]+)$/, async (m) => check(await need().from('workout_templates').update({ archived: true }).eq('id', m[1]).select().single())],
-  [
-    'POST',
-    /^\/api\/users\/([\w-]+)\/copy-plan$/,
-    async (m, body) => {
-      const db = need()
-      const source = check(await db.from('workout_templates').select('*').eq('user_id', body.from).eq('archived', false).order('position'))
-      const rows = source.map((t) => ({ ...cleanTemplate(t), managed_by_admin: true, user_id: m[1] }))
-      if (rows.length) check(await db.from('workout_templates').insert(rows))
-      return { copied: rows.length }
-    },
-  ],
+  // The whole plan of another person, into this person's plan.
+  ['POST', /^\/api\/users\/([\w-]+)\/copy-plan$/, (m, body) => copyWorkouts(need(), { from: body.from, to: m[1] })],
+  // Some workouts of this person, into another person's plan.
+  ['POST', /^\/api\/users\/([\w-]+)\/copy-workouts$/, (m, body) => copyWorkouts(need(), { from: m[1], to: body.to, ids: body.ids })],
   ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(need(), m[1], body, { byCoach: true })],
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
   ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],

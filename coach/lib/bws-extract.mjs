@@ -25,6 +25,25 @@ const FOOD_DAY_RE = /^(?:[A-Za-z]+, )?([A-Z][a-z]{2}) (\d{1,2})$/
 const MEAL_RE = /^(.+?), ([\d,.]+) Cal, ([\d,.]+) P, ([\d,.]+) C, ([\d,.]+) F$/
 const FOOD_RE = /^(.+), ([\d,.]+) cal, ([\d,.]+)g protein$/
 const number = (v) => Number(String(v).replace(/,/g, ''))
+// Today's targets at the top of the food log: "/ 2350-2450 cal" and "113 / 109-184g+" under Protein…
+const KCAL_TARGET_RE = /^\/ ([\d,]+)\s*-\s*([\d,]+) cal$/
+const MACRO_TARGET_RE = /^[\d,.]+ \/ ([\d,.]+)\s*-\s*([\d,.]+)g\+?$/
+
+/** Build With Science's daily targets as ranges, from the top of today's food log (null if not shown). */
+export function foodTargets(nodes) {
+  const kcal = nodes.map((n) => KCAL_TARGET_RE.exec(n.label)).find(Boolean)
+  if (!kcal) return null
+  const out = { kcal: [number(kcal[1]), number(kcal[2])] }
+  const heads = nodes.filter((n) => ['Protein', 'Carbs', 'Fat'].includes(n.label))
+  for (const n of nodes) {
+    const m = MACRO_TARGET_RE.exec(n.label)
+    if (!m || !heads.length) continue
+    // The value sits under its name: the closest name across.
+    const head = heads.reduce((a, b) => (Math.abs(b.x - n.x) < Math.abs(a.x - n.x) ? b : a))
+    out[head.label === 'Carbs' ? 'carbs' : head.label.toLowerCase()] = [number(m[1]), number(m[2])]
+  }
+  return out
+}
 const FULL_DAY = { SUN: 'Sunday', MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday', FRI: 'Friday', SAT: 'Saturday' }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -494,7 +513,7 @@ export class BwsExtractor {
  * Forza! already has through Health Connect: the arrow passes them without reading.
  * Returns [{ date: "Oct 29", meals: [{ name, kcal, protein, carbs, fat, items: [{ name, detail, kcal, protein }] }] }].
  */
-BwsExtractor.prototype.foodLog = async function ({ days, skip = () => false, onDay = () => {} }) {
+BwsExtractor.prototype.foodLog = async function ({ days, skip = () => false, onDay = () => {}, onTargets = () => {} }) {
   this.log('Reading the food log')
   await this.tab('Nutrition')
   // The app reopens on the last day looked at: start from today.
@@ -517,6 +536,11 @@ BwsExtractor.prototype.foodLog = async function ({ days, skip = () => false, onD
     const date = `${mon} ${day}`
     if (date === previous) break // the arrow did not move: no older days
     previous = date
+    // Today's calorie and macro targets, also when the day itself is not read.
+    if (header.label.startsWith('Today')) {
+      const targets = foodTargets(nodes)
+      if (targets) await onTargets(targets)
+    }
     if (!skip(date)) {
       const meals = await this.readFoodDay()
       out.push({ date, meals })

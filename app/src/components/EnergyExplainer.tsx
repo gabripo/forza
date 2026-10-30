@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ACTIVITY_FACTOR, ageFrom } from '../lib/calc'
+import { ACTIVITY_FACTOR, ageFrom, kcalFloor, paceKcal } from '../lib/calc'
 import type { Energy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import type { Profile } from '../lib/types'
@@ -39,9 +39,12 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
   const level = profile.activity_level ?? 'light'
   const kcal = (n: number) => `${num(n)} kcal`
   const signed = (n: number) => `${n > 0 ? '+' : '−'}${num(Math.abs(n))} kcal`
-  const goalBase = goal === 'fat_loss' ? Math.round(tdee.tdee * 0.8) : goal === 'muscle_gain' ? tdee.tdee + 250 : tdee.tdee
-  const floor = female ? 1200 : 1500
-  const floored = goalBase + (profile.kcal_adjust ?? 0) < floor
+  const pace = profile.goal_pace ?? 'normal'
+  const offset = paceKcal(profile)
+  const floor = kcalFloor(profile)
+  const floored = tdee.tdee + offset + (profile.kcal_adjust ?? 0) + (profile.kcal_manual ?? 0) < floor
+  const bws = profile.kcal_source === 'bws' && profile.bws_targets?.kcal ? profile.bws_targets : null
+  const range = (r?: [number, number]) => (r ? `${num(r[0])}–${num(r[1])}` : '')
 
   return (
     <div className="grid gap-5">
@@ -101,14 +104,26 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
 
       <Step n={4} title={t('food.explain.s4', { goal: t(`goal.${goal}`) })}>
         <p className="text-ink-2">{t(`food.explain.goal.${goal}`)}</p>
-        <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
-          <Row label={t('food.explain.tdee')} value={kcal(tdee.tdee)} />
-          {goal !== 'maintain' ? <Row label={t(`food.explain.goalRow.${goal}`)} value={signed(goalBase - tdee.tdee)} /> : null}
-          {profile.kcal_adjust ? <Row label={t('food.explain.checkins')} value={signed(profile.kcal_adjust)} /> : null}
-          {floored ? <Row label={t('food.explain.floor', { kcal: num(floor) })} value={kcal(floor)} /> : null}
-          <Row label={t('food.explain.target', { goal: t(`goal.${goal}`) })} value={kcal(targets.kcal)} strong />
-        </ul>
-        <p className="text-sm text-ink-3">{t('food.explain.s4note')}</p>
+        {bws ? (
+          <>
+            <p className="rounded-2xl bg-sky-soft p-3 text-sm">{t('food.explain.bws', { range: range(bws.kcal) })}</p>
+            <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
+              <Row label={t('food.explain.bwsRow', { range: range(bws.kcal) })} value={kcal(targets.kcal)} strong />
+            </ul>
+          </>
+        ) : (
+          <>
+            <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
+              <Row label={t('food.explain.tdee')} value={kcal(tdee.tdee)} />
+              {goal !== 'maintain' ? <Row label={t('food.explain.paceRow', { goal: t(`goal.${goal}`), pace: t(`pace.${pace}`) })} value={signed(offset)} /> : null}
+              {profile.kcal_adjust ? <Row label={t('food.explain.checkins')} value={signed(profile.kcal_adjust)} /> : null}
+              {profile.kcal_manual ? <Row label={t('food.explain.manual')} value={signed(profile.kcal_manual)} /> : null}
+              {floored ? <Row label={t('food.explain.floor', { kcal: num(floor) })} value={kcal(floor)} /> : null}
+              <Row label={t('food.explain.target', { goal: t(`goal.${goal}`) })} value={kcal(targets.kcal)} strong />
+            </ul>
+            <p className="text-sm text-ink-3">{t('food.explain.s4note')}</p>
+          </>
+        )}
       </Step>
 
       <Step n={5} title={t('food.explain.s5')}>

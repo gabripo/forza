@@ -104,7 +104,14 @@ async function run() {
       const d = sessionDate(label)
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     }
-    raw.food = await x.foodLog({ days: c.food.days, skip: (label) => fromHealthConnect.has(iso(label)) })
+    raw.food = await x.foodLog({
+      days: c.food.days,
+      skip: (label) => fromHealthConnect.has(iso(label)),
+      // Build With Science's daily target, which the person can follow in Forza!.
+      onTargets: (targets) => {
+        raw.bwsTargets = targets
+      },
+    })
     raw.foodDays = raw.food.map((d) => iso(d.date))
   }
 
@@ -112,7 +119,7 @@ async function run() {
   const catalogue = await (await fetch('exercises.json')).json()
   const file = convert(raw, catalogue, { knownSessions: c.recent ?? [] })
   const fresh = new Set(convert({ sessions: raw.sessions }, catalogue).sessions.map((s) => s.id))
-  const upload = { ...file, sessions: file.sessions.filter((s) => fresh.has(s.id)), templates: c.plan ? file.templates : [], food_days: raw.foodDays ?? [] }
+  const upload = { ...file, sessions: file.sessions.filter((s) => fresh.has(s.id)), templates: c.plan ? file.templates : [], food_days: raw.foodDays ?? [], bws_targets: raw.bwsTargets ?? null }
   if (!c.plan) delete upload.profile
   return { file: upload, plan: raw.plan ?? null, read: raw.sessions.length }
 }
