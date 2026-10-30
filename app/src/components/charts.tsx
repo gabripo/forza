@@ -151,6 +151,10 @@ export function LineChart({
             </text>
           </g>
         ) : null}
+        {/* Raw measurements under the lines, so a trend line stays readable across a cloud of dots. */}
+        {series.map((s) =>
+          s.style === 'dots' ? s.points.map((p) => <circle key={s.id + p.t} cx={x(p.t)} cy={y(p.v)} r={3.5} fill={s.color} stroke="var(--chart-surface)" strokeWidth={2} />) : null,
+        )}
         {series.map((s) =>
           s.style !== 'dots' && s.points.length > 1 ? (
             <path
@@ -164,11 +168,10 @@ export function LineChart({
             />
           ) : null,
         )}
+        {/* A line's own markers sit on it. */}
         {series.map((s) =>
-          s.style !== 'line' || s.points.length === 1
-            ? s.points.map((p) => (
-                <circle key={s.id + p.t} cx={x(p.t)} cy={y(p.v)} r={s.style === 'dots' ? 3.5 : 4} fill={s.color} stroke="var(--chart-surface)" strokeWidth={2} />
-              ))
+          s.style === 'both' || (s.style === 'line' && s.points.length === 1)
+            ? s.points.map((p) => <circle key={s.id + p.t} cx={x(p.t)} cy={y(p.v)} r={4} fill={s.color} stroke="var(--chart-surface)" strokeWidth={2} />)
             : null,
         )}
         {/* direct label at the end of the main line */}
