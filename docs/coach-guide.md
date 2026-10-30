@@ -116,7 +116,13 @@ On their phone, in Forza!: **Settings → Connect Health & scale**, then:
 - **iPhone**: follow the link to the **Forza Sync** shortcut ([guide](apple-shortcut.md)) and set it to
   run every day.
 - **Eufy (or any smart scale)**: in the EufyLife app, turn on **Health Connect** (Android) or **Apple Health**
-  (iPhone) for weight. Forza! picks the weigh-ins up from there.
+  (iPhone) for weight. Forza! picks the weigh-ins up from there. On Android, Bluetooth must be on and EufyLife
+  allowed *Nearby devices*, or the scale never reaches the phone.
+- **Past weigh-ins**: in EufyLife, **Me → Settings → Export data** gives a CSV file with the whole family. In
+  Coach, open a person → **Import** → **Weigh-ins from a file**, choose the file and pick who each member is
+  (people with the same name are chosen for you). Weigh-ins already in Forza! are skipped, so importing again
+  adds only new ones. Any CSV with a date and a weight column works; they can also import it themselves in
+  Forza! → **Weight → Import CSV**.
 
 Once weigh-ins arrive from a scale, the **Log weight** button leaves their Home page (one less thing to do).
 To weigh in by hand, the app reminds them of the rule that makes weights comparable: just woken up, after

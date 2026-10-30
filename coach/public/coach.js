@@ -1006,12 +1006,36 @@ function homeOrderView(d) {
   </div>`
 }
 
+/** Weigh-ins from a CSV file: who is in it, and which person each member is. */
+function weightsCsvCard() {
+  const w = state.weightsCsv
+  const people = state.users ?? []
+  const day = (d) => fmtDate(d, { day: 'numeric', month: 'short', year: 'numeric' })
+  return `<div class="card"><h2>Weigh-ins from a file (EufyLife and others)</h2>
+    <p class="muted small">In EufyLife: Me → Settings → Export data (or "Esporta dati"), then choose the file here. Other apps and spreadsheets work too: a date column and a weight column are enough. A file with the whole family is fine: choose who each member is. Weigh-ins already in Forza! are skipped.</p>
+    <label class="btn secondary" style="display:inline-block">Choose a CSV file<input type="file" id="weights-csv" accept=".csv,text/csv,text/plain" hidden></label>
+    ${
+      w
+        ? `<table style="margin-top:10px"><thead><tr><th>In the file</th><th class="num">Weigh-ins</th><th>From – to</th><th>Import into</th></tr></thead><tbody>
+        ${w.members
+          .map(
+            (m) => `<tr><td><b>${esc(m.member ?? 'Everyone in the file')}</b>${m.withFat ? `<div class="small muted">${m.withFat} with body fat</div>` : ''}</td><td class="num">${m.count}</td><td class="small">${day(m.from)} – ${day(m.to)}</td>
+          <td><select data-wcsv="${esc(m.member ?? '')}"><option value="">Don't import</option>${people.map((u) => `<option value="${esc(u.id)}" ${w.map[m.member ?? ''] === u.id ? 'selected' : ''}>${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select></td></tr>`,
+          )
+          .join('')}
+        </tbody></table>
+        <div class="row" style="margin-top:10px"><button class="btn" data-action="wcsv-import">Import</button><button class="btn secondary" data-action="wcsv-cancel">Cancel</button></div>`
+        : ''
+    }
+  </div>`
+}
+
 function importView() {
   const b = state.bws
   const dev = b.devices
   const devices = dev?.devices ?? []
   const ready = devices.filter((x) => x.state === 'device')
-  return `<div class="card"><h2>Import from Build With Science</h2>
+  return `${weightsCsvCard()}<div class="card"><h2>Import from Build With Science</h2>
       <p>Brings over their past workouts (every set, with effort), the weekly plan (days, supersets) and their goal. Weigh-ins come by themselves through Health Connect once the Forza! helper app is set up.</p>
       <ol>
         <li>On their Android phone: Settings → About phone → tap <b>Build number</b> 7 times; then Settings → System → Developer options → turn on <b>USB debugging</b>.</li>
@@ -1271,6 +1295,24 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
 })
 
 app.addEventListener('change', async (e) => {
+  if (e.target.id === 'weights-csv') {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const { members } = await api('/api/weights-csv/preview', { method: 'POST', body: { text } })
+      // Each member goes to the person with the same name; a file without names goes to the person open here.
+      const map = Object.fromEntries(members.map((m) => [m.member ?? '', m.person ?? (m.member ? '' : state.selected)]))
+      state.weightsCsv = { text, members, map }
+    } catch (err) {
+      toast(`Error: ${err.message}`)
+    }
+    return render()
+  }
+  if (e.target.dataset?.wcsv !== undefined) {
+    state.weightsCsv.map[e.target.dataset.wcsv] = e.target.value
+    return
+  }
   if (e.target.id === 'media-file') {
     await uploadExerciseFiles([...e.target.files]).catch((err) => toast(`Error: ${err.message}`))
     return
@@ -1497,6 +1539,19 @@ app.addEventListener('click', async (e) => {
     }
     if (action.startsWith('kb-') || action.startsWith('tip-')) return knowledgeAction(action, btn)
     if (action.startsWith('meal-')) return mealAction(action, btn)
+    if (action === 'wcsv-cancel') {
+      state.weightsCsv = null
+      return render()
+    }
+    if (action === 'wcsv-import') {
+      const w = state.weightsCsv
+      const { result } = await api('/api/weights-csv/import', { method: 'POST', body: { text: w.text, map: w.map } })
+      state.weightsCsv = null
+      const name = (id) => (state.users ?? []).find((u) => u.id === id)?.profile?.display_name ?? 'someone'
+      toast(result.length ? result.map((r) => `${name(r.user_id)}: ${r.added} added${r.skipped ? `, ${r.skipped} already there` : ''}`).join(' · ') : 'Nothing to import')
+      await loadUsers()
+      return selectUser(state.selected)
+    }
     if (action.startsWith('exm-') || action.startsWith('media-')) return exerciseAction(action, btn)
     if (action === 'tpl-copy') {
       const t = state.data.templates[Number(btn.dataset.plan)]

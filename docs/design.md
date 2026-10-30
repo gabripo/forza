@@ -480,7 +480,10 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
   were skipped.
 - **Per-person settings**: everything in the profile, including hiding the Train section and the order of
   the Home page.
-- **Imports**: Build With Science (cable or Wi-Fi, once or automatically) and history files.
+- **Imports**: Build With Science (cable or Wi-Fi, once or automatically), history files, and weigh-ins from a
+  CSV file (EufyLife's export holds the whole family: each member is matched to a person, weigh-ins already in
+  Forza! within two minutes are skipped). The reader (`shared/weight-csv.mjs`) is the same in the app; it finds
+  columns by whole words in English or Italian and keeps body fat only between 1 and 80 %.
 - **Background mode**: optional start at login, so automatic syncs need no one at the computer.
 - **Runs everywhere**: double-click launchers for macOS (`.command`), Windows (`.bat`) and Linux (`.sh`)
   install the dependencies on first run; a CLI (`node cli.mjs`) does the same for servers and power users.

@@ -153,6 +153,8 @@ export const it: Dict = {
     csv: {
       found: 'Trovate {n} pesate, dal {from} al {to}. Vuoi importarle?',
       confirm: 'Importa',
+      whose: 'Le pesate di chi?',
+      known: '{n} sono già qui e verranno saltate.',
       empty: 'Nessun peso trovato in questo file.',
       columns: 'Non trovo le colonne della data e del peso in questo file.',
     },

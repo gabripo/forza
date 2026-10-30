@@ -22,6 +22,7 @@ import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
 import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
+import { importWeights, previewWeights } from './lib/weights.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
 import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
 import { autostartEnabled, setAutostart } from './lib/autostart.mjs'
@@ -536,6 +537,16 @@ const routes = [
   ['POST', /^\/api\/users\/([\w-]+)\/food$/, (m, body) => addMeal(need(), m[1], body)],
   ['PUT', /^\/api\/food\/([\w-]+)$/, (m, body) => updateMeal(need(), m[1], body)],
   ['DELETE', /^\/api\/food\/([\w-]+)$/, (m) => deleteMeal(need(), m[1])],
+  // Weigh-ins from a CSV file (EufyLife exports the whole family: each member goes to a person).
+  [
+    'POST',
+    /^\/api\/weights-csv\/preview$/,
+    async (_m, body) => {
+      const people = check(await need().from('profiles').select('id, display_name')).map((p) => ({ id: p.id, name: p.display_name }))
+      return previewWeights(body.text, people)
+    },
+  ],
+  ['POST', /^\/api\/weights-csv\/import$/, (_m, body) => importWeights(need(), body.text, body.map)],
   ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(need(), m[1], body, { byCoach: true })],
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
   ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],

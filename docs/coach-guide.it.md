@@ -118,7 +118,14 @@ Sul suo telefono, in Forza!: **Impostazioni → Collega Salute e bilancia**, poi
 - **iPhone**: segui il link al comando rapido **Forza Sync** ([guida](apple-shortcut.md)) e impostalo
   perché parta ogni giorno.
 - **Eufy (o qualsiasi bilancia smart)**: nell'app EufyLife attiva **Connessione Salute** (Android) o
-  **Apple Salute** (iPhone) per il peso. Forza! prende le pesate da lì.
+  **Apple Salute** (iPhone) per il peso. Forza! prende le pesate da lì. Su Android il Bluetooth deve essere
+  acceso ed EufyLife deve poter usare i *Dispositivi nelle vicinanze*, altrimenti la bilancia non arriva al
+  telefono.
+- **Pesate passate**: in EufyLife, **Io → Impostazioni → Esporta dati** dà un file CSV con tutta la famiglia.
+  In Coach apri una persona → **Import** → **Weigh-ins from a file**, scegli il file e indica chi è ogni membro
+  (le persone con lo stesso nome sono già scelte). Le pesate già in Forza! vengono saltate, quindi importando di
+  nuovo arrivano solo quelle nuove. Va bene qualsiasi CSV con una colonna per la data e una per il peso; si può
+  anche importare dall'app: Forza! → **Peso → Importa CSV**.
 
 Quando le pesate arrivano dalla bilancia, il pulsante **Registra peso** sparisce dalla Home (una cosa in
 meno da fare). Per pesarsi a mano, l'app ricorda la regola che rende i pesi confrontabili: appena svegli,

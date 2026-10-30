@@ -151,6 +151,8 @@ export const en = {
     csv: {
       found: 'Found {n} weigh-ins, from {from} to {to}. Import them?',
       confirm: 'Import',
+      whose: 'Whose weigh-ins?',
+      known: '{n} of them are already here and will be skipped.',
       empty: 'No weights found in this file.',
       columns: 'Could not find the date and weight columns in this file.',
     },

@@ -8,6 +8,7 @@ import { parseNodes, parsePower } from '../lib/adb.mjs'
 import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } from '../lib/bws-convert.mjs'
 import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
 import { mediaList } from '../lib/exercises.mjs'
+import { memberFor, parseWeightCsv, sameName } from '../../shared/weight-csv.mjs'
 import { isSynced, mealItems } from '../lib/meals.mjs'
 import { computeEnergy, scorePlate } from '../../shared/energy.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
@@ -312,5 +313,32 @@ test('targets in Coach: the app\'s own calculation, with a calorie target set by
   assert.ok(Math.abs(byHand.carbs_g - (1650 - byHand.protein_g * 4 - byHand.fat_g * 9) / 4) <= 2)
   assert.equal(byHand.satfat_g, Math.round((1650 * 0.1) / 9))
   assert.ok(scorePlate({ kcal: 500, protein_g: 35, carbs_g: 50, fat_g: 15, fiber_g: 10, sugar_g: 5 }, 'lunch', 1650, false, new Date(2026, 9, 30, 13)).fatLoss > 50)
+})
+
+test("weigh-ins from a CSV: EufyLife's export, with the whole family", () => {
+  const csv = [
+    'Quando,Membri della famiglia,PESO (kg),IMC,% GRASSO CORPOREO,MASSA GRASSA (kg),GRASSO VISCERALE,CORPORATURA',
+    '2026-10-30 07:37:29,Angela,53.3,0.000000,0.000000,0,0.000000,',
+    '2026-10-29 07:29:18,Angela,53.75,20.2,21.7,11.6,5.000000,Molto muscolosa',
+    '2026-04-26 08:13:37,Angela,56.8,21.3,27.2,15.4,6.000000,Muscolosa nella norma',
+    '2026-04-26 08:13:37,Angela,56,21,27,15.1,5.000000,Muscolosa nella norma',
+    '2026-10-28 07:50:20,Enzo,66.4,21.1,18.1,12,11.000000,Media',
+  ].join('\n')
+  const { rows, members, error } = parseWeightCsv(csv)
+  assert.equal(error, null)
+  assert.deepEqual(members, ['Angela', 'Enzo'])
+  // The same second twice counts once; oldest first; local time; body fat 0 means not measured.
+  assert.equal(rows.length, 4)
+  assert.equal(rows[0].measured_at, new Date(2026, 3, 26, 8, 13, 37).toISOString())
+  assert.deepEqual(rows.at(-1), { measured_at: new Date(2026, 9, 30, 7, 37, 29).toISOString(), weight_kg: 53.3, body_fat_pct: null, member: 'Angela' })
+  assert.equal(rows.find((r) => r.weight_kg === 53.75).body_fat_pct, 21.7)
+  assert.equal(memberFor('Angela', members), 'Angela')
+  assert.equal(memberFor('Gabriele', members), null)
+  assert.equal(sameName('Angela Rossi', 'Angela'), true)
+  assert.equal(sameName('Ange', 'Angela'), false)
+  // A plain spreadsheet: day first, comma decimals, pounds.
+  const lb = parseWeightCsv('Date;Weight (lb)\n27/10/2026;150,5')
+  assert.equal(lb.rows[0].weight_kg, 68.27)
+  assert.equal(parseWeightCsv('Name,Height\nA,170').error, 'columns')
 })
 

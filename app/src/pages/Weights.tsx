@@ -1,10 +1,10 @@
 import { FileUp, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { LogWeightSheet } from '../components/LogWeightSheet'
-import { Button, Card, Empty, Loading, PageHeader } from '../components/ui'
+import { Button, Card, Empty, Loading, PageHeader, Segmented } from '../components/ui'
 import { WeightChart } from '../components/WeightChart'
 import { useApp } from '../lib/auth'
-import { parseWeightCsv, type ParsedWeight } from '../lib/csv'
+import { memberFor, parseWeightCsv, type ParsedWeight } from '../lib/csv'
 import { deleteWeight, getWeights, importWeights, useAsync } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 
@@ -13,7 +13,9 @@ export function Weights() {
   const { profile } = useApp()
   const { data, loading, reload } = useAsync(() => getWeights(3650), [])
   const [logOpen, setLogOpen] = useState(false)
-  const [pending, setPending] = useState<ParsedWeight[] | null>(null)
+  const [parsed, setParsed] = useState<{ rows: ParsedWeight[]; members: string[] } | null>(null)
+  // EufyLife exports the whole family: only this person's weigh-ins are imported.
+  const [member, setMember] = useState<string | null>(null)
   const [csvError, setCsvError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -21,17 +23,20 @@ export function Weights() {
   async function onFile(file: File | undefined) {
     if (!file) return
     setCsvError(null)
-    const { rows, error } = parseWeightCsv(await file.text())
+    const { rows, members, error } = parseWeightCsv(await file.text())
     if (error) setCsvError(t(`weights.csv.${error}`))
-    else setPending(rows)
+    else {
+      setParsed({ rows, members })
+      setMember(memberFor(profile?.display_name, members) ?? members[0] ?? null)
+    }
   }
 
   async function confirmImport() {
-    if (!pending) return
+    if (!fresh.length) return
     setImporting(true)
     try {
-      await importWeights(pending, 'eufy_csv')
-      setPending(null)
+      await importWeights(fresh.map(({ member: _m, ...r }) => r), 'eufy_csv')
+      setParsed(null)
       await reload()
     } finally {
       setImporting(false)
@@ -46,6 +51,11 @@ export function Weights() {
 
   if (loading && !data) return <Loading />
   const weights = data ?? []
+  // A weigh-in already here (synced from the scale's app, typed in, or imported before) is not added again.
+  const mine = parsed ? parsed.rows.filter((r) => !parsed.members.length || r.member === member) : []
+  const known = weights.map((w) => new Date(w.measured_at).getTime())
+  const fresh = mine.filter((r) => !known.some((k) => Math.abs(k - new Date(r.measured_at).getTime()) < 120_000))
+  const pending = parsed ? mine : null
 
   return (
     <div className="grid gap-4">
@@ -63,18 +73,25 @@ export function Weights() {
       {csvError ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{csvError}</p> : null}
       {pending ? (
         <Card tone="sky">
+          {parsed && parsed.members.length > 1 ? (
+            <div className="mb-3">
+              <p className="mb-2 font-semibold">{t('weights.csv.whose')}</p>
+              <Segmented<string> value={member ?? ''} onChange={setMember} options={parsed.members.map((m) => ({ value: m, label: m }))} />
+            </div>
+          ) : null}
           <p className="mb-3">
             {t('weights.csv.found', {
               n: pending.length,
               from: pending.length ? date(pending[0].measured_at) : '',
               to: pending.length ? date(pending[pending.length - 1].measured_at) : '',
             })}
+            {pending.length > fresh.length ? ` ${t('weights.csv.known', { n: pending.length - fresh.length })}` : ''}
           </p>
           <div className="flex gap-2">
-            <Button onClick={confirmImport} loading={importing}>
+            <Button onClick={confirmImport} loading={importing} disabled={!fresh.length}>
               {t('weights.csv.confirm')}
             </Button>
-            <Button variant="secondary" onClick={() => setPending(null)}>
+            <Button variant="secondary" onClick={() => setParsed(null)}>
               {t('common.cancel')}
             </Button>
           </div>
