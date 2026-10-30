@@ -37,7 +37,7 @@
     <string name="bws_progress">Forza! is reading Build With Science · %1$d new workouts · tap here to stop</string>
     <string name="bws_sending">Forza! is saving your workouts…</string>
     <string name="bws_stopping">Stopping…</string>
-    <string name="bws_done">Forza! is up to date with Build With Science: %1$d new workouts.</string>
+    <string name="bws_done">Forza! is up to date with Build With Science: %1$d new workouts, %2$d meals.</string>
     <string name="bws_stopped">Stopped. Nothing was lost: the next sync continues from here.</string>
     <string name="bws_failed">The workout sync stopped: %1$s</string>
     <string name="bws_timeout">The workout sync took too long and was stopped.</string>

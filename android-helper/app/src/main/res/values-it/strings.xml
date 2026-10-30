@@ -36,7 +36,7 @@
     <string name="bws_progress">Forza! sta leggendo Build With Science · %1$d nuovi allenamenti · tocca qui per fermare</string>
     <string name="bws_sending">Forza! sta salvando i tuoi allenamenti…</string>
     <string name="bws_stopping">Mi fermo…</string>
-    <string name="bws_done">Forza! è aggiornato con Build With Science: %1$d nuovi allenamenti.</string>
+    <string name="bws_done">Forza! è aggiornato con Build With Science: %1$d nuovi allenamenti, %2$d pasti.</string>
     <string name="bws_stopped">Fermato. Non si è perso nulla: la prossima volta riprende da qui.</string>
     <string name="bws_failed">La sincronizzazione degli allenamenti si è fermata: %1$s</string>
     <string name="bws_timeout">La sincronizzazione degli allenamenti ci ha messo troppo ed è stata fermata.</string>

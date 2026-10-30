@@ -65,13 +65,14 @@ object BwsSync {
 
     private fun prepare(app: Context, prefs: Prefs, service: BwsService) {
         try {
-            val status = post(prefs, JSONObject().put("action", "status"))
+            val status = post(prefs, JSONObject().put("action", "status").put("utc_offset_min", utcOffsetMinutes()))
             val planDue = System.currentTimeMillis() - prefs.bwsPlanAt > PLAN_EVERY_MS
             val config = JSONObject()
                 .put("imported", status.optJSONArray("imported"))
                 .put("recent", status.optJSONArray("recent"))
                 .put("plan", planDue)
                 .put("previousPlan", prefs.bwsPlan?.let { JSONObject(it) } ?: JSONObject.NULL)
+                .put("food", status.optJSONObject("food") ?: JSONObject.NULL)
             main.post { open(app, prefs, service, config.toString(), planDue) }
         } catch (e: Exception) {
             finish(app, prefs, service, app.getString(R.string.bws_failed, e.message ?: "?"))
@@ -128,6 +129,9 @@ object BwsSync {
         }
     }
 
+    /** Minutes ahead of UTC here (60 in Italy in winter): the server needs it to tell days apart. */
+    fun utcOffsetMinutes(): Int = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60_000
+
     /** Posts to the bws-ingest function next to health-ingest, with the same sync key. */
     private fun post(prefs: Prefs, body: JSONObject): JSONObject {
         val url = Uri.parse(prefs.url).buildUpon().path(Uri.parse(prefs.url).path?.replace("health-ingest", "bws-ingest")).build().toString()
@@ -183,12 +187,12 @@ object BwsSync {
             Thread {
                 val message = try {
                     val r = JSONObject(result)
-                    val imported = post(prefs, JSONObject().put("action", "import").put("file", r.getJSONObject("file")))
+                    val imported = post(prefs, JSONObject().put("action", "import").put("utc_offset_min", utcOffsetMinutes()).put("file", r.getJSONObject("file")))
                     if (planDue && !r.isNull("plan")) {
                         prefs.bwsPlan = r.getJSONObject("plan").toString()
                         prefs.bwsPlanAt = System.currentTimeMillis()
                     }
-                    app.getString(R.string.bws_done, imported.optInt("sessions"))
+                    app.getString(R.string.bws_done, imported.optInt("sessions"), imported.optInt("food"))
                 } catch (e: Exception) {
                     app.getString(R.string.bws_failed, e.message ?: "?")
                 }

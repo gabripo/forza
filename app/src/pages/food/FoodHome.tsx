@@ -199,7 +199,8 @@ export function FoodHome() {
                       ? scorePlate({ kcal: Number(e.kcal), protein_g: Number(e.protein_g), carbs_g: Number(e.carbs_g), fat_g: Number(e.fat_g), fiber_g: Number(e.fiber_g), sugar_g: Number(e.sugar_g) }, e.meal, tg.kcal, false, new Date(e.eaten_at))
                       : { fatLoss: e.score_fat_loss, muscleGain: e.score_muscle_gain ?? e.score_fat_loss }
                   const score = goal === 'muscle_gain' ? scores.muscleGain : scores.fatLoss
-                  const synced = e.source === 'health_connect'
+                  // From another app (Health Connect, or Build With Science read on the phone): changed there.
+                  const synced = e.source === 'health_connect' || (e.source === 'import' && Boolean(e.origin))
                   const band = score !== null ? scoreBand(score) : null
                   return (
                     <li key={e.id} className="flex items-center gap-3">

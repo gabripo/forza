@@ -276,5 +276,59 @@ export function convert(raw, catalogue, { now = new Date(), knownSessions = [] }
     templates,
     sessions,
     weights: [],
+    food: convertFood(raw.food, now),
   }
+}
+
+const mealKind = (name) => (/break/i.test(name) ? 'breakfast' : /lunch/i.test(name) ? 'lunch' : /dinner/i.test(name) ? 'dinner' : 'snack')
+/** Each meal at its usual time, as the Forza! Health helper places meals from Health Connect. */
+const MEAL_AT = { breakfast: [8, 0], lunch: [13, 0], snack: [16, 30], dinner: [20, 0] }
+const pad = (n) => String(n).padStart(2, '0')
+
+/**
+ * The food log (read on the phone) as forza-history meals: one per day and meal, with the totals Build
+ * With Science shows. Its list shows calories and protein per food, carbohydrates and fat per meal only.
+ * `day` (local date) lets the server skip days already brought over by Health Connect.
+ */
+export function convertFood(days = [], now = new Date()) {
+  const out = []
+  for (const day of days ?? []) {
+    const date = sessionDate(day.date, now)
+    const iso = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    for (const m of day.meals) {
+      if (!m.kcal && !m.items.length) continue
+      const meal = mealKind(m.name)
+      const items = m.items.map((it) => {
+        // "Milbona, 250 g" → 250 grams; "3 egg", "1 serving" stay in the name.
+        const portion = it.detail.split(', ').pop() ?? ''
+        const g = /^([\d.,]+)\s*(g|ml)$/i.exec(portion)
+        return {
+          name: g || !portion ? it.name : `${it.name} (${portion})`,
+          grams: g ? Math.round(Number(g[1].replace(',', '.')) * 10) / 10 : 0,
+          kcal: it.kcal,
+          protein_g: it.protein,
+          carbs_g: 0,
+          fat_g: 0,
+          fiber_g: 0,
+          sugar_g: 0,
+        }
+      })
+      out.push({
+        id: uuid5(`bws-food:${iso}:${m.name}`),
+        day: iso,
+        eaten_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), ...MEAL_AT[meal]).toISOString(),
+        meal,
+        title: m.items.map((i) => i.name).join(', ').slice(0, 200) || m.name,
+        items,
+        kcal: m.kcal,
+        protein_g: m.protein,
+        carbs_g: m.carbs,
+        fat_g: m.fat,
+        fiber_g: 0,
+        sugar_g: 0,
+        origin: 'Build With Science',
+      })
+    }
+  }
+  return out
 }

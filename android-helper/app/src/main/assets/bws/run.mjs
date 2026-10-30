@@ -3,6 +3,7 @@
 // "device" is the helper's accessibility service, reached through window.ForzaBws (BwsSync.kt).
 import { convert } from './bws-convert.mjs'
 import { BwsExtractor, Stop, monthsSince } from './bws-extract.mjs'
+import { sessionDate } from './bws-dates.mjs'
 
 const bridge = window.ForzaBws
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -96,11 +97,22 @@ async function run() {
     },
   })
 
+  // The food log, for the days Forza! does not have yet through Health Connect.
+  if (c.food?.days) {
+    const fromHealthConnect = new Set(c.food.hcDays ?? [])
+    const iso = (label) => {
+      const d = sessionDate(label)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    raw.food = await x.foodLog({ days: c.food.days, skip: (label) => fromHealthConnect.has(iso(label)) })
+    raw.foodDays = raw.food.map((d) => iso(d.date))
+  }
+
   // Converted here, in this phone's time zone, exactly as Coach does on the family computer.
   const catalogue = await (await fetch('exercises.json')).json()
   const file = convert(raw, catalogue, { knownSessions: c.recent ?? [] })
   const fresh = new Set(convert({ sessions: raw.sessions }, catalogue).sessions.map((s) => s.id))
-  const upload = { ...file, sessions: file.sessions.filter((s) => fresh.has(s.id)), templates: c.plan ? file.templates : [] }
+  const upload = { ...file, sessions: file.sessions.filter((s) => fresh.has(s.id)), templates: c.plan ? file.templates : [], food_days: raw.foodDays ?? [] }
   if (!c.plan) delete upload.profile
   return { file: upload, plan: raw.plan ?? null, read: raw.sessions.length }
 }

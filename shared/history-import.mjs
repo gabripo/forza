@@ -167,6 +167,8 @@ export async function importHistory(db, userId, data, options = {}) {
     fiber_g: Number(f.fiber_g) || 0,
     sugar_g: Number(f.sugar_g) || 0,
     source: 'import',
+    // The app the meal comes from ("Build With Science"), shown next to it in Forza!.
+    origin: typeof f.origin === 'string' ? f.origin.slice(0, 60) : null,
   }))
   for (let i = 0; i < food.length; i += 500) {
     onProgress(`meals ${i + 1}-${Math.min(i + 500, food.length)} of ${food.length}`)

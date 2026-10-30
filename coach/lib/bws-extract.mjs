@@ -20,6 +20,11 @@ const EXERCISE_RE = /^(?<name>.+?), (?<sets>\d+) sets?(?:, .)?$/u
 const ICONS = /[\ue000-\uf8ff\u{f0000}-\u{fffff}\ufffc]/gu
 const IS_ICON = /^[\ue000-\uf8ff\u{f0000}-\u{fffff}]+$/u
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+// Food log: "Today, Oct 30" · "Lunch, 985 Cal, 93 P, 105 C, 25 F" · "Kiwi, 1 serving, 90 cal, 2g protein"
+const FOOD_DAY_RE = /^(?:[A-Za-z]+, )?([A-Z][a-z]{2}) (\d{1,2})$/
+const MEAL_RE = /^(.+?), ([\d,.]+) Cal, ([\d,.]+) P, ([\d,.]+) C, ([\d,.]+) F$/
+const FOOD_RE = /^(.+), ([\d,.]+) cal, ([\d,.]+)g protein$/
+const number = (v) => Number(String(v).replace(/,/g, ''))
 const FULL_DAY = { SUN: 'Sunday', MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday', FRI: 'Friday', SAT: 'Saturday' }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -480,6 +485,95 @@ export class BwsExtractor {
       }
     }
   }
+}
+
+/**
+ * The food log, day by day from today backwards. Only on the phone: `uiautomator dump` gives up on this
+ * screen (it never stops animating), the accessibility service reads it fine. `skip(date)` is for days
+ * Forza! already has through Health Connect: the arrow passes them without reading.
+ * Returns [{ date: "Oct 29", meals: [{ name, kcal, protein, carbs, fat, items: [{ name, detail, kcal, protein }] }] }].
+ */
+BwsExtractor.prototype.foodLog = async function ({ days, skip = () => false, onDay = () => {} }) {
+  this.log('Reading the food log')
+  await this.tab('Nutrition')
+  const out = []
+  let previous = null
+  for (let i = 0; i < days; i++) {
+    await this.guard()
+    const nodes = await this.nodes()
+    const header = nodes.find((n) => n.click && n.y < this.d.top(300) && FOOD_DAY_RE.test(n.label))
+    if (!header) throw new Stop('Cannot find the day at the top of the Build With Science food log.')
+    const [, mon, day] = FOOD_DAY_RE.exec(header.label)
+    const date = `${mon} ${day}`
+    if (date === previous) break // the arrow did not move: no older days
+    previous = date
+    if (!skip(date)) {
+      const meals = await this.readFoodDay()
+      out.push({ date, meals })
+      await onDay(date, meals)
+      this.log(`  ${date}: ${meals.map((m) => `${m.name} ${m.kcal}`).join(', ') || 'nothing logged'}`)
+    }
+    // The previous day: the arrow just left of the date, at the top.
+    const top = (await this.nodes()).filter((n) => n.y < this.d.top(300))
+    const day0 = top.find((n) => FOOD_DAY_RE.test(n.label)) ?? header
+    const arrow = top.filter((n) => IS_ICON.test(n.label) && Math.abs(n.y - day0.y) < 40 && n.x < day0.x - this.d.left(150)).sort((a, b) => b.x - a.x)[0]
+    if (!arrow) throw new Stop('Cannot find the previous-day arrow in the food log.')
+    await this.d.tap(arrow.x, arrow.y, 2500)
+  }
+  return out
+}
+
+/** One day of the food log: every meal with its totals and the foods in it, scrolling to the end. */
+BwsExtractor.prototype.readFoodDay = async function () {
+  const d = this.d
+  await this.scrollToTop()
+  const meals = []
+  // Which meal a row was seen under: rows already seen keep their meal when the list scrolls.
+  const seenIn = new Map()
+  for (let pass = 0; pass < 20; pass++) {
+    // Full-width rows, below the day and above the floating search bar at the bottom.
+    const rowsOf = (ns) => ns.filter((n) => n.click && Math.abs(n.x - d.cx()) < 6 && n.y > d.top(250) && n.top < d.bottom(2040))
+    const nodes = (await this.nodes()).sort((a, b) => a.y - b.y)
+    const rows = rowsOf(nodes)
+    let current = null
+    const counted = new Map()
+    for (const r of rows) {
+      const m = MEAL_RE.exec(r.label)
+      if (m) {
+        current = meals.find((x) => x.name === m[1])
+        if (!current) {
+          current = { name: m[1], kcal: number(m[2]), protein: number(m[3]), carbs: number(m[4]), fat: number(m[5]), items: [] }
+          meals.push(current)
+        }
+        continue
+      }
+      const f = FOOD_RE.exec(r.label)
+      if (!f) continue
+      // A row seen before belongs to the meal it was seen under, even if that meal's title scrolled away.
+      const known = seenIn.get(r.label)
+      const meal = (known && known.size === 1 ? meals.find((x) => known.has(x.name)) : null) ?? current
+      if (!meal) continue
+      current = meal
+      seenIn.set(r.label, (seenIn.get(r.label) ?? new Set()).add(meal.name))
+      // The same food twice in one meal is two rows on one screen: keep the largest count seen.
+      const key = `${meal.name}|${r.label}`
+      counted.set(key, (counted.get(key) ?? 0) + 1)
+      const have = meal.items.filter((it) => it.label === r.label).length
+      if (counted.get(key) > have) {
+        // Name and portion are the row's two lines; the label has them too, comma-separated.
+        const lines = nodes.filter((n) => !n.click && n.top >= r.top && n.bottom <= r.bottom && n.x < d.cx() + d.left(60)).sort((a, b) => a.y - b.y)
+        const name = lines[0]?.label ?? f[1].split(', ')[0]
+        const detail = lines[1]?.label ?? f[1].split(', ').slice(1).join(', ')
+        meal.items.push({ label: r.label, name, detail, kcal: number(f[2]), protein: number(f[3]) })
+      }
+    }
+    if (nodes.some((n) => n.label === 'Explore more recipes')) break
+    const before = rows.map((r) => `${r.label}@${r.y}`).join('|')
+    await this.scroll(d.top(900))
+    const after = rowsOf((await this.nodes()).sort((a, b) => a.y - b.y)).map((n) => `${n.label}@${n.y}`).join('|')
+    if (after === before) break // the end of the list
+  }
+  return meals.map((m) => ({ ...m, items: m.items.map(({ label: _label, ...item }) => item) }))
 }
 
 /** Month chips to visit, newest first, from `since` (a Date) up to now; at most 12. */

@@ -294,6 +294,15 @@ Deno.serve(async (req) => {
     const keep = new Set(rows.map((r) => r.id))
     const gone = (existing ?? []).map((r) => r.id).filter((id) => !keep.has(id))
     if (gone.length) await admin.from('food_logs').delete().in('id', gone)
+    // Days whose Build With Science meals now come from Health Connect: the copies read from the app's
+    // screens on the phone (bws-ingest) go, so nothing is counted twice.
+    const offset = Number(body.utc_offset_min)
+    if (Number.isFinite(offset) && rows.some((r) => r.origin === 'Build With Science')) {
+      const days = new Set(rows.filter((r) => r.origin === 'Build With Science').map((r) => new Date(new Date(r.eaten_at).getTime() + offset * 60_000).toISOString().slice(0, 10)))
+      const { data: copies } = await admin.from('food_logs').select('id, eaten_at').eq('user_id', userId).eq('source', 'import').eq('origin', 'Build With Science').gte('eaten_at', since.toISOString())
+      const dupes = (copies ?? []).filter((c) => days.has(new Date(new Date(c.eaten_at).getTime() + offset * 60_000).toISOString().slice(0, 10))).map((c) => c.id)
+      if (dupes.length) await admin.from('food_logs').delete().in('id', dupes)
+    }
     meals = rows.length
   }
 

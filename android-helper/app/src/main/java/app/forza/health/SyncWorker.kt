@@ -171,6 +171,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             .put("history", HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY in granted)
             .put("types", JSONObject().apply { found.forEach { (name, f) -> put(name, f.toJson()) } })
         val body = JSONObject().put("source", "health_connect").put("steps", steps).put("weights", weights).put("activities", activities).put("report", report)
+            .put("utc_offset_min", BwsSync.utcOffsetMinutes())
         if (mealsSince != null) body.put("meals", meals).put("meals_since", mealsSince.toString())
         return withContext(Dispatchers.IO) {
             try {
