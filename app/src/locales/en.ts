@@ -609,6 +609,15 @@ export const en = {
     wrong: 'Not quite.',
     finish: 'See the result',
   },
+  copyMeal: {
+    yesterday: { breakfast: 'Copy yesterday’s breakfast', lunch: 'Copy yesterday’s lunch', snack: 'Copy yesterday’s snack', dinner: 'Copy yesterday’s dinner' },
+    same: { breakfast: 'Same breakfast as yesterday?', lunch: 'Same lunch as yesterday?', snack: 'Same snack as yesterday?', dinner: 'Same dinner as yesterday?' },
+    copy: 'Copy',
+    toToday: 'Copy to today',
+    any: 'Copy a meal',
+    done: 'Added to today: {kcal} kcal',
+    undo: 'Undo',
+  },
   pointsQuiz: {
     title: 'Gain Family Points',
     subtitle: '{n} questions a day from your lessons · +{pts} points for each right answer',

@@ -310,6 +310,26 @@ export async function addFood(log: Omit<FoodLog, 'id'>): Promise<void> {
   check(await supabase.from('food_logs').insert(log))
 }
 
+/**
+ * Logs these meals again today, each at its own time of day (or now, if that time has not come yet).
+ * The copies are this person's own meals: no photo, and not marked as coming from another app.
+ */
+export async function copyMealsToToday(logs: FoodLog[]): Promise<string[]> {
+  const now = new Date()
+  const rows = logs.map((f) => {
+    const at = new Date(f.eaten_at)
+    const today = new Date(now)
+    today.setHours(at.getHours(), at.getMinutes(), 0, 0)
+    const { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, score_fat_loss, score_muscle_gain, ai_notes } = f
+    return { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, score_fat_loss, score_muscle_gain, ai_notes, eaten_at: (today > now ? now : today).toISOString(), source: 'manual' as const }
+  })
+  return (check(await supabase.from('food_logs').insert(rows).select('id')) as { id: string }[]).map((r) => r.id)
+}
+
+export async function deleteFoods(ids: string[]): Promise<void> {
+  check(await supabase.from('food_logs').delete().in('id', ids))
+}
+
 export async function deleteFood(id: string): Promise<void> {
   check(await supabase.from('food_logs').delete().eq('id', id))
 }

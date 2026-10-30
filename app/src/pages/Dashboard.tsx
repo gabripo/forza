@@ -2,6 +2,7 @@ import { ArrowUpDown, Barcode, BookOpen, Camera, Check, ChevronRight, Footprints
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
+import { CopyMealButton } from '../components/CopyMeal'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { PointsQuizCard } from '../components/PointsQuizCard'
 import { StrengthChart } from '../components/StrengthChart'
@@ -10,6 +11,7 @@ import { WeightChart } from '../components/WeightChart'
 import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
+import { copySuggestion } from '../lib/copyMeal'
 import { getActivities, getFood, getLessonProgress, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
@@ -101,6 +103,8 @@ export function Dashboard() {
       activeMinutes,
       nextLesson,
       quiz,
+      // Yesterday's meal of this time of day, to log again in one tap.
+      copy: copySuggestion(food),
       lessonsRead: readLessons.size,
       startKg,
       nowKg,
@@ -141,6 +145,7 @@ export function Dashboard() {
             <Barcode className="size-8 text-brand" aria-hidden /> {t('food.barcode')}
           </Button>
         </div>
+        <CopyMealButton suggestion={view.copy} onChanged={() => void reload()} />
       </>
     ),
     tip: (

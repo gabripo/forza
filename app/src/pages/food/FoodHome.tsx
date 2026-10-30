@@ -1,13 +1,15 @@
-import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Info, Mic, PenLine, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Copy, Info, Mic, PenLine, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
+import { CopiedNotice } from '../../components/CopyMeal'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { NextMealCard } from '../../components/NextMealCard'
 import { TargetSheet } from '../../components/TargetSheet'
 import { Button, Card, Empty, Loading, PageHeader, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate } from '../../lib/calc'
+import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
 import { deleteFood } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import type { Meal } from '../../lib/types'
@@ -20,10 +22,13 @@ export function FoodHome() {
   const { t, num, date } = useI18n()
   const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
-  const justLogged = Boolean((useLocation().state as { logged?: boolean } | null)?.logged)
+  const navState = useLocation().state as { logged?: boolean; offset?: number } | null
+  const justLogged = Boolean(navState?.logged)
   const { energy, food, weights, loading, reload } = useEnergy()
   const [savingCheckin, setSavingCheckin] = useState(false)
-  const [offset, setOffset] = useState(0)
+  // Home's "Copy a meal" opens yesterday, where every meal can be copied to today.
+  const [offset, setOffset] = useState(navState?.offset ?? 0)
+  const copying = useMealCopy(() => void reload())
   const [explain, setExplain] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
 
@@ -47,6 +52,12 @@ export function FoodHome() {
   const checkin = calorieCheckin(profile, weights)
   const balanced = balancedDays(food, tg)
   const last7 = Array.from({ length: 7 }, (_, i) => localDay(daysAgo(6 - i)))
+  const suggestion = offset === 0 ? copySuggestion(food) : null
+
+  async function copyToToday(entries: typeof food) {
+    await copying.copy(entries)
+    setOffset(0)
+  }
 
   async function closeCheckin(apply: boolean) {
     if (!profile) return
@@ -89,6 +100,23 @@ export function FoodHome() {
           <PenLine className="size-6 text-brand" aria-hidden /> {t('food.manual')}
         </Button>
       </div>
+
+      {copying.copied ? (
+        <CopiedNotice kcal={copying.copied.kcal} onUndo={() => void copying.undo()} busy={copying.busy} />
+      ) : suggestion ? (
+        <div className="flex items-center gap-3 rounded-3xl border-2 border-leaf bg-card p-3">
+          <Copy className="size-6 shrink-0 text-leaf" aria-hidden />
+          <p className="min-w-0 flex-1">
+            <b>{t(`copyMeal.same.${suggestion.meal}`)}</b>
+            <span className="block truncate text-sm text-ink-2">
+              {suggestion.entries.map((e) => e.title).join(', ')} · {num(suggestion.kcal)} kcal
+            </span>
+          </p>
+          <Button onClick={() => void copying.copy(suggestion.entries)} loading={copying.busy}>
+            {t('copyMeal.copy')}
+          </Button>
+        </div>
+      ) : null}
 
       {checkin.due ? (
         <Card tone="sky">
@@ -190,7 +218,17 @@ export function FoodHome() {
         </Card>
       ) : (
         MEALS.filter((m) => entries.some((e) => e.meal === m)).map((m) => (
-          <Card key={m} title={t(`meal.${m}`)}>
+          <Card
+            key={m}
+            title={t(`meal.${m}`)}
+            action={
+              offset > 0 ? (
+                <Button size="sm" variant="secondary" loading={copying.busy} onClick={() => void copyToToday(entries.filter((e) => e.meal === m))}>
+                  <Copy className="size-4" aria-hidden /> {t('copyMeal.toToday')}
+                </Button>
+              ) : undefined
+            }
+          >
             <ul className="grid gap-2">
               {entries
                 .filter((e) => e.meal === m)

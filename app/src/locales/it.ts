@@ -611,6 +611,15 @@ export const it: Dict = {
     wrong: 'Non proprio.',
     finish: 'Vedi il risultato',
   },
+  copyMeal: {
+    yesterday: { breakfast: 'Copia la colazione di ieri', lunch: 'Copia il pranzo di ieri', snack: 'Copia lo spuntino di ieri', dinner: 'Copia la cena di ieri' },
+    same: { breakfast: 'Stessa colazione di ieri?', lunch: 'Stesso pranzo di ieri?', snack: 'Stesso spuntino di ieri?', dinner: 'Stessa cena di ieri?' },
+    copy: 'Copia',
+    toToday: 'Copia a oggi',
+    any: 'Copia un pasto',
+    done: 'Aggiunto a oggi: {kcal} kcal',
+    undo: 'Annulla',
+  },
   pointsQuiz: {
     title: 'Guadagna punti famiglia',
     subtitle: '{n} domande al giorno dalle tue lezioni · +{pts} punti per ogni risposta giusta',

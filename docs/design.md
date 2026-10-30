@@ -191,6 +191,12 @@ Ways to log a meal:
   100 g). Recently scanned products are one tap away.
 - **By hand**: about 230 common foods and Italian dishes with typical portions (searched by everyday names
   too: "hamburger di tacchino", "pasta e fagioli", "nutella"), or custom values.
+- **Copy**: many people eat the same breakfast most days. Home has a button for yesterday's meal of this
+  time of day ("Copy yesterday's breakfast", or the meal just before if it is still missing today), and the
+  Food page asks "Same breakfast as yesterday?"; any past day's meal can be copied with **Copy to today**.
+  The copy keeps the foods, nutrients and score, takes the original time of day (or now, if that time has
+  not come yet), and can be undone at once. Meals from another app are not offered, so they are not counted
+  twice.
 
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
 against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out.
