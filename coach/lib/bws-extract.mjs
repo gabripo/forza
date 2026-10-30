@@ -270,13 +270,14 @@ export class BwsExtractor {
     // The link sits inside the WORKOUTS card, which opens and closes on tap (and the app remembers
     // it): look for it, and if it is not there, toggle the card and look again.
     let link = null
-    for (let attempt = 0; attempt < 3 && !link; attempt++) {
+    for (let attempt = 0; attempt < 4 && !link; attempt++) {
       await this.scrollToTop()
       if (attempt > 0) {
+        // Open the card only when it is closed (its arrow points down): tapping an open card closes it.
         const card = (await this.nodes()).find((n) => n.label.startsWith('WORKOUTS,') && n.click)
-        if (card) await this.d.tap(card.x, card.y, 2000)
+        if (card && !card.label.endsWith('\u{f0143}')) await this.d.tap(card.x, card.y, 2000)
       }
-      link = await this.seek('See Full Workout Analysis', 4)
+      link = await this.seek('See Full Workout Analysis', 5)
     }
     if (!link) throw new Stop('Cannot find "See Full Workout Analysis" in Build With Science.')
     await this.tapNode(link, 3000)
@@ -496,6 +497,15 @@ export class BwsExtractor {
 BwsExtractor.prototype.foodLog = async function ({ days, skip = () => false, onDay = () => {} }) {
   this.log('Reading the food log')
   await this.tab('Nutrition')
+  // The app reopens on the last day looked at: start from today.
+  for (let k = 0; k < 3; k++) {
+    const ns = await this.nodes()
+    const day = ns.find((n) => n.click && n.y < this.d.top(300) && FOOD_DAY_RE.test(n.label))
+    if (!day || day.label.startsWith('Today')) break
+    const back = ns.find((n) => n.click && /Back to Today$/.test(n.label))
+    if (!back) break
+    await this.d.tap(back.x, back.y, 2500)
+  }
   const out = []
   let previous = null
   for (let i = 0; i < days; i++) {
