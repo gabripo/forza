@@ -154,7 +154,8 @@ itself, through the *Forza! Health* helper (step 4):
    workout): a notification, and one tap starts the sync.
 
 It is the same reader as Coach's, with the same rules (read-only, it never taps Start, Edit or Delete) and
-the same result. It needs Android 11 or newer.
+the same result. On the phone it also reads the **food log** (meals with their calories, protein, carbs and
+fat, and the foods in them) for the days Health Connect has not brought over. It needs Android 11 or newer.
 
 **Automatic sync of the workouts.** In the same tab, under **Automatic sync**, click **Turn on**: from then on,
 whenever that phone is connected to this computer and has been left unlocked and untouched for 3 minutes,

@@ -54,7 +54,8 @@ Forza! Coach writes this format itself when it imports from Build With Science
       "meal": "lunch",
       "title": "Pasta al pomodoro",
       "items": [{ "name": "Pasta", "grams": 90, "kcal": 320, "protein_g": 11, "carbs_g": 65, "fat_g": 1.5, "fiber_g": 3, "sugar_g": 3 }],
-      "kcal": 410, "protein_g": 13, "carbs_g": 72, "fat_g": 8, "fiber_g": 5, "sugar_g": 8
+      "kcal": 410, "protein_g": 13, "carbs_g": 72, "fat_g": 8, "fiber_g": 5, "sugar_g": 8,
+      "origin": "Build With Science"   // optional: the app the meal comes from, shown next to it
     }
   ],
 

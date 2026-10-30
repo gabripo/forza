@@ -158,7 +158,9 @@ telefono stesso, con l'app di supporto *Forza! Health* (punto 4):
    l'allenamento di solito): una notifica, e con un tocco parte la sincronizzazione.
 
 È lo stesso lettore di Coach, con le stesse regole (sola lettura, non tocca mai Start, Edit o Delete) e lo
-stesso risultato. Serve Android 11 o successivo.
+stesso risultato. Dal telefono legge anche il **diario alimentare** (i pasti con calorie, proteine, carboidrati
+e grassi, e i cibi che contengono) per i giorni che Connessione Salute non ha portato. Serve Android 11 o
+successivo.
 
 **Sincronizzazione automatica degli allenamenti.** Nella stessa scheda, sotto **Automatic sync**, clicca
 **Turn on**: da quel momento, ogni volta che quel telefono è collegato a questo computer ed è rimasto sbloccato e

@@ -314,7 +314,7 @@ member's phone. Three paths cover it instead:
 | Data | How it reaches Forza! | Automatic? |
 |---|---|---|
 | Weigh-ins | Build With Science (and the scale) store them in Health Connect → *Forza! Health* helper | yes, hourly |
-| Food diary | Build With Science writes every entry to Health Connect (Nutrition) → helper | yes, hourly |
+| Food diary | Build With Science writes every entry to Health Connect (Nutrition) → helper; and the helper reads the food log on the phone, for days Health Connect does not have | yes, hourly (Health Connect); with each workout sync (phone) |
 | Workouts, plan, goal | the *Forza! Health* helper reads the app on the phone itself, or Forza! Coach over ADB (below) | on request or with a daily reminder (phone); when the phone is connected and idle (Coach) |
 
 Workouts are not in Health Connect (Build With Science does not write exercise sessions), so Forza! Coach reads
@@ -339,8 +339,16 @@ accessibility tree (`uiautomator dump`) over ADB, plus screenshots for the colou
   own serial number, the same over USB and Wi-Fi. "Start when I log in" keeps Coach running in the
   background (a LaunchAgent on macOS, the Startup folder on Windows, XDG autostart on Linux); a second start
   opens the running Coach instead of starting another.
-- **Not imported**: height and age (not shown by the app) and progress photos. The food diary screen cannot
-  be read (it never becomes idle), which is why meals come through Health Connect instead.
+- **Not imported**: height and age (not shown by the app) and progress photos.
+- **Food log (phone only)**: `uiautomator dump` gives up on the food log screen (it never stops animating),
+  so Coach cannot read it over ADB; the accessibility service has no such limit. With each sync on the phone
+  the helper starts from today ("Back to Today": the app reopens on the last day looked at) and walks back
+  day by day: a month the first time, then from the last day read (plus two, for later edits). Each meal
+  keeps Build With Science's totals (calories, protein, carbohydrates, fat) and lists its foods with
+  calories, protein and portion (the list shows carbohydrates and fat per meal only). Days whose meals
+  Health Connect already brought are passed without reading, and when Health Connect brings a day later
+  its copies replace the ones read from the screen, so nothing is counted twice. Meals get per-person ids;
+  a day read again replaces what was read before (a meal deleted in the app goes too).
 
 **On the phone, without a computer.** The extractor talks to the phone through a handful of methods (read
 the screen's texts and positions, tap, swipe, back, restart the app, which app is in front, the colour of a
