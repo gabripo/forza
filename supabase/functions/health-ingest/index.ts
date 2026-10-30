@@ -58,19 +58,36 @@ type WeightRow = { measured_at: string; weight_kg: number; body_fat_pct: number 
 
 const DATE_RE = /(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2}):(\d{2}))?/
 
+/** Day-first dates as an iPhone set to Italian (or most of Europe) writes them: 29/10/2026, 29.10.26, 29-10-2026. */
+const DMY_RE = /\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})\b(?:[ ,T]+(\d{1,2}):(\d{2}))?/
+
 function parseLines(text: string): { date: string; time: string | null; value: string }[] {
   return text
     .split(/[\n;]+/)
     .map((line) => line.trim())
     .filter(Boolean)
     .flatMap((line) => {
-      const m = line.match(DATE_RE)
-      if (!m) return []
+      let m = line.match(DATE_RE)
+      let date: string
+      let time: string | null
+      if (m) {
+        date = m[1]
+        time = m[2] ? `${m[2].padStart(2, '0')}:${m[3]}` : null
+      } else {
+        // The Shortcut's date format was left on the phone's default: day first.
+        m = line.match(DMY_RE)
+        if (!m) return []
+        const year = m[3].length === 2 ? `20${m[3]}` : m[3]
+        date = `${year}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+        time = m[4] ? `${m[4].padStart(2, '0')}:${m[5]}` : null
+      }
       const rest = line.slice((m.index ?? 0) + m[0].length).replace(/^[\s,|=:\t]+/, '')
-      const time = m[2] ? `${m[2].padStart(2, '0')}:${m[3]}` : null
-      return [{ date: m[1], time, value: rest }]
+      return [{ date, time, value: rest }]
     })
 }
+
+/** A field the Shortcut may send as text or as a list of lines. */
+const textOf = (v: unknown): string | null => (typeof v === 'string' ? v : Array.isArray(v) ? v.map(String).join('\n') : null)
 
 /** Integers may arrive with locale grouping ("8.432" or "8,432"). */
 function parseInteger(value: string): number {
@@ -107,7 +124,7 @@ function syncKey(req: Request, body: Record<string, unknown>): { key: string } |
 }
 
 /** "Forza! ✓ 7 giorni di passi, 2 pesate", with a hint when nothing arrived. */
-function summary(locale: string, source: string, n: { steps: number; weights: number; activities: number; meals: number }): string {
+function summary(locale: string, source: string, n: { steps: number; weights: number; activities: number; meals: number }, garbled = false): string {
   const it = locale === 'it'
   const parts = [
     it ? `${n.steps} giorni di passi` : `${n.steps} days of steps`,
@@ -116,7 +133,11 @@ function summary(locale: string, source: string, n: { steps: number; weights: nu
     ...(n.meals ? [it ? `${n.meals} pasti` : `${n.meals} meals`] : []),
   ]
   let text = `Forza! ✓ ${parts.join(', ')}`
-  if (!n.steps && !n.weights && source === 'apple_health') {
+  if (garbled) {
+    text += it
+      ? '. Ho ricevuto righe senza una data leggibile: nel comando rapido, "Formatta data" deve usare il formato personalizzato yyyy-MM-dd.'
+      : '. Lines arrived without a readable date: in the shortcut, "Format Date" must use the custom format yyyy-MM-dd.'
+  } else if (!n.steps && !n.weights && source === 'apple_health') {
     text += it
       ? '. Nessun dato da Salute: apri Salute → profilo → App (Condivisione) → Comandi e attiva Passi e Peso.'
       : '. No data from Health: open Health → profile → Apps (Sharing) → Shortcuts and turn on Steps and Weight.'
@@ -153,8 +174,9 @@ Deno.serve(async (req) => {
       if (typeof s?.date === 'string' && DATE_RE.test(s.date)) steps.push({ day: s.date.slice(0, 10), steps: Math.round(Number(s.steps)) })
     }
   }
-  if (typeof body.steps_text === 'string') {
-    for (const l of parseLines(body.steps_text)) steps.push({ day: l.date, steps: parseInteger(l.value) })
+  const stepsText = textOf(body.steps_text)
+  if (stepsText !== null) {
+    for (const l of parseLines(stepsText)) steps.push({ day: l.date, steps: parseInteger(l.value) })
   }
 
   const weights: WeightRow[] = []
@@ -166,8 +188,9 @@ Deno.serve(async (req) => {
       }
     }
   }
-  if (typeof body.weights_text === 'string') {
-    for (const l of parseLines(body.weights_text)) {
+  const weightsText = textOf(body.weights_text)
+  if (weightsText !== null) {
+    for (const l of parseLines(weightsText)) {
       // Without a time, store the weight at local noon so it lands on the right day in any time zone.
       const at = new Date(`${l.date}T${l.time ?? '12:00'}:00`)
       weights.push({ measured_at: at.toISOString(), weight_kg: parseDecimal(l.value) * toKg, body_fat_pct: null })
@@ -277,14 +300,22 @@ Deno.serve(async (req) => {
   const received = { steps: perDay.size, weights: validWeights.length, activities: byStart.size, meals }
   // What the phone found (Android helper) or at least what arrived (iPhone Shortcut), for the coach.
   const sent = JSON.stringify(body.report ?? {})
+  // When text arrived but nothing could be read from it, keep its start: the coach can see what to fix.
+  const sample = (text: string | null) => (text === null ? null : text.trim() ? text.trim().split('\n').slice(0, 2).join(' | ').slice(0, 80) : '(empty)')
+  const unreadable = {
+    ...(!received.steps && stepsText !== null ? { steps_text: sample(stepsText) } : {}),
+    ...(!received.weights && weightsText !== null ? { weights_text: sample(weightsText) } : {}),
+  }
   const report = {
     ...(sent.length < 4000 && body.report && typeof body.report === 'object' ? (body.report as Record<string, unknown>) : {}),
     source,
     client: (req.headers.get('user-agent') ?? '').slice(0, 120),
     received,
+    ...(Object.keys(unreadable).length ? { sample: unreadable, fields: Object.keys(body).filter((k) => k !== 'token' && k !== 'key').slice(0, 12) } : {}),
   }
   const now = new Date().toISOString()
   await admin.from('sync_tokens').update({ last_used_at: now, last_report: report }).eq('user_id', userId)
   const { data: person } = await admin.from('profiles').select('locale').eq('id', userId).maybeSingle()
-  return json({ ok: true, ...received, message: summary(person?.locale ?? 'it', source, received) })
+  const garbled = [stepsText, weightsText].some((t) => t !== null && t.trim() && parseLines(t).length === 0)
+  return json({ ok: true, ...received, message: summary(person?.locale ?? 'it', source, received, garbled) })
 })
