@@ -195,8 +195,9 @@ alimentare arriva tramite Connessione Salute (punto 4), oppure viene letto dal s
 Apri Forza! Coach quando vuoi:
 
 - **Overview**: andamento del peso, forza guadagnata per esercizio, allenamenti, passi, lezioni lette,
-  check-in delle calorie e gli **obiettivi del giorno** come li mostra il suo telefono (calorie, proteine,
-  carboidrati, grassi, fibre, sale) con quello che ha mangiato oggi.
+  check-in delle calorie e gli **obiettivi del giorno** (calorie, proteine, carboidrati, grassi, grassi saturi,
+  fibre, sale): il centro che vede sul telefono, l'intervallo attorno e quello che ha mangiato oggi (in rosso oltre
+  il limite di grassi saturi o di sale).
 - **Workout plan**: cambia esercizi, serie, ripetizioni, recupero, giorni della settimana, superset. Il
   telefono riceve la nuova scheda alla prossima apertura dell'app. Ogni salvataggio conserva la versione
   precedente (**Versions** → **Restore**).

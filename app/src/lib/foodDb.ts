@@ -22,6 +22,7 @@ export interface DbFood {
   fiber_g: number
   sugar_g: number
   salt_g: number | null
+  satfat_g: number | null
   portion_g: number | null
   source: 'barcode' | 'label' | 'manual' | 'ai' | 'web'
 }
@@ -114,6 +115,7 @@ export function dbFoodAt(f: DbFood, grams: number): FoodItem {
     fiber_g: r1(Number(f.fiber_g) * k),
     sugar_g: r1(Number(f.sugar_g) * k),
     ...(f.salt_g != null ? { salt_g: r2(Number(f.salt_g) * k) } : {}),
+    ...(f.satfat_g != null ? { satfat_g: r1(Number(f.satfat_g) * k) } : {}),
   }
 }
 
@@ -124,7 +126,7 @@ export function dbProduct(f: DbFood): Product {
     name: f.name,
     brand: f.brand,
     image: null,
-    per100: { kcal: Number(f.kcal), protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g), fiber_g: Number(f.fiber_g), sugar_g: Number(f.sugar_g), ...(f.salt_g != null ? { salt_g: Number(f.salt_g) } : {}) },
+    per100: { kcal: Number(f.kcal), protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g), fiber_g: Number(f.fiber_g), sugar_g: Number(f.sugar_g), ...(f.salt_g != null ? { salt_g: Number(f.salt_g) } : {}), ...(f.satfat_g != null ? { satfat_g: Number(f.satfat_g) } : {}) },
     servingG: f.portion_g,
     ultraProcessed: false,
     source: 'family',
@@ -216,6 +218,7 @@ function per100(it: FoodItem) {
     fiber_g: r1(it.fiber_g * k),
     sugar_g: r1(it.sugar_g * k),
     ...(it.salt_g != null ? { salt_g: r2(it.salt_g * k) } : {}),
+    ...(it.satfat_g != null ? { satfat_g: r1(it.satfat_g * k) } : {}),
   }
 }
 
@@ -242,6 +245,6 @@ export function rememberItems(items: LoggedItem[], fallback: DbFood['source']): 
 }
 
 /** The plain food as stored in the meal, without where it came from. */
-export function plainItem({ name, grams, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g }: FoodItem): FoodItem {
-  return { name, grams, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, ...(salt_g != null ? { salt_g } : {}) }
+export function plainItem({ name, grams, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g }: FoodItem): FoodItem {
+  return { name, grams, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, ...(salt_g != null ? { salt_g } : {}), ...(satfat_g != null ? { satfat_g } : {}) }
 }

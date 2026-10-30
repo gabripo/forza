@@ -48,6 +48,15 @@ function estimateTdee(args) {
 function adaptiveTdee(avgIntakeKcal, trendChangeKg, days) {
 	return avgIntakeKcal - trendChangeKg * 7700 / days;
 }
+/** Calories either side of the target, as Build With Science shows them (2,350–2,450). */
+const KCAL_BAND = 50;
+/** Protein either side of the target, in g per kg of (reference) body weight. */
+const PROTEIN_BAND = .2;
+/** Fat: 25–35% of the calories. */
+const FAT_SHARE = [.25, .35];
+/** WHO: saturated fat under 10% of the calories (9 kcal a gram). */
+const satfatLimit = (kcal) => Math.round(kcal * .1 / 9);
+const middle = (r) => Math.round((r[0] + r[1]) / 2);
 /** WHO's daily limit for salt; sodium is salt ÷ 2.5. */
 const SALT_LIMIT_G = 5;
 /** Milligrams of sodium in grams of salt. */
@@ -85,37 +94,53 @@ function dailyTargets(p, weightKg, tdee) {
 	const goal = p.goal ?? "maintain";
 	const floor = kcalFloor(p);
 	const base = tdee + paceKcal(p);
-	const manual = p.kcal_source === "manual" && p.kcal_target ? p.kcal_target : null;
-	const kcal = manual ?? Math.max(floor, base + (p.kcal_adjust ?? 0) + (p.kcal_manual ?? 0));
+	const kcal = (p.kcal_source === "manual" && p.kcal_target ? p.kcal_target : null) ?? Math.round(Math.max(floor, base + (p.kcal_adjust ?? 0) + (p.kcal_manual ?? 0)) / 10) * 10;
 	const perKg = goal === "maintain" ? 1.4 : goal === "fat_loss" ? 1.8 : 1.6;
-	const protein = Math.round(proteinWeight(p, weightKg) * (ageFrom(p.birth_year) >= 60 ? Math.max(perKg, 1.4) : perKg));
-	const fat = Math.round(kcal * .3 / 9);
-	const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
-	const fiber = Math.max(25, Math.round(kcal / 1e3 * 14));
-	return {
-		kcal: manual ?? Math.round(kcal / 10) * 10,
+	const gPerKg = ageFrom(p.birth_year) >= 60 ? Math.max(perKg, 1.4) : perKg;
+	const refKg = proteinWeight(p, weightKg);
+	const protein = [Math.round(refKg * (gPerKg - PROTEIN_BAND)), Math.round(refKg * (gPerKg + PROTEIN_BAND))];
+	const fat = [Math.round(kcal * FAT_SHARE[0] / 9), Math.round(kcal * FAT_SHARE[1] / 9)];
+	const ranges = {
+		kcal: [kcal - KCAL_BAND, kcal + KCAL_BAND],
 		protein_g: protein,
 		fat_g: fat,
-		carbs_g: carbs,
+		carbs_g: [Math.max(0, Math.round((kcal - KCAL_BAND - protein[1] * 4 - fat[1] * 9) / 4)), Math.max(0, Math.round((kcal + KCAL_BAND - protein[0] * 4 - fat[0] * 9) / 4))]
+	};
+	const fiber = Math.max(25, Math.round(kcal / 1e3 * 14));
+	return {
+		kcal,
+		protein_g: middle(ranges.protein_g),
+		fat_g: middle(ranges.fat_g),
+		carbs_g: middle(ranges.carbs_g),
 		fiber_g: fiber,
-		salt_g: 5
+		salt_g: 5,
+		satfat_g: satfatLimit(kcal),
+		ranges
 	};
 }
 /**
-* Build With Science's targets, for people who follow them: the middle of each range it shows (2,350–2,450
-* kcal → 2,400). Fibre, which it does not show, stays Forza!'s.
+* Build With Science's targets, for people who follow them: its own ranges, and the middle of each as the
+* target (2,350–2,450 kcal → 2,400). Fibre, salt and saturated fat, which it does not show, stay Forza!'s.
 */
 function bwsTargets(p, own) {
 	const t = p.bws_targets;
 	if (p.kcal_source !== "bws" || !t?.kcal) return null;
-	const mid = (r) => r ? Math.round((r[0] + r[1]) / 2) : null;
+	const ranges = {
+		kcal: t.kcal,
+		protein_g: t.protein ?? own.ranges.protein_g,
+		carbs_g: t.carbs ?? own.ranges.carbs_g,
+		fat_g: t.fat ?? own.ranges.fat_g
+	};
+	const kcal = middle(ranges.kcal);
 	return {
-		kcal: mid(t.kcal) ?? own.kcal,
-		protein_g: mid(t.protein) ?? own.protein_g,
-		carbs_g: mid(t.carbs) ?? own.carbs_g,
-		fat_g: mid(t.fat) ?? own.fat_g,
+		kcal,
+		protein_g: middle(ranges.protein_g),
+		carbs_g: middle(ranges.carbs_g),
+		fat_g: middle(ranges.fat_g),
 		fiber_g: own.fiber_g,
-		salt_g: own.salt_g
+		salt_g: own.salt_g,
+		satfat_g: satfatLimit(kcal),
+		ranges
 	};
 }
 /** One value per day (the first weigh-in of the day: closest to "morning, fasted"). */
@@ -170,6 +195,7 @@ function sumItems(items) {
 		sugar_g: 0
 	};
 	let salt = null;
+	let satfat = null;
 	for (const i of items) {
 		t.kcal += Number(i.kcal) || 0;
 		t.protein_g += Number(i.protein_g) || 0;
@@ -178,6 +204,7 @@ function sumItems(items) {
 		t.fiber_g += Number(i.fiber_g) || 0;
 		t.sugar_g += Number(i.sugar_g) || 0;
 		if (i.salt_g != null && Number.isFinite(Number(i.salt_g))) salt = (salt ?? 0) + Number(i.salt_g);
+		if (i.satfat_g != null && Number.isFinite(Number(i.satfat_g))) satfat = (satfat ?? 0) + Number(i.satfat_g);
 	}
 	return {
 		kcal: Math.round(t.kcal),
@@ -186,7 +213,8 @@ function sumItems(items) {
 		fat_g: round1(t.fat_g),
 		fiber_g: round1(t.fiber_g),
 		sugar_g: round1(t.sugar_g),
-		...salt !== null ? { salt_g: Math.round(salt * 100) / 100 } : {}
+		...salt !== null ? { salt_g: Math.round(salt * 100) / 100 } : {},
+		...satfat !== null ? { satfat_g: round1(satfat) } : {}
 	};
 }
 const clamp01 = (x) => Math.min(1, Math.max(0, x));

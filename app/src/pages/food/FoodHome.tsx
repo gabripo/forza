@@ -61,8 +61,9 @@ export function FoodHome() {
       fat: a.fat + Number(f.fat_g),
       fiber: a.fiber + Number(f.fiber_g),
       salt: a.salt + Number(f.salt_g ?? 0),
+      satfat: a.satfat + Number(f.satfat_g ?? 0),
     }),
-    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, salt: 0 },
+    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, salt: 0, satfat: 0 },
   )
   const tg = energy.targets
   const goal = profile.goal ?? 'maintain'
@@ -204,6 +205,8 @@ export function FoodHome() {
             <MacroBar label={t('macro.protein')} value={sum.protein} target={tg.protein_g} color="var(--macro-protein)" />
             <MacroBar label={t('macro.carbs')} value={sum.carbs} target={tg.carbs_g} color="var(--macro-carbs)" />
             <MacroBar label={t('macro.fat')} value={sum.fat} target={tg.fat_g} color="var(--macro-fat)" />
+            {/* Saturated fat is a limit, not a goal: the bar turns red past it. */}
+            <MacroBar label={t('macro.satfat')} digits={1} value={sum.satfat} target={tg.satfat_g} color={sum.satfat > tg.satfat_g ? 'var(--danger)' : 'var(--ink-3)'} />
             <MacroBar label={t('macro.fiber')} value={sum.fiber} target={tg.fiber_g} color="var(--macro-fiber)" />
             {/* Salt, for people who track it: a limit, not a goal, so the bar turns red past it. */}
             {profile.track_salt ? (
@@ -217,6 +220,11 @@ export function FoodHome() {
         <p className="mt-3 text-sm text-ink-2">
           {sum.kcal < tg.kcal ? t('food.left', { kcal: num(tg.kcal - sum.kcal) }) : t('food.over', { kcal: num(sum.kcal - tg.kcal) })}
         </p>
+        {sum.satfat > tg.satfat_g ? (
+          <p className="mt-2 rounded-2xl bg-danger-soft p-3 text-sm" role="alert">
+            <b>⚠️ {t('food.satfatOver', { g: num(sum.satfat, 1), max: num(tg.satfat_g) })}</b> {t('food.satfatTip')}
+          </p>
+        ) : null}
       </Card>
 
       {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}

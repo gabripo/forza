@@ -9,7 +9,7 @@ export interface Product {
   brand: string | null
   image: string | null
   /** Nutrients per 100 g (or 100 ml). */
-  per100: { kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sugar_g: number; salt_g?: number }
+  per100: { kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sugar_g: number; salt_g?: number; satfat_g?: number }
   /** One serving in grams, when the label states it. */
   servingG: number | null
   /** NOVA group 4 = ultra-processed. */
@@ -51,6 +51,7 @@ export function fromOpenFoodFacts(p: Record<string, unknown>, locale: Locale): P
       sugar_g: n(nt.sugars_100g),
       // Salt as printed, or worked out from sodium (salt = sodium × 2.5).
       ...(nt.salt_100g != null ? { salt_g: n(nt.salt_100g) } : nt.sodium_100g != null ? { salt_g: Math.round(n(nt.sodium_100g) * 250) / 100 } : {}),
+      ...(nt['saturated-fat_100g'] != null ? { satfat_g: n(nt['saturated-fat_100g']) } : {}),
     },
     servingG: serving > 0 && serving < 2000 ? serving : null,
     ultraProcessed: nova === 4,
@@ -84,6 +85,7 @@ export function productAt(p: Product, grams: number): FoodItem {
     fiber_g: r1(p.per100.fiber_g * k),
     sugar_g: r1(p.per100.sugar_g * k),
     ...(p.per100.salt_g != null ? { salt_g: Math.round(p.per100.salt_g * k * 100) / 100 } : {}),
+    ...(p.per100.satfat_g != null ? { satfat_g: r1(p.per100.satfat_g * k) } : {}),
   }
 }
 

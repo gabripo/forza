@@ -44,7 +44,16 @@ Deno.serve(async (req) => {
           name: name.slice(0, 120),
           brand: brand && brand.toLowerCase() !== name.toLowerCase() ? brand.slice(0, 60) : null,
           image: typeof p.image_front_small_url === 'string' ? p.image_front_small_url : null,
-          per100: { kcal, protein_g: n(nt.proteins_100g, 100), carbs_g: n(nt.carbohydrates_100g, 100), fat_g: n(nt.fat_100g, 100), fiber_g: n(nt.fiber_100g, 100), sugar_g: n(nt.sugars_100g, 100), ...(salt !== null ? { salt_g: salt } : {}) },
+          per100: {
+            kcal,
+            protein_g: n(nt.proteins_100g, 100),
+            carbs_g: n(nt.carbohydrates_100g, 100),
+            fat_g: n(nt.fat_100g, 100),
+            fiber_g: n(nt.fiber_100g, 100),
+            sugar_g: n(nt.sugars_100g, 100),
+            ...(salt !== null ? { salt_g: salt } : {}),
+            ...(nt['saturated-fat_100g'] != null ? { satfat_g: n(nt['saturated-fat_100g'], 100) } : {}),
+          },
           servingG: serving > 0 && serving < 2000 ? serving : null,
           ultraProcessed: Number(p.nova_group) === 4,
         }

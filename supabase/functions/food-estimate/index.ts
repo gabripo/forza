@@ -74,8 +74,9 @@ const itemSchema: Schema = {
     grams: { type: 'NUMBER' },
     ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])),
     salt_g: { type: 'NUMBER' },
+    satfat_g: { type: 'NUMBER' },
   },
-  required: ['name', 'grams', ...NUTRIENTS, 'salt_g'],
+  required: ['name', 'grams', ...NUTRIENTS, 'salt_g', 'satfat_g'],
 }
 
 const plateSchema: Schema = {
@@ -106,9 +107,10 @@ const SCHEMAS: Record<Mode, Schema> = {
       brand: { type: 'STRING' },
       ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])),
       salt_g: { type: 'NUMBER' },
+      satfat_g: { type: 'NUMBER' },
       serving_g: { type: 'NUMBER' },
     },
-    required: ['is_label', 'name', 'brand', ...NUTRIENTS, 'salt_g', 'serving_g'],
+    required: ['is_label', 'name', 'brand', ...NUTRIENTS, 'salt_g', 'satfat_g', 'serving_g'],
   },
 }
 
@@ -127,6 +129,7 @@ function platePrompt(language: string, goal: string, meal: string, note: string)
     'List every visible food item with a realistic portion in grams and its nutrients for that portion.',
     'Include cooking oil, sauces and dressings you can reasonably infer. Use standard nutrition tables.',
     'salt_g is the salt in grams in that portion (sodium × 2.5), including the salt usually added when cooking it at home.',
+    'satfat_g is the saturated fat in grams in that portion (part of fat_g).',
     'Mark ultra_processed true if most of the calories come from ultra-processed products.',
     'If the photo does not show food, set is_food false and return an empty items list.',
     `Write "title", item names and "tip" in ${language}.`,
@@ -144,6 +147,7 @@ function textPrompt(language: string, goal: string, meal: string, text: string):
     'List every food they mention with its nutrients. Use the quantity they say (grams, pieces, spoons, plates);',
     'when they give none, use a typical Italian home portion. Use standard nutrition tables.',
     'salt_g is the salt in grams in that portion (sodium × 2.5), including the salt usually added when cooking it at home.',
+    'satfat_g is the saturated fat in grams in that portion (part of fat_g).',
     'Mark ultra_processed true if most of the calories come from ultra-processed products.',
     'If the words do not describe food, set is_food false and return an empty items list.',
     `Write "title", item names and "tip" in ${language}.`,
@@ -175,7 +179,7 @@ function labelPrompt(language: string): string {
   return [
     'The photo shows the nutrition facts table of a packaged food (any language, any country).',
     'Copy the values PER 100 g (or per 100 ml for drinks): energy in kcal (convert from kJ by dividing by 4.184 if only kJ is given),',
-    'protein, carbohydrates, fat, fibre, sugars and salt in grams (salt = sodium × 2.5 when only sodium is printed). Use 0 for a value that is not printed.',
+    'protein, carbohydrates, fat, saturated fat (satfat_g), fibre, sugars and salt in grams (salt = sodium × 2.5 when only sodium is printed). Use 0 for a value that is not printed.',
     'If the table only gives values per serving, convert them to per 100 g using the serving size.',
     'serving_g is the serving size in grams if printed, otherwise 0.',
     `name: the product name if visible, in ${language}, otherwise an empty string. brand: the brand if visible, otherwise an empty string.`,
@@ -302,6 +306,7 @@ function cleanPlate(a: Record<string, unknown>) {
       grams: num(i.grams, 3000),
       ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(i[k], k === 'kcal' ? 5000 : 500)])),
       salt_g: num(i.salt_g, 50),
+      satfat_g: Math.min(num(i.satfat_g, 300), num(i.fat_g, 500)),
     })),
     ultra_processed: a.ultra_processed === true,
     confidence: ['low', 'medium', 'high'].includes(String(a.confidence)) ? a.confidence : 'low',
@@ -316,6 +321,7 @@ function cleanLabel(a: Record<string, unknown>) {
     brand: str(a.brand, 60),
     ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(a[k], k === 'kcal' ? 950 : 100)])),
     salt_g: num(a.salt_g, 100),
+    satfat_g: Math.min(num(a.satfat_g, 100), num(a.fat_g, 100)),
     serving_g: num(a.serving_g, 2000),
   }
 }

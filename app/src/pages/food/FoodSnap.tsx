@@ -76,7 +76,7 @@ export function FoodSnap() {
           fat_g: round1(x.fat_g * k),
           fiber_g: round1(x.fiber_g * k),
           sugar_g: round1(x.sugar_g * k),
-          ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}),
+          ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}), ...(x.satfat_g != null ? { satfat_g: round1(x.satfat_g * k) } : {}),
         }
       }),
     )

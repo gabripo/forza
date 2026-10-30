@@ -188,8 +188,8 @@ diary arrives through Health Connect (step 4), or is read on their phone (below)
 Open Forza! Coach whenever you like:
 
 - **Overview**: weight trend, strength gained per exercise, workouts, steps, lessons read, calorie check-ins,
-  and the **daily targets** as their phone shows them (calories, protein, carbohydrates, fat, fibre, salt) with
-  what they ate today.
+  and the **daily targets** (calories, protein, carbohydrates, fat, saturated fat, fibre, salt): the middle their
+  phone shows, the range around it, and what they ate today (in red past the saturated fat or salt limit).
 - **Workout plan**: change exercises, sets, repetitions, rest, days of the week, supersets. Their phone gets
   the new plan the next time they open the app. Every save keeps the previous version (**Versions** → **Restore**).
   To give someone a workout that works for another person, pick the person next to the workout and click

@@ -129,6 +129,8 @@ export interface FoodItem {
   sugar_g: number
   /** Salt in grams (sodium × 2.5), when known. */
   salt_g?: number
+  /** Saturated fat in grams, when known. */
+  satfat_g?: number
 }
 
 export interface FoodLog {
@@ -144,6 +146,7 @@ export interface FoodLog {
   fiber_g: number
   sugar_g: number
   salt_g?: number | null
+  satfat_g?: number | null
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null

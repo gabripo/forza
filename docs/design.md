@@ -180,7 +180,19 @@ The calorie target is built in five explainable steps, shown in the app with the
    the phone reads its daily calorie and macro ranges with the food log, and the app uses their middle
    (no check-in then: Build With Science adjusts its own target).
 5. **Split**: protein 1.8 / 1.6 / 1.4 g per kg (at least 1.4 after 60; above BMI 30 a reference weight
-   is used), fat 30% of calories, carbohydrates the rest, fibre 14 g per 1,000 kcal.
+   is used), fat 30% of calories, carbohydrates the rest, fibre 14 g per 1,000 kcal; saturated fat at most
+   10% of the calories (WHO).
+
+**Ranges.** As in Build With Science, calories and macros are ranges: calories ±50 kcal, protein ±0.2 g per kg,
+fat 25–35% of the calories, carbohydrates the rest of the calories from the lowest to the highest that fits.
+Each target is the middle of its range, and that middle is the only number on Home, the Food page and the
+challenge; the ranges appear in *How is this calculated?* and in Forza! Coach. People who follow Build With
+Science get its own ranges.
+
+**Saturated fat.** Next to the other macros, against the limit of 10% of the calories (about 18 g for
+1,650 kcal). Past it, the bar turns red and a warning on the Food page and on Home says where saturated fat
+usually comes from and what to choose instead. Values come from the built-in table (typical values per 100 g),
+Open Food Facts, label photos and the photo AI; meals synced from another app have none yet.
 
 Ways to log a meal:
 

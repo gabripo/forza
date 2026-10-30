@@ -323,8 +323,8 @@ export async function copyMealsToToday(logs: FoodLog[]): Promise<string[]> {
     const at = new Date(f.eaten_at)
     const today = new Date(now)
     today.setHours(at.getHours(), at.getMinutes(), 0, 0)
-    const { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, score_fat_loss, score_muscle_gain, ai_notes } = f
-    return { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, score_fat_loss, score_muscle_gain, ai_notes, eaten_at: (today > now ? now : today).toISOString(), source: 'manual' as const }
+    const { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g, score_fat_loss, score_muscle_gain, ai_notes } = f
+    return { meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g, score_fat_loss, score_muscle_gain, ai_notes, eaten_at: (today > now ? now : today).toISOString(), source: 'manual' as const }
   })
   return (check(await supabase.from('food_logs').insert(rows).select('id')) as { id: string }[]).map((r) => r.id)
 }
@@ -408,6 +408,7 @@ export interface AiLabel {
   fiber_g: number
   sugar_g: number
   salt_g?: number
+  satfat_g?: number
   serving_g: number
 }
 

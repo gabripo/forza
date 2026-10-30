@@ -303,8 +303,14 @@ test('targets in Coach: the app\'s own calculation, with a calorie target set by
   const byHand = computeEnergy({ ...profile, kcal_source: 'manual', kcal_target: 1650 }, [], [], [], []).targets
   assert.equal(byHand.kcal, 1650)
   assert.equal(byHand.protein_g, auto.protein_g)
-  assert.equal(byHand.fat_g, Math.round((1650 * 0.3) / 9))
-  assert.equal(byHand.carbs_g, Math.round((1650 - byHand.protein_g * 4 - byHand.fat_g * 9) / 4))
+  // Every target is the middle of its range: calories ±50, fat 25–35% of the calories, carbohydrates the rest.
+  assert.deepEqual(byHand.ranges.kcal, [1600, 1700])
+  assert.deepEqual(byHand.ranges.fat_g, [46, 64])
+  assert.equal(byHand.fat_g, 55)
+  const [lo, hi] = byHand.ranges.carbs_g
+  assert.equal(byHand.carbs_g, Math.round((lo + hi) / 2))
+  assert.ok(Math.abs(byHand.carbs_g - (1650 - byHand.protein_g * 4 - byHand.fat_g * 9) / 4) <= 2)
+  assert.equal(byHand.satfat_g, Math.round((1650 * 0.1) / 9))
   assert.ok(scorePlate({ kcal: 500, protein_g: 35, carbs_g: 50, fat_g: 15, fiber_g: 10, sugar_g: 5 }, 'lunch', 1650, false, new Date(2026, 9, 30, 13)).fatLoss > 50)
 })
 

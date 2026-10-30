@@ -42,8 +42,8 @@ export function Dashboard() {
     const today = localDay(new Date())
     const todayFood = food.filter((f) => localDay(new Date(f.eaten_at)) === today)
     const eaten = todayFood.reduce(
-      (a, f) => ({ kcal: a.kcal + Number(f.kcal), protein: a.protein + Number(f.protein_g) }),
-      { kcal: 0, protein: 0 },
+      (a, f) => ({ kcal: a.kcal + Number(f.kcal), protein: a.protein + Number(f.protein_g), satfat: a.satfat + Number(f.satfat_g ?? 0) }),
+      { kcal: 0, protein: 0, satfat: 0 },
     )
     // Workouts per week, last 8 weeks
     const weeks = Array.from({ length: 8 }, (_, i) => {
@@ -318,6 +318,11 @@ export function Dashboard() {
               <p className="mt-2 text-sm text-ink-3">{t('dash.proteinWhy')}</p>
             </div>
           </div>
+          {view.eaten.satfat > view.energy.targets.satfat_g ? (
+            <Link to="/food" className="mt-3 block rounded-2xl bg-danger-soft px-3 py-2 text-sm font-semibold" role="alert">
+              ⚠️ {t('food.satfatOver', { g: num(view.eaten.satfat, 1), max: num(view.energy.targets.satfat_g) })}
+            </Link>
+          ) : null}
           {view.nextMeal ? (
             <Link to="/food" className="mt-3 flex items-center gap-2 rounded-2xl bg-leaf-soft px-3 py-2 text-sm">
               <span className="text-xl" aria-hidden>

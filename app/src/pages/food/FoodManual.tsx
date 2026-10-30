@@ -107,7 +107,7 @@ export function FoodManual() {
         name: r.name || t('scan.unnamed'),
         brand: r.brand || null,
         image: null,
-        per100: { kcal: Math.round(r.kcal), protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, fiber_g: r.fiber_g, sugar_g: r.sugar_g, ...(r.salt_g != null ? { salt_g: r.salt_g } : {}) },
+        per100: { kcal: Math.round(r.kcal), protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, fiber_g: r.fiber_g, sugar_g: r.sugar_g, ...(r.salt_g != null ? { salt_g: r.salt_g } : {}), ...(r.satfat_g != null ? { satfat_g: r.satfat_g } : {}) },
         servingG: r.serving_g > 0 ? r.serving_g : null,
         ultraProcessed: false,
         source: 'label',
@@ -368,6 +368,7 @@ function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () 
   const [c, setC] = useState<number | null>(null)
   const [f, setF] = useState<number | null>(null)
   const [salt, setSalt] = useState<number | null>(null)
+  const [satfat, setSatfat] = useState<number | null>(null)
   return (
     <Sheet open={open} onClose={onClose} title={t('manual.custom')}>
       <div className="grid gap-3">
@@ -390,6 +391,9 @@ function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () 
           <Field label={`${t('macro.fat')} (g)`}>
             <NumberInput value={f} onChange={setF} />
           </Field>
+          <Field label={`${t('macro.satfat')} (g)`} hint={t('manual.optional')}>
+            <NumberInput value={satfat} onChange={setSatfat} />
+          </Field>
           <Field label={`${t('macro.salt')} (g)`} hint={t('manual.optional')}>
             <NumberInput value={salt} onChange={setSalt} />
           </Field>
@@ -399,7 +403,7 @@ function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () 
           block
           disabled={!name.trim() || !kcal}
           onClick={() =>
-            onAdd({ name: name.trim(), grams: grams ?? 0, kcal: kcal ?? 0, protein_g: p ?? 0, carbs_g: c ?? 0, fat_g: f ?? 0, fiber_g: 0, sugar_g: 0, ...(salt != null ? { salt_g: salt } : {}), origin: 'manual' })
+            onAdd({ name: name.trim(), grams: grams ?? 0, kcal: kcal ?? 0, protein_g: p ?? 0, carbs_g: c ?? 0, fat_g: f ?? 0, fiber_g: 0, sugar_g: 0, ...(salt != null ? { salt_g: salt } : {}), ...(satfat != null ? { satfat_g: satfat } : {}), origin: 'manual' })
           }
         >
           {t('manual.add')}

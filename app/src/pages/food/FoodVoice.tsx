@@ -222,7 +222,7 @@ export function FoodVoice() {
       (xs ?? []).map((x, j) => {
         if (j !== i || !grams || x.grams <= 0) return x
         const k = grams / x.grams
-        return { ...x, grams, kcal: Math.round(x.kcal * k), protein_g: round1(x.protein_g * k), carbs_g: round1(x.carbs_g * k), fat_g: round1(x.fat_g * k), fiber_g: round1(x.fiber_g * k), sugar_g: round1(x.sugar_g * k), ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}) }
+        return { ...x, grams, kcal: Math.round(x.kcal * k), protein_g: round1(x.protein_g * k), carbs_g: round1(x.carbs_g * k), fat_g: round1(x.fat_g * k), fiber_g: round1(x.fiber_g * k), sugar_g: round1(x.sugar_g * k), ...(x.salt_g != null ? { salt_g: Math.round(x.salt_g * k * 100) / 100 } : {}), ...(x.satfat_g != null ? { satfat_g: round1(x.satfat_g * k) } : {}) }
       }),
     )
   }

@@ -128,6 +128,7 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
               {profile.kcal_manual ? <Row label={t('food.explain.manual')} value={signed(profile.kcal_manual)} /> : null}
               {floored ? <Row label={t('food.explain.floor', { kcal: num(floor) })} value={kcal(floor)} /> : null}
               <Row label={t('food.explain.target', { goal: t(`goal.${goal}`) })} value={kcal(targets.kcal)} strong />
+              <Row label={t('food.explain.range')} value={`${range(targets.ranges.kcal)} kcal`} />
             </ul>
             <p className="text-sm text-ink-3">{t('food.explain.s4note')}</p>
           </>
@@ -135,12 +136,17 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
       </Step>
 
       <Step n={5} title={t('food.explain.s5')}>
+        {/* Every target is a range; the app shows its middle everywhere else. */}
         <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
-          <Row label={t('macro.protein')} value={`${targets.protein_g} g`} />
-          <Row label={t('macro.fat')} value={`${targets.fat_g} g`} />
-          <Row label={t('macro.carbs')} value={`${targets.carbs_g} g`} />
-          <Row label={t('macro.fiber')} value={`${targets.fiber_g} g`} />
+          <Row label={t('food.explain.rangeOf', { what: t('macro.kcal') })} value={`${range(targets.ranges.kcal)} kcal · ${num(targets.kcal)}`} />
+          <Row label={t('food.explain.rangeOf', { what: t('macro.protein') })} value={`${range(targets.ranges.protein_g)} g · ${num(targets.protein_g)} g`} />
+          <Row label={t('food.explain.rangeOf', { what: t('macro.fat') })} value={`${range(targets.ranges.fat_g)} g · ${num(targets.fat_g)} g`} />
+          <Row label={t('food.explain.rangeOf', { what: t('macro.carbs') })} value={`${range(targets.ranges.carbs_g)} g · ${num(targets.carbs_g)} g`} />
+          <Row label={t('food.explain.atLeast', { what: t('macro.fiber') })} value={`${num(targets.fiber_g)} g`} />
+          <Row label={t('food.explain.atMost', { what: t('macro.satfat') })} value={`${num(targets.satfat_g)} g`} />
+          {profile.track_salt ? <Row label={t('food.explain.atMost', { what: t('macro.salt') })} value={`${num(targets.salt_g)} g`} /> : null}
         </ul>
+        <p className="text-sm text-ink-3">{t('food.explain.rangesNote')}</p>
         <p className="text-sm text-ink-3">{t(`food.explain.s5note.${goal}`)}</p>
       </Step>
 

@@ -17,6 +17,8 @@ export interface Food {
   portion: number
   /** Salt, g per 100 g (sodium × 2.5). */
   salt: number
+  /** Saturated fat, g per 100 g. */
+  satfat: number
   /** Optional unit name for the portion, e.g. "1 egg". */
   unit?: L10n
 }
@@ -298,6 +300,31 @@ const SALT: Record<string, number> = {
   arancino: 1, ragu: 1,
 }
 
+/** Saturated fat in grams per 100 g, typical values (CREA and USDA tables; dishes as cooked at home). Foods not listed have almost none. */
+const SATFAT: Record<string, number> = {
+  chicken_breast: 1, turkey_breast: 0.3, lean_beef: 2.8, salmon: 2.5, white_fish: 0.2, tuna_water: 0.3, tuna_oil: 1.5, egg: 3.1, bresaola: 1,
+  prosciutto: 6, cooked_ham: 1.5, tofu: 0.7, whey: 1, turkey_burger: 2.5, chicken_burger: 2.5, beef_burger: 6, chicken_thigh: 3, pork_loin: 2,
+  sausage: 9, veal: 1.5, rabbit: 1.5, lamb: 7, roast_beef: 2.5, salami: 12, mortadella: 10, speck: 7, frankfurter: 9, deli_turkey: 0.5,
+  tuna_fresh: 0.4, swordfish: 1.2, sea_bream: 1, trout: 1.2, mackerel: 3.5, sardines: 2.5, sardines_oil: 2.5, mackerel_oil: 3.5, smoked_salmon: 1,
+  prawns: 0.2, mussels: 0.5, clams: 0.2, squid: 0.4, octopus: 0.2, protein_bar: 4,
+  greek_yogurt_0: 0.1, greek_yogurt: 6.5, skyr: 0.1, yogurt: 2.1, cottage: 2.8, ricotta: 8, mozzarella: 11, parmesan: 19, milk: 1, stracchino: 15,
+  gorgonzola: 18, pecorino: 21, feta: 14, scamorza: 15, emmental: 18, burrata: 14, cream_cheese: 15, fruit_yogurt: 1.5, kefir: 1.5, whole_milk: 2.3,
+  skim_milk: 0.1, soy_drink: 0.3, oat_drink: 0.2, cream: 22,
+  chickpeas: 0.3, veggie_burger: 2, lupins: 0.5, edamame: 0.7, tempeh: 2.5, seitan: 0.3, hummus: 1.5,
+  pasta_dry: 0.3, pasta_wholegrain_dry: 0.4, oats: 1.2, quinoa: 0.7, rusks: 1.5, focaccia: 1.8, piadina: 4, crackers: 2, breadsticks: 1.5,
+  sandwich_bread: 0.8, rice_cakes: 0.6, muesli: 1, granola: 4, tortellini: 3.5, ravioli: 3, spelt: 0.4, barley: 0.3, bread_wholegrain: 0.4, bread: 0.3,
+  tomato_sauce: 0.5, greens_cooked: 0.5, avocado: 2.1,
+  olive_oil: 14, almonds: 3.8, walnuts: 6.1, peanut_butter: 10, olives: 2, butter: 51, pesto: 6, mayonnaise: 11, hazelnuts: 4.5, pistachios: 5.6,
+  peanuts: 7, seeds: 5,
+  dark_chocolate: 24, biscuits: 7, croissant: 12, pizza: 4.5, ice_cream: 7, pizza_slice: 5, hazelnut_spread: 10.6, milk_chocolate: 18,
+  wholegrain_biscuits: 3, jam_tart: 8, cake: 6, tiramisu: 12, panettone: 9, snack_cake: 9, cereal_bar: 4, crisps: 3, popcorn: 1.5, pudding: 2,
+  cappuccino: 0.9, hot_chocolate: 2,
+  pasta_tomato: 0.8, pasta_ragu: 2, pasta_pesto: 2.5, carbonara: 5, pasta_clams: 0.8, pasta_beans: 0.5, pasta_chickpeas_dish: 0.5, lasagne: 5,
+  risotto: 3, minestrone: 0.3, veg_cream_soup: 0.5, parmigiana: 5, frittata: 4, caprese: 7, meatballs: 5, chicken_cutlet: 2, fish_fingers: 1.2,
+  fried_squid: 2, grilled_veg: 0.8, roast_potatoes: 0.8, mashed_potatoes: 3, fries: 1.5, toast_ham_cheese: 7, tramezzino: 4, burger_sandwich: 5,
+  kebab: 5, sushi: 0.5, arancino: 3, ragu: 3,
+}
+
 export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs, fat, fiber, sugar, portion, uen, uit]) => ({
   id,
   name: { en, it },
@@ -310,6 +337,7 @@ export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs,
   sugar,
   portion,
   salt: SALT[id] ?? (group === 'fruit' || group === 'drinks' || group === 'fats' ? 0 : 0.05),
+  satfat: SATFAT[id] ?? (group === 'fruit' || group === 'veg' || group === 'drinks' ? 0 : 0.1),
   unit: uen ? { en: uen, it: uit ?? uen } : undefined,
 }))
 
@@ -322,5 +350,5 @@ export const PROCESSED_FOODS = new Set([
 export function foodAt(food: Food, grams: number) {
   const k = grams / 100
   const r = (n: number) => Math.round(n * k * 10) / 10
-  return { kcal: Math.round(food.kcal * k), protein_g: r(food.protein), carbs_g: r(food.carbs), fat_g: r(food.fat), fiber_g: r(food.fiber), sugar_g: r(food.sugar), salt_g: Math.round(food.salt * k * 100) / 100 }
+  return { kcal: Math.round(food.kcal * k), protein_g: r(food.protein), carbs_g: r(food.carbs), fat_g: r(food.fat), fiber_g: r(food.fiber), sugar_g: r(food.sugar), salt_g: Math.round(food.salt * k * 100) / 100, satfat_g: r(food.satfat) }
 }

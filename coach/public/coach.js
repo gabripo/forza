@@ -160,24 +160,28 @@ function targetsView(d) {
   const eaten = d.food.filter((f) => new Date(f.eaten_at).toDateString() === today)
   const sum = (k) => eaten.reduce((s, f) => s + Number(f[k] ?? 0), 0)
   const pct = (g, kcalPerG) => (t.kcal ? Math.round(((g * kcalPerG) / t.kcal) * 100) : 0)
+  const span = (r, unit) => (r ? `${fmtNum(r[0])}–${fmtNum(r[1])} ${unit}` : '')
+  const r = t.ranges ?? {}
+  const satfat = sum('satfat_g')
   const rows = [
-    ['Protein', t.protein_g, 'g', `${pct(t.protein_g, 4)}% of calories`, sum('protein_g')],
-    ['Carbohydrates', t.carbs_g, 'g', `${pct(t.carbs_g, 4)}%`, sum('carbs_g')],
-    ['Fat', t.fat_g, 'g', `${pct(t.fat_g, 9)}%`, sum('fat_g')],
-    ['Fibre', t.fiber_g, 'g', 'at least', sum('fiber_g')],
-    ...(pr.track_salt ? [['Salt', t.salt_g, 'g', `at most · sodium ${fmtNum(t.salt_g * 400)} mg`, sum('salt_g')]] : []),
+    ['Protein', t.protein_g, 'g', span(r.protein_g, 'g'), `${pct(t.protein_g, 4)}% of calories`, sum('protein_g')],
+    ['Carbohydrates', t.carbs_g, 'g', span(r.carbs_g, 'g'), `${pct(t.carbs_g, 4)}%`, sum('carbs_g')],
+    ['Fat', t.fat_g, 'g', span(r.fat_g, 'g'), `${pct(t.fat_g, 9)}%`, sum('fat_g')],
+    ['Saturated fat', t.satfat_g, 'g', 'at most', 'under 10% of calories', satfat, satfat > t.satfat_g],
+    ['Fibre', t.fiber_g, 'g', 'at least', '', sum('fiber_g')],
+    ...(pr.track_salt ? [['Salt', t.salt_g, 'g', 'at most', `sodium ${fmtNum(t.salt_g * 400)} mg`, sum('salt_g'), sum('salt_g') > t.salt_g]] : []),
   ]
   const source =
     pr.kcal_source === 'manual' && pr.kcal_target
       ? 'Set by hand'
       : pr.kcal_source === 'bws' && pr.bws_targets?.kcal
-        ? `Build With Science's target (middle of ${pr.bws_targets.kcal[0]}–${pr.bws_targets.kcal[1]} kcal)`
+        ? `Build With Science's ranges`
         : `Forza!: ${fmtNum(e.tdee.tdee)} kcal used a day (${e.tdee.method === 'blended' ? 'formula and food log' : e.tdee.method === 'steps_and_workouts' ? 'from steps and workouts' : 'from the activity level'}), ${pr.goal === 'maintain' ? 'kept' : `${pr.goal_pace ?? 'normal'} pace`}${pr.kcal_adjust ? `, check-ins ${pr.kcal_adjust > 0 ? '+' : ''}${pr.kcal_adjust}` : ''}${pr.kcal_manual ? `, adjustment ${pr.kcal_manual > 0 ? '+' : ''}${pr.kcal_manual}` : ''}`
   return `<div class="card"><h2>Daily targets</h2>
-    <p class="muted small">${esc(source)}. Change them in Profile; they can change them too in Food → Adjust.</p>
-    <table><thead><tr><th></th><th class="num">Target</th><th></th><th class="num">Eaten today</th></tr></thead><tbody>
-      <tr><td><b>Calories</b></td><td class="num"><b>${fmtNum(t.kcal)} kcal</b></td><td class="small muted">${pr.kcal_source === 'manual' ? '' : `body uses about ${fmtNum(e.tdee.tdee)}`}</td><td class="num">${fmtNum(sum('kcal'))}</td></tr>
-      ${rows.map(([label, v, unit, note, today]) => `<tr><td>${label}</td><td class="num">${fmtNum(v)} ${unit}</td><td class="small muted">${note}</td><td class="num">${fmtNum(today, 1)} ${unit}</td></tr>`).join('')}
+    <p class="muted small">${esc(source)}. Each target is a range; their phone shows the middle. Change them in Profile; they can change them too in Food → Adjust.</p>
+    <table><thead><tr><th></th><th class="num">Middle</th><th class="num">Range</th><th></th><th class="num">Eaten today</th></tr></thead><tbody>
+      <tr><td><b>Calories</b></td><td class="num"><b>${fmtNum(t.kcal)} kcal</b></td><td class="num">${span(r.kcal, 'kcal')}</td><td class="small muted">${pr.kcal_source === 'manual' ? '' : `body uses about ${fmtNum(e.tdee.tdee)}`}</td><td class="num">${fmtNum(sum('kcal'))}</td></tr>
+      ${rows.map(([label, v, unit, range, note, today, over]) => `<tr><td>${label}</td><td class="num">${fmtNum(v)} ${unit}</td><td class="num small">${range}</td><td class="small muted">${note}</td><td class="num">${over ? '<span class="pill warn">' : ''}${fmtNum(today, 1)} ${unit}${over ? '</span>' : ''}</td></tr>`).join('')}
     </tbody></table></div>`
 }
 
@@ -359,6 +363,8 @@ function workoutsView(d) {
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
+// Known for some foods only: blank means not known.
+const OPTIONAL_NUTRIENTS = ['satfat_g', 'salt_g']
 // Meals logged by another app come back from there at the next sync: they are changed in that app.
 const syncedMeal = (f) => f.source === 'health_connect' || (f.source === 'import' && Boolean(f.origin))
 
@@ -394,7 +400,7 @@ function localInput(d) {
 function withPer(item) {
   const grams = Number(item.grams) || 0
   const per = grams > 0 ? Object.fromEntries(NUTRIENTS.map((k) => [k, (Number(item[k]) || 0) / grams])) : null
-  if (per) per.salt_g = item.salt_g == null || item.salt_g === '' ? null : Number(item.salt_g) / grams
+  if (per) for (const k of OPTIONAL_NUTRIENTS) per[k] = item[k] == null || item[k] === '' ? null : Number(item[k]) / grams
   return { ...item, per }
 }
 
@@ -404,24 +410,26 @@ function mealTotalsText() {
   const t = Object.fromEntries(NUTRIENTS.map((k) => [k, state.mealEdit.items.reduce((s, i) => s + (Number(i[k]) || 0), 0)]))
   const salted = state.mealEdit.items.filter((i) => i.salt_g != null && i.salt_g !== '')
   const salt = salted.length ? ` · salt ${fmtNum(salted.reduce((s, i) => s + Number(i.salt_g), 0), 2)} g` : ''
-  return `Total: ${fmtNum(t.kcal)} kcal · protein ${fmtNum(t.protein_g, 1)} g · carbs ${fmtNum(t.carbs_g, 1)} g · fat ${fmtNum(t.fat_g, 1)} g · fibre ${fmtNum(t.fiber_g, 1)} g${salt}`
+  const sat = state.mealEdit.items.filter((i) => i.satfat_g != null && i.satfat_g !== '')
+  const satfat = sat.length ? ` · saturated fat ${fmtNum(sat.reduce((s, i) => s + Number(i.satfat_g), 0), 1)} g` : ''
+  return `Total: ${fmtNum(t.kcal)} kcal · protein ${fmtNum(t.protein_g, 1)} g · carbs ${fmtNum(t.carbs_g, 1)} g · fat ${fmtNum(t.fat_g, 1)} g · fibre ${fmtNum(t.fiber_g, 1)} g${satfat}${salt}`
 }
 
 function mealEditor(d) {
   const m = state.mealEdit
   const lang = d.profile?.locale === 'it' ? 'it' : 'en'
-  const cell = (i, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-meal-item="${i}" data-field="${k}" value="${m.items[i][k] ?? (k === 'salt_g' ? '' : 0)}"${k === 'salt_g' ? ' placeholder="—"' : ''}></td>`
+  const cell = (i, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-meal-item="${i}" data-field="${k}" value="${m.items[i][k] ?? (OPTIONAL_NUTRIENTS.includes(k) ? '' : 0)}"${OPTIONAL_NUTRIENTS.includes(k) ? ' placeholder="—"' : ''}></td>`
   return `<div class="card" id="meal-editor"><h2>${m.id ? 'Change the meal' : 'Add a meal'}</h2>
     <div class="grid2">
       <label class="field">Meal <select data-meal-field="meal">${MEALS.map((x) => `<option value="${x}"${m.meal === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
       <label class="field">When <input type="datetime-local" data-meal-field="at" value="${esc(m.at)}"></label>
       <label class="field">Name <input data-meal-field="title" value="${esc(m.title)}" placeholder="The foods' names if empty"></label>
     </div>
-    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th class="num">Salt</th><th></th></tr></thead><tbody>
+    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th class="num">Sat. fat</th><th class="num">Salt</th><th></th></tr></thead><tbody>
       ${m.items
         .map(
           (it, i) => `<tr><td><input data-meal-item="${i}" data-field="name" value="${esc(it.name)}" style="width:100%;min-width:180px"></td>
-          ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}${cell(i, 'salt_g', 0.01)}
+          ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}${cell(i, 'satfat_g', 0.1)}${cell(i, 'salt_g', 0.01)}
           <td><button class="btn small danger" data-action="meal-item-del" data-i="${i}" aria-label="Remove">✕</button></td></tr>`,
         )
         .join('')}
@@ -460,6 +468,7 @@ async function mealAction(action, btn) {
       it.grams = Math.round((Number(it.grams) || 0) * k)
       for (const n of NUTRIENTS) it[n] = nutrientValue(n, (Number(it[n]) || 0) * k)
       if (it.salt_g != null && it.salt_g !== '') it.salt_g = Math.round(Number(it.salt_g) * k * 100) / 100
+      if (it.satfat_g != null && it.satfat_g !== '') it.satfat_g = nutrientValue('satfat_g', Number(it.satfat_g) * k)
     }
   }
   if (action === 'meal-add-food') {
@@ -470,7 +479,7 @@ async function mealAction(action, btn) {
     const lang = state.data.profile?.locale === 'it' ? 'it' : 'en'
     // The table's values are per 100 g.
     const per100 = { kcal: food.kcal, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat, fiber_g: food.fiber, sugar_g: food.sugar }
-    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])), salt_g: Math.round((food.salt ?? 0) * grams) / 100 }))
+    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])), salt_g: Math.round((food.salt ?? 0) * grams) / 100, satfat_g: nutrientValue('satfat_g', ((food.satfat ?? 0) * grams) / 100) }))
   }
   if (action === 'meal-save') {
     if (!m.items.length) return toast('Add at least one food')
@@ -509,9 +518,9 @@ function mealItemInput(el) {
     return
   }
   const v = Math.max(0, Number(el.value) || 0)
-  it[k] = k === 'salt_g' && el.value === '' ? null : v
+  it[k] = OPTIONAL_NUTRIENTS.includes(k) && el.value === '' ? null : v
   if (k === 'grams' && it.per) {
-    for (const n of [...NUTRIENTS, 'salt_g']) {
+    for (const n of [...NUTRIENTS, ...OPTIONAL_NUTRIENTS]) {
       if (it.per[n] == null) continue
       it[n] = n === 'salt_g' ? Math.round(it.per[n] * v * 100) / 100 : nutrientValue(n, it.per[n] * v)
       const field = app.querySelector(`[data-meal-item="${i}"][data-field="${n}"]`)

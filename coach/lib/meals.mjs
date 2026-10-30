@@ -2,6 +2,11 @@
 
 const MEALS = new Set(['breakfast', 'lunch', 'dinner', 'snack'])
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
+// [field, name, most grams in one food, decimals]
+const OPTIONAL = [
+  ['salt_g', 'salt', 50, 2],
+  ['satfat_g', 'saturated fat', 300, 1],
+]
 
 function check({ data, error }) {
   if (error) throw new Error(error.message)
@@ -28,17 +33,23 @@ export function mealItems(items) {
       if (!Number.isFinite(v) || v < 0 || v > max) throw bad(`${name}: ${k.replace('_g', '')} must be between 0 and ${max}`)
       item[k] = k === 'kcal' ? Math.round(v) : round1(v)
     }
-    // Salt is optional: blank means not known.
-    const salt = i.salt_g === '' || i.salt_g == null ? null : Number(i.salt_g)
-    if (salt !== null) {
-      if (!Number.isFinite(salt) || salt < 0 || salt > 50) throw bad(`${name}: salt must be between 0 and 50 g`)
-      item.salt_g = Math.round(salt * 100) / 100
+    // Salt and saturated fat are optional: blank means not known.
+    for (const [k, label, max, digits] of OPTIONAL) {
+      const v = i[k] === '' || i[k] == null ? null : Number(i[k])
+      if (v === null) continue
+      if (!Number.isFinite(v) || v < 0 || v > max) throw bad(`${name}: ${label} must be between 0 and ${max} g`)
+      item[k] = Math.round(v * 10 ** digits) / 10 ** digits
     }
     return item
   })
   const totals = Object.fromEntries(NUTRIENTS.map((k) => [k, round1(clean.reduce((s, i) => s + i[k], 0))]))
-  const salted = clean.filter((i) => i.salt_g != null)
-  return { items: clean, ...totals, salt_g: salted.length ? Math.round(salted.reduce((s, i) => s + i.salt_g, 0) * 100) / 100 : null }
+  const optional = Object.fromEntries(
+    OPTIONAL.map(([k, , , digits]) => {
+      const known = clean.filter((i) => i[k] != null)
+      return [k, known.length ? Math.round(known.reduce((s, i) => s + i[k], 0) * 10 ** digits) / 10 ** digits : null]
+    }),
+  )
+  return { items: clean, ...totals, ...optional }
 }
 
 function mealFields(body) {
