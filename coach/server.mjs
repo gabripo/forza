@@ -142,7 +142,7 @@ async function userData(id) {
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
   const quarter = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10)
   const month = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons] = await Promise.all([
+  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons, quiz] = await Promise.all([
     db.from('profiles').select('*').eq('id', id).maybeSingle(),
     fetchAll((from, to) => db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at').order('id').range(from, to)),
     db.from('workout_sessions').select('*').eq('user_id', id).gte('started_at', year).order('started_at', { ascending: false }),
@@ -155,6 +155,7 @@ async function userData(id) {
     db.from('activities').select('*').eq('user_id', id).gte('started_at', month).order('started_at', { ascending: false }),
     db.from('progress_photos').select('*').eq('user_id', id).order('taken_at', { ascending: false }),
     db.from('lesson_progress').select('*').eq('user_id', id),
+    db.from('quiz_answers').select('day, correct').eq('user_id', id).gte('day', month.slice(0, 10)),
   ])
   return {
     profile: check(profile),
@@ -169,6 +170,8 @@ async function userData(id) {
     activities: check(activities),
     photos: check(photos),
     lessons: check(lessons),
+    // A server not updated yet has no daily quiz.
+    quiz: quiz.data ?? [],
     homeSections: HOME_SECTIONS,
     homeOrder: homeOrder(profile.data?.home_order),
   }
@@ -180,6 +183,11 @@ async function userData(id) {
 
 const BLOCK_TYPES = new Set(['intro', 'cards', 'steps', 'dodont', 'swaps', 'plate', 'hands', 'bars', 'timeline', 'foods', 'meals', 'callout'])
 const KB_ID = /^[a-z0-9_-]{2,40}$/
+// Addresses of the app's own pages under Learn.
+const RESERVED_LESSON_IDS = new Set(['points-quiz', 'print'])
+const isText = (v) => typeof v?.en === 'string' && typeof v?.it === 'string'
+const isQuestion = (q) =>
+  isText(q?.q) && isText(q.why) && Array.isArray(q.options) && q.options.length >= 2 && q.options.length <= 5 && q.options.every(isText) && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length
 
 async function knowledge() {
   const db = need()
@@ -194,9 +202,13 @@ function badRequest(message) {
 
 async function saveLesson(id, body) {
   if (!KB_ID.test(id)) throw badRequest('The lesson id may use lowercase letters, digits, - and _ (2 to 40).')
+  if (RESERVED_LESSON_IDS.has(id)) throw badRequest(`"${id}" is the address of another page: choose another id.`)
   const c = body.content ?? {}
   if (c.blocks !== undefined && (!Array.isArray(c.blocks) || c.blocks.some((b) => !b || typeof b !== 'object' || !BLOCK_TYPES.has(b.type)))) {
     throw badRequest(`Each block needs a known "type": ${[...BLOCK_TYPES].join(', ')}.`)
+  }
+  if (c.quiz !== undefined && (!Array.isArray(c.quiz) || c.quiz.length > 10 || !c.quiz.every(isQuestion))) {
+    throw badRequest('Each quiz question needs "q", 2 to 5 "options", the "answer" (0 for the first option) and "why", with English and Italian texts.')
   }
   for (const k of ['title', 'subtitle']) {
     if (c[k] !== undefined && (typeof c[k]?.en !== 'string' || typeof c[k]?.it !== 'string')) throw badRequest(`"${k}" needs an English and an Italian text.`)

@@ -104,6 +104,7 @@ export function Challenge() {
             ['🏋️', t('challenge.how.workout'), POINTS.workout],
             ['📚', t('challenge.how.lesson'), POINTS.lesson],
             ['🧠', t('challenge.how.quiz'), POINTS.quiz],
+            ['🎯', t('challenge.how.dailyQuiz'), POINTS.dailyQuiz],
             ['🍽️', t('challenge.how.meals'), POINTS.mealsDay],
             ['👣', t('challenge.how.steps'), POINTS.stepsDay],
             ['⚖️', t('challenge.how.weigh'), POINTS.weighIn],

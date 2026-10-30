@@ -186,6 +186,7 @@ function overview(d) {
       <div class="tile"><div class="label">Strength change</div><div class="value">${avgPct == null ? '—' : `${avgPct >= 0 ? '+' : ''}${fmtNum(avgPct)}%`}</div></div>
       <div class="tile"><div class="label">Walks & activities (30 d)</div><div class="value">${fmtNum(d.activities.reduce((m, a) => m + (new Date(a.ended_at) - new Date(a.started_at)) / 60000, 0) / 60, 1)} h</div><div class="small muted">${d.activities.length} sessions</div></div>
       <div class="tile"><div class="label">Lessons read</div><div class="value">${d.lessons.length}</div><div class="small muted">${d.lessons.filter((l) => l.quiz_passed_at).length} quizzes passed</div></div>
+      <div class="tile"><div class="label">Daily points quiz (30 d)</div><div class="value">${(d.quiz ?? []).filter((a) => a.correct).length} right</div><div class="small muted">of ${(d.quiz ?? []).length} answers, on ${quizDays(d)}</div></div>
       <div class="tile"><div class="label">Calorie check-ins</div><div class="value" style="font-size:18px">${p(d).kcal_adjust ? `${p(d).kcal_adjust > 0 ? '+' : ''}${p(d).kcal_adjust} kcal` : 'no change'}</div><div class="small muted">${p(d).kcal_checkin_at ? 'last ' + fmtDate(p(d).kcal_checkin_at) : ''}</div></div>
       <div class="tile"><div class="label">Health sync</div><div class="value" style="font-size:15px">${d.sync?.last_used_at ? fmtDate(d.sync.last_used_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not connected'}</div></div>
     </div></div>
@@ -523,6 +524,15 @@ const KB_BLOCK_EXAMPLE = `[
   { "type": "dodont", "dos": [{ "en": "Do this", "it": "Fai questo" }], "donts": [{ "en": "Not this", "it": "Non questo" }] }
 ]`
 
+const KB_QUIZ_EXAMPLE = `[
+  {
+    "q": { "en": "How much of the plate should be vegetables?", "it": "Quanta parte del piatto dovrebbe essere verdura?" },
+    "options": [{ "en": "Half", "it": "Metà" }, { "en": "A quarter", "it": "Un quarto" }],
+    "answer": 0,
+    "why": { "en": "Half a plate of vegetables: volume and fibre for few calories.", "it": "Metà piatto di verdure: volume e fibre con poche calorie." }
+  }
+]`
+
 function knowledgeView() {
   const kb = state.kb
   if (!kb) return '<p class="pad muted">Loading…</p>'
@@ -567,6 +577,11 @@ function knowledgeView() {
     </div></div>`
 }
 
+function quizDays(d) {
+  const n = new Set((d.quiz ?? []).map((a) => a.day)).size
+  return `${n} day${n === 1 ? '' : 's'}`
+}
+
 function lessonEditor(l) {
   const sources = (l.sources ?? []).map((s) => (typeof s === 'string' ? s : [s.authors && `${s.authors}${s.year ? ` (${s.year})` : ''}.`, s.title, s.journal, s.url].filter(Boolean).join(' '))).join('\n')
   const field = (name, label, value, extra = '') => `<label class="field">${label}<input name="${name}" value="${esc(value ?? '')}" ${extra}></label>`
@@ -584,6 +599,8 @@ function lessonEditor(l) {
     </div>
     <label class="field">Content: blocks, in JSON (each block is shown as a card in the lesson)<textarea name="blocks" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">${esc(JSON.stringify(l.blocks ?? [], null, 2))}</textarea></label>
     <details><summary class="small">Block types and an example</summary><p class="small muted">Types: intro, callout, steps, dodont, cards, swaps, timeline, bars, foods, meals, plate, hands. Every text has "en" and "it".</p><pre class="small">${esc(KB_BLOCK_EXAMPLE)}</pre></details>
+    <label class="field">Quiz: questions in JSON, at the end of the lesson and in the daily "Gain Family Points" quiz ("answer" is 0 for the first option)<textarea name="quiz" rows="8" style="font-family:ui-monospace,monospace;font-size:12px">${esc(JSON.stringify(l.quiz ?? [], null, 2))}</textarea></label>
+    <details><summary class="small">A quiz question</summary><pre class="small">${esc(KB_QUIZ_EXAMPLE)}</pre></details>
     <label class="field">Sources, one per line: the id of a known source (${esc(state.kb.builtIn.sources.slice(0, 3).map((s) => s.id).join(', '))}…) or a reference with its link<textarea name="sources" rows="4">${esc(sources)}</textarea></label>
     <details><summary class="small">Known sources</summary><ul class="small">${state.kb.builtIn.sources.map((s) => `<li><code>${esc(s.id)}</code> ${esc(s.authors)} (${s.year}). ${esc(s.title)}</li>`).join('')}</ul></details>
     <div class="row"><button class="btn">Save</button><button type="button" class="btn secondary" data-action="kb-cancel">Cancel</button>
@@ -1368,11 +1385,12 @@ app.addEventListener('submit', async (e) => {
         const url = line.match(/https?:\/\/\S+/)?.[0]
         return { title: line.replace(url ?? '', '').trim().replace(/[.\s]+$/, ''), ...(url ? { url } : {}) }
       })
-      let blocks
+      let blocks, quiz
       try {
         blocks = JSON.parse(data.blocks || '[]')
+        quiz = JSON.parse(data.quiz || '[]')
       } catch (err) {
-        return toast(`The content is not valid JSON: ${err.message}`)
+        return toast(`The content or the quiz is not valid JSON: ${err.message}`)
       }
       const content = {
         emoji: data.emoji,
@@ -1381,7 +1399,11 @@ app.addEventListener('submit', async (e) => {
         subtitle: { en: data.subtitle_en ?? '', it: data.subtitle_it ?? '' },
         blocks,
         sources,
+        ...(quiz.length ? { quiz } : {}),
       }
+      // A built-in lesson keeps only what was changed, so the rest still gets the app's own updates.
+      const original = state.kb.builtIn.lessons.find((x) => x.id === data.id)
+      if (original) for (const k of Object.keys(content)) if (JSON.stringify(content[k]) === JSON.stringify(original[k])) delete content[k]
       const track = data.track
       // A lesson moved to the other track goes to its end.
       const position = l.track === track ? (l.row?.position ?? null) : null

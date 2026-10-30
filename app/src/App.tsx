@@ -16,6 +16,7 @@ import { HomeOrder } from './pages/HomeOrder'
 import { Install } from './pages/Install'
 import { Infographic } from './pages/learn/Infographic'
 import { LearnHome } from './pages/learn/LearnHome'
+import { PointsQuiz } from './pages/learn/PointsQuiz'
 import { PrintLessons } from './pages/learn/PrintLessons'
 import { Login } from './pages/Login'
 import { Onboarding } from './pages/Onboarding'
@@ -64,6 +65,7 @@ function Gate() {
         <Route path="food/voice" element={<FoodVoice />} />
         <Route path="food/add" element={<FoodManual />} />
         <Route path="learn" element={<LearnHome />} />
+        <Route path="learn/points-quiz" element={<PointsQuiz />} />
         <Route path="learn/:id" element={<Infographic />} />
         <Route path="challenge" element={<Challenge />} />
         <Route path="weights" element={<Weights />} />

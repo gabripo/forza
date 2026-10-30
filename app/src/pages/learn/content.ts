@@ -1,7 +1,7 @@
 // Learning content. Each topic is one printable infographic, in English and Italian.
 // Written for beginners: short sentences, everyday examples, no jargon.
 import type { L10n } from '../../lib/types'
-import { EXPERT_TOPICS, MEAL_TRICKS } from './more'
+import { EXPERT_TOPICS, MEAL_TRICKS, type Question } from './more'
 
 export type Tone = 'orange' | 'green' | 'blue' | 'yellow' | 'pink' | 'purple'
 
@@ -31,6 +31,8 @@ export interface Topic {
   blocks: Block[]
   /** Where the lesson's facts come from; built-in lessons use LESSON_SOURCES. */
   sources?: LessonSource[]
+  /** The quiz at the end, for lessons written in Coach; built-in lessons use QUIZZES. */
+  quiz?: Question[]
 }
 
 const L = (en: string, it: string): L10n => ({ en, it })

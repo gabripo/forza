@@ -202,8 +202,10 @@ Open Forza! Coach whenever you like:
   below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or
   takes away a fixed amount every day, and **Calorie target from** can follow Build With Science's daily target
   instead (read on their phone with the food log). They can change the same in the app: **Food → Adjust**.
-- **Lessons & tips** (at the top): change any lesson's text, cards and references, hide or reorder lessons,
-  write new ones, and change the tips of the day. Everyone sees the change the next time they open Learn;
+- **Lessons & tips** (at the top): change any lesson's text, cards, references and quiz, hide or reorder
+  lessons, write new ones, and change the tips of the day. Quiz questions are also asked in **Gain Family
+  Points**, the daily quiz that keeps earning points after every lesson is read (2 questions a day from the
+  lessons read, 5 points for each right answer; the Overview shows how it goes). Everyone sees the change the next time they open Learn;
   **Back to the original** returns a lesson to the built-in version, which keeps getting the app's own updates.
 - **Exercises & videos**: add a video link or your own tip to any exercise, or add new exercises for everyone.
 - **Profile → Training section**: choose **Hidden** for someone who will never log workouts in the app (for

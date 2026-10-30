@@ -1,31 +1,35 @@
 import { Check, ChevronRight, GraduationCap, Printer, Sparkles, Trophy } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { PointsQuizCard } from '../../components/PointsQuizCard'
 import { PageHeader, Progress, Segmented } from '../../components/ui'
 import { useApp } from '../../lib/auth'
-import { getFood, getLessonProgress, getSessions, getSteps, getWeights, useAsync } from '../../lib/data'
+import { localDay } from '../../lib/calc'
+import { getFood, getLessonProgress, getQuizAnswers, getSessions, getSteps, getWeights, useAsync } from '../../lib/data'
 import { computeEnergy } from '../../lib/energy'
 import { useI18n } from '../../lib/i18n'
 import { badges, POINTS, weekPoints } from '../../lib/rewards'
-import { useKnowledge } from '../../lib/knowledge'
+import { quizOf, useKnowledge } from '../../lib/knowledge'
+import { quizToday } from '../../lib/pointsQuiz'
 import { TONES } from './Infographic'
-import { QUIZZES } from './more'
 
 type Track = 'course' | 'expert'
 
 export function LearnHome() {
   const { t, l } = useI18n()
   const { profile } = useApp()
-  const { data } = useAsync(() => Promise.all([getLessonProgress(), getFood(28), getWeights(30), getSteps(14), getSessions(14)]), [])
+  const { data } = useAsync(() => Promise.all([getLessonProgress(), getFood(28), getWeights(30), getSteps(14), getSessions(14), getQuizAnswers()]), [])
   const [track, setTrack] = useState<Track>('course')
   const knowledge = useKnowledge()
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [lessons, food, weights, steps, sessions] = data
+    const [lessons, food, weights, steps, sessions, quizAnswers] = data
     const energy = computeEnergy(profile, weights, steps, sessions, food)
+    const read = new Set(lessons.map((r) => r.lesson_id))
     const input = {
       lessons,
+      quizAnswers,
       food,
       weights,
       steps,
@@ -35,7 +39,8 @@ export function LearnHome() {
       baseIds: knowledge.course.map((x) => x.id),
       expertIds: knowledge.expert.map((x) => x.id),
     }
-    return { rows: new Map(lessons.map((r) => [r.lesson_id, r])), points: weekPoints(input), badges: badges(input) }
+    const quiz = quizToday(knowledge.all, read, quizAnswers, localDay(new Date()), profile.id, POINTS.dailyQuiz)
+    return { rows: new Map(lessons.map((r) => [r.lesson_id, r])), points: weekPoints(input), badges: badges(input), quiz }
   }, [data, profile, knowledge])
 
   const topics = track === 'course' ? knowledge.course : knowledge.expert
@@ -83,6 +88,8 @@ export function LearnHome() {
         <div className="h-60 animate-pulse rounded-3xl border border-line bg-card" aria-hidden />
       )}
 
+      {view ? <PointsQuizCard quiz={view.quiz} /> : null}
+
       <Segmented<Track>
         value={track}
         onChange={setTrack}
@@ -119,7 +126,7 @@ export function LearnHome() {
                   <span className="block text-xs font-semibold text-ink-3">
                     {t('learn.lesson', { n: i + 1 })}
                     {isNext ? ` · ${t('learn.nextLesson')}` : ''}
-                    {!row && QUIZZES[topic.id] ? ` · +${POINTS.lesson + POINTS.quiz} ${t('rewards.pts')}` : ''}
+                    {!row && quizOf(topic).length ? ` · +${POINTS.lesson + POINTS.quiz} ${t('rewards.pts')}` : ''}
                   </span>
                   <span className="block leading-tight font-bold">{l(topic.title)}</span>
                   <span className="block text-sm text-ink-2">{l(topic.subtitle)}</span>

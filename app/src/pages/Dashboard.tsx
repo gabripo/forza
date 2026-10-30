@@ -3,19 +3,20 @@ import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
 import { LogWeightSheet } from '../components/LogWeightSheet'
+import { PointsQuizCard } from '../components/PointsQuizCard'
 import { StrengthChart } from '../components/StrengthChart'
 import { Button, Card, Loading, Progress, cx } from '../components/ui'
 import { WeightChart } from '../components/WeightChart'
 import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
-import { getActivities, getFood, getLessonProgress, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { getActivities, getFood, getLessonProgress, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
 import { POINTS, weekPoints } from '../lib/rewards'
-import { useKnowledge } from '../lib/knowledge'
-import { QUIZZES } from './learn/more'
+import { quizOf, useKnowledge } from '../lib/knowledge'
+import { quizToday } from '../lib/pointsQuiz'
 import { homeOrder } from '../../../shared/home-sections.mjs'
 import { nextMeal } from '../lib/nextMeal'
 
@@ -26,13 +27,13 @@ export function Dashboard() {
   const [logOpen, setLogOpen] = useState(false)
   const knowledge = useKnowledge()
   const { data, loading, reload } = useAsync(
-    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress()]),
+    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress(), getQuizAnswers()]),
     [],
   )
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food, templates, activities, lessons] = data
+    const [weights, sessions, steps, food, templates, activities, lessons, quizAnswers] = data
     const readLessons = new Set(lessons.map((r) => r.lesson_id))
     const energy = computeEnergy(profile, weights, steps, sessions, food)
     const trend = weightTrend(dailyWeights(weights))
@@ -64,6 +65,7 @@ export function Dashboard() {
     const scaleSynced = weights.some((w) => (w.source === 'health_connect' || w.source === 'apple_health') && new Date(w.measured_at) >= daysAgo(30))
     const rewardInput = {
       lessons,
+      quizAnswers,
       food,
       weights,
       steps,
@@ -75,6 +77,8 @@ export function Dashboard() {
     }
     const activeMinutes = activities.filter((a) => localDay(new Date(a.started_at)) === today).reduce((m, a) => m + activityMinutes(a), 0)
     const nextLesson = knowledge.course.find((x) => !readLessons.has(x.id)) ?? null
+    // Once the course is done, the daily points quiz takes the lesson's place.
+    const quiz = nextLesson ? null : quizToday(knowledge.all, readLessons, quizAnswers, today, profile.id, POINTS.dailyQuiz)
     const startKg = Number(profile.start_weight_kg ?? trend[0]?.kg ?? 0)
     const nowKg = trend.at(-1)?.trend ?? null
     return {
@@ -96,6 +100,7 @@ export function Dashboard() {
       nextMeal: todayFood.length ? nextMeal(food, energy.targets, locale) : null,
       activeMinutes,
       nextLesson,
+      quiz,
       lessonsRead: readLessons.size,
       startKg,
       nowKg,
@@ -232,13 +237,15 @@ export function Dashboard() {
               </span>
               <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
             </span>
-            {QUIZZES[view.nextLesson.id] ? (
+            {quizOf(view.nextLesson).length ? (
               <span className="rounded-2xl bg-sky-soft px-3 py-2 text-sm">
-                🤔 <b>{t('dash.doYouKnow')}</b> {l(QUIZZES[view.nextLesson.id][0].q)}
+                🤔 <b>{t('dash.doYouKnow')}</b> {l(quizOf(view.nextLesson)[0].q)}
               </span>
             ) : null}
             <span className="text-sm text-ink-2">{t('dash.lessonReward', { pts: POINTS.lesson + POINTS.quiz })}</span>
           </Link>
+        ) : view.quiz?.unlocked && !view.quiz.done ? (
+          <PointsQuizCard quiz={view.quiz} teaser />
         ) : null}
       </>
     ),

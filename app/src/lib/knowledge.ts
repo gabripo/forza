@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer } from 'react'
 import { TIPS, type Tip } from '../data/tips'
 import { ALL_TOPICS, EXPERT_TOPICS, TOPICS, type Topic } from '../pages/learn/content'
+import { QUIZZES, type Question } from '../pages/learn/more'
 import { supabase } from './supabase'
 import type { L10n } from './types'
 
@@ -81,6 +82,14 @@ function load(): Promise<void> {
 
 const isL10n = (v: unknown): v is L10n => typeof v === 'object' && v !== null && typeof (v as L10n).en === 'string' && typeof (v as L10n).it === 'string'
 
+const isQuestion = (q: Question) =>
+  isL10n(q?.q) && isL10n(q.why) && Array.isArray(q.options) && q.options.length >= 2 && q.options.every(isL10n) && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length
+
+/** A lesson's quiz: the one written in Coach, or the built-in one. */
+export function quizOf(topic: Topic): Question[] {
+  return topic.quiz ?? QUIZZES[topic.id] ?? []
+}
+
 /** A lesson written in Coach, with safe defaults for anything missing. */
 function lessonOf(row: LessonRow, base?: Topic): Topic {
   const c = row.content ?? {}
@@ -92,6 +101,7 @@ function lessonOf(row: LessonRow, base?: Topic): Topic {
     subtitle: isL10n(c.subtitle) ? c.subtitle : (base?.subtitle ?? { en: '', it: '' }),
     blocks: Array.isArray(c.blocks) ? c.blocks : (base?.blocks ?? []),
     sources: Array.isArray(c.sources) ? c.sources : base?.sources,
+    quiz: Array.isArray(c.quiz) && c.quiz.every(isQuestion) ? c.quiz : base?.quiz,
   }
 }
 

@@ -4,7 +4,7 @@
 import { daysAgo, localDay } from './calc'
 import type { BodyWeight, DailySteps, FoodLog, L10n } from './types'
 
-export const POINTS = { workout: 20, lesson: 10, quiz: 20, weighIn: 5, mealsDay: 10, stepsDay: 10 }
+export const POINTS = { workout: 20, lesson: 10, quiz: 20, dailyQuiz: 5, weighIn: 5, mealsDay: 10, stepsDay: 10 }
 
 export interface LessonRow {
   lesson_id: string
@@ -19,6 +19,8 @@ export interface RewardInput {
   weights: BodyWeight[]
   steps: DailySteps[]
   workouts: { started_at: string }[]
+  /** Answers of the daily points quiz ("Gain Family Points"). */
+  quizAnswers?: { day: string; correct: boolean }[]
   targets: { kcal: number; protein_g: number }
   stepsGoal: number
   baseIds: string[]
@@ -63,6 +65,7 @@ export function weekPoints(x: RewardInput): number {
     x.workouts.filter((w) => inWeek(w.started_at)).length * POINTS.workout +
     x.lessons.filter((l) => inWeek(l.read_at)).length * POINTS.lesson +
     x.lessons.filter((l) => l.quiz_passed_at && inWeek(l.quiz_passed_at)).length * POINTS.quiz +
+    (x.quizAnswers ?? []).filter((a) => a.correct && new Date(`${a.day}T12:00:00`) >= since).length * POINTS.dailyQuiz +
     days(x.weights.map((w) => w.measured_at)) * POINTS.weighIn +
     mealDays * POINTS.mealsDay +
     x.steps.filter((s) => new Date(`${s.day}T12:00:00`) >= since && s.steps >= x.stepsGoal).length * POINTS.stepsDay

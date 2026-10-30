@@ -280,16 +280,27 @@ short, it promises something and it pays back at once. The app uses a few well-k
 | Lever | In Forza! |
 |---|---|
 | Immediate reward | points and confetti when a quiz is passed; a trophy on the lesson |
-| Curiosity gap | the Home page shows the next lesson's quiz question without the answer |
+| Curiosity gap | the Home page shows the next lesson's quiz question without the answer (after the course, today's points-quiz question) |
 | Goal gradient | the Learn page shows the next badge and how close it is ("2 of 5 lessons") |
 | Small wins | lessons take two minutes; quizzes have two questions; a failed quiz just says "try again" |
 | Collection | eight badges: first lesson, 5 lessons, 5 quizzes, the course, 3 expert lessons, a balanced week, protein three days in a row, a week of food logging |
 | Social proof, friendly | the opt-in family challenge (below) |
 
-Points: workout 20, lesson read 10, quiz passed 20, a day with two or more meals logged 10, step goal
-reached 10, weigh-in 5. **Nothing is ever scored on weight or calories**: a person who does not yet know what
+Points: workout 20, lesson read 10, quiz passed 20, a right answer in the daily points quiz 5, a day with two
+or more meals logged 10, step goal reached 10, weigh-in 5. **Nothing is ever scored on weight or calories**: a person who does not yet know what
 a calorie is can beat a gym regular by showing up, reading and logging. No streak is ever "lost" with a red
 message; the app only counts what was done.
+
+**Gain Family Points.** Lessons and their quizzes pay once, so a person who has read everything would stop
+earning those points. The daily points quiz (*Learn*, and on Home once the course is done) asks **two
+questions a day** from the quizzes of the lessons already read (including lessons and questions written in
+Coach), **5 points for each right answer**: at most 10 a day, like a day at the step goal, so moving still
+counts more than quizzing. It is spaced repetition: a question answered wrong comes back the next day, one
+answered right after 3, 7, 21 and then 60 days; never-asked questions come before the ones already known, and
+the two questions come from different lessons when possible. Today's questions are fixed for the day
+(chosen from the days before, with a per-person seed) and the options are shuffled each time a question
+comes back. Each answer is saved the moment it is tapped, through `answer_points_quiz()`, which accepts two
+answers a day (table `quiz_answers`, readable only by its owner); a wrong answer links back to its lesson.
 
 **Family challenge.** A weekly or monthly leaderboard of the people in the same Forza! project, with
 medals and a gentle "12 points to catch up with Anna". It is **opt-in**: people who have not joined do not

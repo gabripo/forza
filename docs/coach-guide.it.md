@@ -214,8 +214,10 @@ Apri Forza! Coach quando vuoi:
   **Calorie adjustment** aggiunge o toglie una quantità fissa ogni giorno, e **Calorie target from** può seguire
   invece l'obiettivo giornaliero di Build With Science (letto dal telefono insieme al diario alimentare). Si può
   cambiare anche dall'app: **Cibo → Modifica**.
-- **Lessons & tips** (in alto): cambia testo, schede e riferimenti di qualsiasi lezione, nascondi o riordina le
-  lezioni, scrivine di nuove e cambia i consigli del giorno. Tutti vedono la modifica alla prossima apertura di
+- **Lessons & tips** (in alto): cambia testo, schede, riferimenti e quiz di qualsiasi lezione, nascondi o
+  riordina le lezioni, scrivine di nuove e cambia i consigli del giorno. Le domande dei quiz tornano anche in
+  **Guadagna punti famiglia**, il quiz del giorno che fa guadagnare punti anche dopo aver letto tutte le lezioni
+  (2 domande al giorno dalle lezioni lette, 5 punti per ogni risposta giusta; l'Overview mostra come va). Tutti vedono la modifica alla prossima apertura di
   Impara; **Back to the original** riporta una lezione alla versione originale, che continua a ricevere gli
   aggiornamenti dell'app.
 - **Exercises & videos**: aggiungi un link video o un tuo consiglio a qualsiasi esercizio, o nuovi esercizi

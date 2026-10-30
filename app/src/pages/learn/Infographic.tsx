@@ -6,12 +6,11 @@ import { Button, Loading, PageHeader, Segmented } from '../../components/ui'
 import { translate, useI18n } from '../../lib/i18n'
 import { Quiz } from '../../components/Quiz'
 import { getLessonProgress, markLessonRead } from '../../lib/data'
-import { useKnowledge } from '../../lib/knowledge'
+import { quizOf, useKnowledge } from '../../lib/knowledge'
 import { saveNodeAsImage } from '../../lib/share'
 import type { L10n, Locale } from '../../lib/types'
 import { type Block, type Tone, type Topic } from './content'
 import { LESSON_SOURCES, SOURCES } from '../../data/sources'
-import { QUIZZES } from './more'
 
 // Infographics always use this fixed light palette so they print and export identically.
 export const TONES: Record<Tone, { bg: string; fg: string; accent: string }> = {
@@ -49,7 +48,7 @@ export function Infographic() {
   if (!topic) return knowledge.settled ? <Navigate to="/learn" replace /> : <Loading />
   const track = knowledge.trackOf(topic.id) === 'expert' ? knowledge.expert : knowledge.course
   const next = track[track.findIndex((x) => x.id === topic.id) + 1]
-  const questions = QUIZZES[topic.id] ?? []
+  const questions = quizOf(topic)
 
   async function toggleRead() {
     const value = !read

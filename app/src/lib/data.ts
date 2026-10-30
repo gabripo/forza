@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import catalogue from '../data/exercises.json'
 import { daysAgo, localDay } from './calc'
 import { supabase } from './supabase'
+import type { QuizAnswer } from './pointsQuiz'
 import type { LessonRow } from './rewards'
 import type {
   Activity,
@@ -491,6 +492,16 @@ export async function getReadLessons(): Promise<Set<string>> {
 
 export async function getLessonProgress(): Promise<LessonRow[]> {
   return check(await supabase.from('lesson_progress').select('lesson_id, read_at, quiz_score, quiz_passed_at')) as LessonRow[]
+}
+
+/** Daily points quiz answers of the last half year (enough to know when each question comes back). */
+export async function getQuizAnswers(): Promise<QuizAnswer[]> {
+  return check(await supabase.from('quiz_answers').select('day, question_id, correct, answered_at').gte('day', localDay(daysAgo(180)))) as QuizAnswer[]
+}
+
+/** Saves one answer of the daily points quiz (two a day at most); returns today's points from it. */
+export async function answerPointsQuiz(day: string, questionId: string, correct: boolean): Promise<number> {
+  return check(await supabase.rpc('answer_points_quiz', { p_day: day, p_question: questionId, p_correct: correct })) as number
 }
 
 /** Saves a quiz result (and marks the lesson read). A pass is kept even if a later try goes worse. */
