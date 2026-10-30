@@ -26,6 +26,9 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_KEY: ci-placeholder
+      # Forza! Coach reads the built-in lessons, tips and foods from shared/: they must match the app's.
+      - name: shared/knowledge.json and shared/foods.json are up to date
+        run: npm run export-knowledge && git diff --exit-code -- ../shared/knowledge.json ../shared/foods.json
 
   coach:
     runs-on: ubuntu-latest

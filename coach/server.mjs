@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
+import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
 import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
@@ -171,6 +172,51 @@ async function userData(id) {
     homeSections: HOME_SECTIONS,
     homeOrder: homeOrder(profile.data?.home_order),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge base: lessons and tips as the coach shapes them (the app lays them over its own)
+// ---------------------------------------------------------------------------
+
+const BLOCK_TYPES = new Set(['intro', 'cards', 'steps', 'dodont', 'swaps', 'plate', 'hands', 'bars', 'timeline', 'foods', 'meals', 'callout'])
+const KB_ID = /^[a-z0-9_-]{2,40}$/
+
+async function knowledge() {
+  const db = need()
+  const builtIn = JSON.parse(await readFile(join(here, '../shared/knowledge.json'), 'utf8'))
+  const [lessons, tips] = await Promise.all([db.from('kb_lessons').select('*'), db.from('kb_tips').select('*')])
+  return { builtIn, lessons: check(lessons), tips: check(tips) }
+}
+
+function badRequest(message) {
+  return Object.assign(new Error(message), { status: 400 })
+}
+
+async function saveLesson(id, body) {
+  if (!KB_ID.test(id)) throw badRequest('The lesson id may use lowercase letters, digits, - and _ (2 to 40).')
+  const c = body.content ?? {}
+  if (c.blocks !== undefined && (!Array.isArray(c.blocks) || c.blocks.some((b) => !b || typeof b !== 'object' || !BLOCK_TYPES.has(b.type)))) {
+    throw badRequest(`Each block needs a known "type": ${[...BLOCK_TYPES].join(', ')}.`)
+  }
+  for (const k of ['title', 'subtitle']) {
+    if (c[k] !== undefined && (typeof c[k]?.en !== 'string' || typeof c[k]?.it !== 'string')) throw badRequest(`"${k}" needs an English and an Italian text.`)
+  }
+  if (JSON.stringify(c).length > 200_000) throw badRequest('This lesson is too long.')
+  const row = {
+    id,
+    track: body.track === 'expert' ? 'expert' : 'course',
+    position: body.position === '' || body.position == null ? null : Number(body.position),
+    hidden: Boolean(body.hidden),
+    content: c,
+    updated_at: new Date().toISOString(),
+  }
+  return check(await need().from('kb_lessons').upsert(row).select().single())
+}
+
+async function saveTip(id, body) {
+  if (!KB_ID.test(id)) throw badRequest('Bad tip id.')
+  const row = { id, text_en: String(body.text_en ?? '').slice(0, 400), text_it: String(body.text_it ?? '').slice(0, 400), topic: body.topic || null, hidden: Boolean(body.hidden), updated_at: new Date().toISOString() }
+  return check(await need().from('kb_tips').upsert(row).select().single())
 }
 
 async function catalogue() {
@@ -457,6 +503,11 @@ const routes = [
   ['POST', /^\/api\/users\/([\w-]+)\/copy-plan$/, (m, body) => copyWorkouts(need(), { from: body.from, to: m[1] })],
   // Some workouts of this person, into another person's plan.
   ['POST', /^\/api\/users\/([\w-]+)\/copy-workouts$/, (m, body) => copyWorkouts(need(), { from: m[1], to: body.to, ids: body.ids })],
+  // The food log: the built-in food table (values per 100 g), and meals added, changed or removed.
+  ['GET', /^\/api\/foods$/, async () => JSON.parse(await readFile(join(here, '../shared/foods.json'), 'utf8'))],
+  ['POST', /^\/api\/users\/([\w-]+)\/food$/, (m, body) => addMeal(need(), m[1], body)],
+  ['PUT', /^\/api\/food\/([\w-]+)$/, (m, body) => updateMeal(need(), m[1], body)],
+  ['DELETE', /^\/api\/food\/([\w-]+)$/, (m) => deleteMeal(need(), m[1])],
   ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(need(), m[1], body, { byCoach: true })],
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
   ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],
@@ -480,6 +531,12 @@ const routes = [
     async (m) => JSON.parse(await readFile(historyFile(m[1]), 'utf8')),
   ],
   ['GET', /^\/api\/catalogue$/, () => catalogue()],
+  ['GET', /^\/api\/kb$/, () => knowledge()],
+  ['PUT', /^\/api\/kb\/lessons\/([\w-]+)$/, (m, body) => saveLesson(m[1], body)],
+  // A changed built-in lesson goes back to the original; a new lesson is deleted.
+  ['DELETE', /^\/api\/kb\/lessons\/([\w-]+)$/, async (m) => check(await need().from('kb_lessons').delete().eq('id', m[1]).select())],
+  ['PUT', /^\/api\/kb\/tips\/([\w-]+)$/, (m, body) => saveTip(m[1], body)],
+  ['DELETE', /^\/api\/kb\/tips\/([\w-]+)$/, async (m) => check(await need().from('kb_tips').delete().eq('id', m[1]).select())],
   [
     'GET',
     /^\/api\/templates\/([\w-]+)\/versions$/,

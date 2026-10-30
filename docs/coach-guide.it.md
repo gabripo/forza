@@ -159,7 +159,8 @@ telefono stesso, con l'app di supporto *Forza! Health* (punto 4):
 
 È lo stesso lettore di Coach, con le stesse regole (sola lettura, non tocca mai Start, Edit o Delete) e lo
 stesso risultato. Dal telefono legge anche il **diario alimentare** (i pasti con calorie, proteine, carboidrati
-e grassi, e i cibi che contengono) per i giorni che Connessione Salute non ha portato. Serve Android 11 o
+e grassi, e i cibi che contengono) per i giorni che Connessione Salute non ha portato, e gli obiettivi
+giornalieri di calorie e macro di Build With Science, che Forza! può seguire (sezione 6). Serve Android 11 o
 successivo.
 
 **Sincronizzazione automatica degli allenamenti.** Nella stessa scheda, sotto **Automatic sync**, clicca
@@ -198,7 +199,25 @@ Apri Forza! Coach quando vuoi:
 - **Workout plan**: cambia esercizi, serie, ripetizioni, recupero, giorni della settimana, superset. Il
   telefono riceve la nuova scheda alla prossima apertura dell'app. Ogni salvataggio conserva la versione
   precedente (**Versions** → **Restore**).
-- **Workouts**, **Food**, **Check-ins**: quello che ha registrato.
+  Per dare a qualcuno un allenamento che funziona per un'altra persona, scegli la persona accanto
+  all'allenamento e clicca **Copy to**; oppure porta una scheda intera con **copy the whole plan from**. Un
+  allenamento con lo stesso nome viene sostituito, e i carichi di partenza non vengono copiati: l'app li calcola
+  dalle serie della nuova persona.
+- **Food**: i suoi pasti. **Change** corregge una porzione (cambiando i grammi cambiano anche calorie e
+  nutrienti, oppure **× 0.5** … **× 2** per tutto il pasto), toglie o aggiunge alimenti; **Delete** elimina un
+  pasto; **Add a meal** ne registra uno al suo posto, dalla tabella degli alimenti o scritto a mano. L'app
+  ricalcola il punteggio del pasto cambiato. I pasti registrati in un'altra app (tramite Connessione Salute, o
+  Build With Science) si cambiano in quell'app.
+- **Workouts**, **Check-ins**: quello che ha registrato.
+- **Profile → Pace towards the goal**: quanto in fretta perdere grasso (lento, normale o veloce: 250, 500 o
+  750 kcal al giorno sotto quello che il corpo consuma) o mettere muscolo (150, 250 o 400 kcal sopra).
+  **Calorie adjustment** aggiunge o toglie una quantità fissa ogni giorno, e **Calorie target from** può seguire
+  invece l'obiettivo giornaliero di Build With Science (letto dal telefono insieme al diario alimentare). Si può
+  cambiare anche dall'app: **Cibo → Modifica**.
+- **Lessons & tips** (in alto): cambia testo, schede e riferimenti di qualsiasi lezione, nascondi o riordina le
+  lezioni, scrivine di nuove e cambia i consigli del giorno. Tutti vedono la modifica alla prossima apertura di
+  Impara; **Back to the original** riporta una lezione alla versione originale, che continua a ricevere gli
+  aggiornamenti dell'app.
 - **Exercises & videos**: aggiungi un link video o un tuo consiglio a qualsiasi esercizio, o nuovi esercizi
   per tutti.
 - **Profile → Training section**: scegli **Hidden** per chi non registrerà mai gli allenamenti nell'app (per

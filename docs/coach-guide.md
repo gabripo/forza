@@ -155,7 +155,8 @@ itself, through the *Forza! Health* helper (step 4):
 
 It is the same reader as Coach's, with the same rules (read-only, it never taps Start, Edit or Delete) and
 the same result. On the phone it also reads the **food log** (meals with their calories, protein, carbs and
-fat, and the foods in them) for the days Health Connect has not brought over. It needs Android 11 or newer.
+fat, and the foods in them) for the days Health Connect has not brought over, and Build With Science's daily
+calorie and macro targets, which Forza! can follow (section 6). It needs Android 11 or newer.
 
 **Automatic sync of the workouts.** In the same tab, under **Automatic sync**, click **Turn on**: from then on,
 whenever that phone is connected to this computer and has been left unlocked and untouched for 3 minutes,
@@ -189,7 +190,21 @@ Open Forza! Coach whenever you like:
 - **Overview**: weight trend, strength gained per exercise, workouts, steps, lessons read, calorie check-ins.
 - **Workout plan**: change exercises, sets, repetitions, rest, days of the week, supersets. Their phone gets
   the new plan the next time they open the app. Every save keeps the previous version (**Versions** → **Restore**).
-- **Workouts**, **Food**, **Check-ins**: what they logged.
+  To give someone a workout that works for another person, pick the person next to the workout and click
+  **Copy to**; or bring a whole plan over with **copy the whole plan from**. A workout with the same name is
+  replaced, and starting weights are left out: the app works them out from the new person's own sets.
+- **Food**: their meals. **Change** fixes a portion (changing the grams changes the calories and nutrients
+  with them, or **× 0.5** … **× 2** for the whole meal), removes or adds foods; **Delete** removes a meal; **Add
+  a meal** logs one for them, from the built-in food table or typed in. The app scores the changed meal again.
+  Meals logged in another app (through Health Connect, or Build With Science) are changed in that app.
+- **Workouts**, **Check-ins**: what they logged.
+- **Profile → Pace towards the goal**: how fast to lose fat (slow, normal or fast: 250, 500 or 750 kcal a day
+  below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or
+  takes away a fixed amount every day, and **Calorie target from** can follow Build With Science's daily target
+  instead (read on their phone with the food log). They can change the same in the app: **Food → Adjust**.
+- **Lessons & tips** (at the top): change any lesson's text, cards and references, hide or reorder lessons,
+  write new ones, and change the tips of the day. Everyone sees the change the next time they open Learn;
+  **Back to the original** returns a lesson to the built-in version, which keeps getting the app's own updates.
 - **Exercises & videos**: add a video link or your own tip to any exercise, or add new exercises for everyone.
 - **Profile → Training section**: choose **Hidden** for someone who will never log workouts in the app (for
   example, they only want to eat better). The Train tab and the workout items on Home disappear; they can

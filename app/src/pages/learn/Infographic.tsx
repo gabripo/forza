@@ -1,14 +1,16 @@
 import { Check, ChevronRight, Download, Printer } from 'lucide-react'
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { Component, useEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
-import { Button, PageHeader, Segmented } from '../../components/ui'
+import { Button, Loading, PageHeader, Segmented } from '../../components/ui'
 import { translate, useI18n } from '../../lib/i18n'
 import { Quiz } from '../../components/Quiz'
 import { getLessonProgress, markLessonRead } from '../../lib/data'
+import { useKnowledge } from '../../lib/knowledge'
 import { saveNodeAsImage } from '../../lib/share'
 import type { L10n, Locale } from '../../lib/types'
-import { ALL_TOPICS, EXPERT_TOPICS, TOPICS, type Block, type Tone, type Topic } from './content'
+import { type Block, type Tone, type Topic } from './content'
+import { LESSON_SOURCES, SOURCES } from '../../data/sources'
 import { QUIZZES } from './more'
 
 // Infographics always use this fixed light palette so they print and export identically.
@@ -31,6 +33,7 @@ export function Infographic() {
   const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [read, setRead] = useState(false)
+  const knowledge = useKnowledge()
   const [quizPassed, setQuizPassed] = useState(false)
   useEffect(() => {
     if (!id) return
@@ -42,10 +45,10 @@ export function Infographic() {
       })
       .catch(() => {})
   }, [id])
-  const topic = ALL_TOPICS.find((x) => x.id === id)
-  if (!topic) return <Navigate to="/learn" replace />
-  const track = EXPERT_TOPICS.includes(topic) ? EXPERT_TOPICS : TOPICS
-  const next = track[track.indexOf(topic) + 1]
+  const topic = knowledge.byId(id)
+  if (!topic) return knowledge.settled ? <Navigate to="/learn" replace /> : <Loading />
+  const track = knowledge.trackOf(topic.id) === 'expert' ? knowledge.expert : knowledge.course
+  const next = track[track.findIndex((x) => x.id === topic.id) + 1]
   const questions = QUIZZES[topic.id] ?? []
 
   async function toggleRead() {
@@ -154,9 +157,12 @@ export function LessonArticle({ topic, lang, ref, className = '' }: { topic: Top
       </header>
       <div className="grid gap-5 p-5">
         {topic.blocks.map((b, i) => (
-          <BlockView key={i} block={b} lang={lang} tone={topic.tone} />
+          <BlockGuard key={i}>
+            <BlockView block={b} lang={lang} tone={topic.tone} />
+          </BlockGuard>
         ))}
       </div>
+      <References topic={topic} lang={lang} />
       <footer className="flex items-center gap-2 px-5 pb-5 text-xs" style={{ color: INK2 }}>
         <Logo size={22} />
         <span className="font-bold" style={{ color: INK }}>
@@ -165,6 +171,44 @@ export function LessonArticle({ topic, lang, ref, className = '' }: { topic: Top
         <span>· {translate(lang, 'learn.disclaimer')}</span>
       </footer>
     </article>
+  )
+}
+
+/** A block written in Coach that does not fit its type shows nothing, instead of breaking the lesson. */
+class BlockGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
+/** The lesson's sources, written out in full so they are readable on paper too. */
+function References({ topic, lang }: { topic: Topic; lang: Locale }) {
+  const refs = (topic.sources ?? LESSON_SOURCES[topic.id] ?? []).map((s) => (typeof s === 'string' ? SOURCES[s] : s)).filter(Boolean)
+  if (!refs.length) return null
+  return (
+    <section className="px-5 pb-4 text-xs leading-snug" style={{ color: INK2 }}>
+      <h2 className="mb-1 font-bold" style={{ color: INK }}>
+        {translate(lang, 'sources.title')}
+      </h2>
+      <ol className="grid list-decimal gap-1 pl-4">
+        {refs.map((s, i) => (
+          <li key={i}>
+            {s.authors ? `${s.authors} ` : ''}
+            {s.year ? `(${s.year}). ` : ''}
+            {s.title}.{s.journal ? <i> {s.journal}.</i> : null}{' '}
+            {s.url ? (
+              <a href={s.url} target="_blank" rel="noreferrer" className="underline" style={{ color: INK2 }}>
+                {s.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
 

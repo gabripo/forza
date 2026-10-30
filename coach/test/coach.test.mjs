@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import { parseNodes, parsePower } from '../lib/adb.mjs'
 import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } from '../lib/bws-convert.mjs'
 import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
+import { isSynced, mealItems } from '../lib/meals.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
 
 test('session ids match the first import (re-importing never duplicates)', () => {
@@ -258,3 +259,18 @@ test("food log: today's targets from the top of the screen", () => {
   assert.equal(foodTargets([n(540, 300, 'Breakfast, 513 Cal, 39 P, 72 C, 8 F')]), null)
 })
 
+test('food log: a meal changed in Coach, with its totals', () => {
+  const meal = mealItems([
+    { name: ' Pasta ', grams: 80.4, kcal: 285.6, protein_g: 10.04, carbs_g: 57.6, fat_g: 1.2, fiber_g: 2.4, sugar_g: 2.8, per: { kcal: 3.6 } },
+    { name: 'Olive oil', grams: 10, kcal: 90, fat_g: 10 },
+  ])
+  assert.deepEqual(meal.items[0], { name: 'Pasta', grams: 80, kcal: 286, protein_g: 10, carbs_g: 57.6, fat_g: 1.2, fiber_g: 2.4, sugar_g: 2.8 })
+  assert.deepEqual([meal.kcal, meal.protein_g, meal.fat_g, meal.sugar_g], [376, 10, 11.2, 2.8])
+  assert.throws(() => mealItems([]), /at least one food/)
+  assert.throws(() => mealItems([{ name: '', kcal: 10 }]), /needs a name/)
+  assert.throws(() => mealItems([{ name: 'Cake', kcal: -5 }]), /kcal must be between/)
+  assert.equal(isSynced({ source: 'import', origin: 'Build With Science' }), true)
+  assert.equal(isSynced({ source: 'health_connect' }), true)
+  assert.equal(isSynced({ source: 'import', origin: null }), false)
+  assert.equal(isSynced({ source: 'ai' }), false)
+})

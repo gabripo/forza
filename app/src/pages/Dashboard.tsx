@@ -14,7 +14,7 @@ import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
 import { POINTS, weekPoints } from '../lib/rewards'
-import { EXPERT_TOPICS, TOPICS } from './learn/content'
+import { useKnowledge } from '../lib/knowledge'
 import { QUIZZES } from './learn/more'
 import { homeOrder } from '../../../shared/home-sections.mjs'
 import { nextMeal } from '../lib/nextMeal'
@@ -24,6 +24,7 @@ export function Dashboard() {
   const { profile } = useApp()
   const navigate = useNavigate()
   const [logOpen, setLogOpen] = useState(false)
+  const knowledge = useKnowledge()
   const { data, loading, reload } = useAsync(
     () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress()]),
     [],
@@ -69,11 +70,11 @@ export function Dashboard() {
       workouts: sessions,
       targets: energy.targets,
       stepsGoal: profile.steps_goal,
-      baseIds: TOPICS.map((x) => x.id),
-      expertIds: EXPERT_TOPICS.map((x) => x.id),
+      baseIds: knowledge.course.map((x) => x.id),
+      expertIds: knowledge.expert.map((x) => x.id),
     }
     const activeMinutes = activities.filter((a) => localDay(new Date(a.started_at)) === today).reduce((m, a) => m + activityMinutes(a), 0)
-    const nextLesson = TOPICS.find((x) => !readLessons.has(x.id)) ?? null
+    const nextLesson = knowledge.course.find((x) => !readLessons.has(x.id)) ?? null
     const startKg = Number(profile.start_weight_kg ?? trend[0]?.kg ?? 0)
     const nowKg = trend.at(-1)?.trend ?? null
     return {
@@ -100,7 +101,7 @@ export function Dashboard() {
       nowKg,
       allSets: sessions.flatMap((s) => s.sets),
     }
-  }, [data, profile, date, locale])
+  }, [data, profile, date, locale, knowledge])
 
   if (loading && !data) return <Loading />
   if (!view || !profile) return null
@@ -113,8 +114,8 @@ export function Dashboard() {
       : view.daysSinceLast !== null && view.daysSinceLast >= 4
         ? t('dash.msg.comeBack')
         : t('dash.msg.default')
-  const tip = tipOfTheDay()
-  const tipTopic = TOPICS.find((x) => x.id === tip.topic)
+  const tip = tipOfTheDay(new Date(), knowledge.tips)
+  const tipTopic = knowledge.byId(tip.topic)
   const hour = new Date().getHours()
   const hello = hour < 12 ? t('dash.morning') : hour < 18 ? t('dash.afternoon') : t('dash.evening')
   const delta = view.nowKg !== null && view.startKg ? view.nowKg - view.startKg : null
@@ -225,7 +226,7 @@ export function Dashboard() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-sky">
-                  <BookOpen className="size-4" aria-hidden /> {t('learn.nextLesson')} · {view.lessonsRead + 1}/{TOPICS.length}
+                  <BookOpen className="size-4" aria-hidden /> {t('learn.nextLesson')} · {view.lessonsRead + 1}/{knowledge.course.length}
                 </span>
                 <span className="block leading-tight font-bold">{l(view.nextLesson.title)}</span>
               </span>

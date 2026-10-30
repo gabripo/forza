@@ -19,6 +19,9 @@ export type Block =
   | { type: 'meals'; groups: { title: L10n; items: { emoji: string; name: L10n; protein: number }[] }[] }
   | { type: 'callout'; emoji: string; text: L10n }
 
+/** A reference: the id of a known source (data/sources.ts) or one written out (lessons added in Coach). */
+export type LessonSource = string | { title: string; authors?: string; year?: number; journal?: string; url?: string }
+
 export interface Topic {
   id: string
   emoji: string
@@ -26,6 +29,8 @@ export interface Topic {
   title: L10n
   subtitle: L10n
   blocks: Block[]
+  /** Where the lesson's facts come from; built-in lessons use LESSON_SOURCES. */
+  sources?: LessonSource[]
 }
 
 const L = (en: string, it: string): L10n => ({ en, it })

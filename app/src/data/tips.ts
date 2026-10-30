@@ -1,7 +1,17 @@
 import type { L10n } from '../lib/types'
 
-/** One tip a day on the dashboard. `topic` links to the infographic that explains it. */
-export const TIPS: { text: L10n; topic: string }[] = [
+export interface Tip {
+  id: string
+  text: L10n
+  /** The lesson that explains it ("Why? Read the 1-minute lesson"). */
+  topic: string
+}
+
+/**
+ * One tip a day on the dashboard. `topic` links to the infographic that explains it. Ids are their place
+ * in this list (tip1, tip2…), which Forza! Coach uses to change or hide them: add new tips at the end.
+ */
+const BUILT_IN: { text: L10n; topic: string }[] = [
   { topic: 'protein', text: { en: 'Eat enough protein at breakfast: eggs, yogurt or milk keep you full and give steady energy all morning.', it: 'Proteine a colazione: uova, yogurt o latte ti saziano e danno energia costante per tutta la mattina.' } },
   { topic: 'sleep', text: { en: 'Avoid sweets and processed snacks in the evening: they can make your sleep lighter and more broken.', it: 'Evita dolci e snack confezionati la sera: possono rendere il sonno più leggero e interrotto.' } },
   { topic: 'insulin', text: { en: 'A 10-minute walk after a meal helps your muscles use the sugar from the food.', it: 'Una passeggiata di 10 minuti dopo il pasto aiuta i muscoli a usare lo zucchero del cibo.' } },
@@ -28,7 +38,9 @@ export const TIPS: { text: L10n; topic: string }[] = [
   { topic: 'workout_food', text: { en: 'Before training, a banana or a slice of bread with jam gives you quick energy.', it: 'Prima dell\'allenamento una banana o una fetta di pane con marmellata ti danno energia rapida.' } },
 ]
 
-export function tipOfTheDay(date = new Date()) {
+export const TIPS: Tip[] = BUILT_IN.map((t, i) => ({ id: `tip${i + 1}`, ...t }))
+
+export function tipOfTheDay(date = new Date(), tips: Tip[] = TIPS): Tip {
   const dayNumber = Math.floor(date.getTime() / 86_400_000)
-  return TIPS[dayNumber % TIPS.length]
+  return tips[dayNumber % tips.length] ?? TIPS[0]
 }

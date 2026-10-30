@@ -194,3 +194,7 @@ Add `COACH_URL=<the link Coach prints with --local>` for the Coach pictures.
 
 Checks (also run by CI): `cd app && npx tsc -b && npm run lint && npm run build`, `cd coach && npm test`,
 `deno check supabase/functions/*/index.ts`.
+
+After changing the built-in lessons, tips, references or foods, run `cd app && npm run export-knowledge`
+and commit `shared/knowledge.json` and `shared/foods.json`: Forza! Coach reads them (it edits lessons and
+adds meals but cannot read the app's TypeScript), and CI fails if they are out of date.

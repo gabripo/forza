@@ -7,7 +7,7 @@ import { getFood, getLessonProgress, getSessions, getSteps, getWeights, useAsync
 import { computeEnergy } from '../../lib/energy'
 import { useI18n } from '../../lib/i18n'
 import { badges, POINTS, weekPoints } from '../../lib/rewards'
-import { EXPERT_TOPICS, TOPICS } from './content'
+import { useKnowledge } from '../../lib/knowledge'
 import { TONES } from './Infographic'
 import { QUIZZES } from './more'
 
@@ -18,6 +18,7 @@ export function LearnHome() {
   const { profile } = useApp()
   const { data } = useAsync(() => Promise.all([getLessonProgress(), getFood(28), getWeights(30), getSteps(14), getSessions(14)]), [])
   const [track, setTrack] = useState<Track>('course')
+  const knowledge = useKnowledge()
 
   const view = useMemo(() => {
     if (!data || !profile) return null
@@ -31,13 +32,13 @@ export function LearnHome() {
       workouts: sessions,
       targets: energy.targets,
       stepsGoal: profile.steps_goal,
-      baseIds: TOPICS.map((x) => x.id),
-      expertIds: EXPERT_TOPICS.map((x) => x.id),
+      baseIds: knowledge.course.map((x) => x.id),
+      expertIds: knowledge.expert.map((x) => x.id),
     }
     return { rows: new Map(lessons.map((r) => [r.lesson_id, r])), points: weekPoints(input), badges: badges(input) }
-  }, [data, profile])
+  }, [data, profile, knowledge])
 
-  const topics = track === 'course' ? TOPICS : EXPERT_TOPICS
+  const topics = track === 'course' ? knowledge.course : knowledge.expert
   const done = topics.filter((x) => view?.rows.has(x.id)).length
   const nextId = topics.find((x) => !view?.rows.has(x.id))?.id
   // The badge closest to being earned: a near goal is the strongest pull.

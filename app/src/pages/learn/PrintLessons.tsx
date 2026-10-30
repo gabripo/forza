@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { Button, PageHeader } from '../../components/ui'
 import { useI18n } from '../../lib/i18n'
 import type { Locale } from '../../lib/types'
-import { ALL_TOPICS, EXPERT_TOPICS, TOPICS } from './content'
+import { useKnowledge } from '../../lib/knowledge'
 import { LessonArticle } from './Infographic'
 
 /**
@@ -17,7 +17,8 @@ export function PrintLessons() {
   const [params] = useSearchParams()
   const { t, locale } = useI18n()
   const lang = (params.get('lang') === 'en' || params.get('lang') === 'it' ? params.get('lang') : locale) as Locale
-  const topics = ids === 'all' ? ALL_TOPICS : ids === 'course' ? TOPICS : ids === 'expert' ? EXPERT_TOPICS : ALL_TOPICS.filter((x) => ids.split(',').includes(x.id))
+  const k = useKnowledge()
+  const topics = ids === 'all' ? k.all : ids === 'course' ? k.course : ids === 'expert' ? k.expert : k.all.filter((x) => ids.split(',').includes(x.id))
 
   useEffect(() => {
     if (params.has('noprint')) return

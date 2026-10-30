@@ -1,0 +1,4038 @@
+{
+ "lessons": [
+  {
+   "id": "why_strength",
+   "emoji": "💪",
+   "tone": "orange",
+   "title": {
+    "en": "Why lift weights as we age",
+    "it": "Perché allenare la forza con l’età"
+   },
+   "subtitle": {
+    "en": "Muscles are a savings account for later life",
+    "it": "I muscoli sono un conto di risparmio per il futuro"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "From around 30–40 years old we slowly lose muscle every decade if we don’t use it. The good news: muscles respond to training at any age, even at 80.",
+      "it": "Dai 30–40 anni perdiamo lentamente muscolo ogni decennio, se non lo usiamo. La buona notizia: i muscoli rispondono all’allenamento a qualsiasi età, anche a 80 anni."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "🦵",
+       "title": {
+        "en": "Independence",
+        "it": "Autonomia"
+       },
+       "text": {
+        "en": "Getting up from a chair, climbing stairs and carrying the shopping on your own.",
+        "it": "Alzarsi dalla sedia, salire le scale e portare la spesa da soli."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🦴",
+       "title": {
+        "en": "Stronger bones",
+        "it": "Ossa più forti"
+       },
+       "text": {
+        "en": "Lifting tells bones to stay dense: lower risk of osteoporosis and fractures.",
+        "it": "Sollevare pesi dice alle ossa di restare dense: meno rischio di osteoporosi e fratture."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "⚖️",
+       "title": {
+        "en": "Better balance",
+        "it": "Più equilibrio"
+       },
+       "text": {
+        "en": "Stronger legs and better coordination mean fewer falls.",
+        "it": "Gambe più forti e più coordinazione significano meno cadute."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "🩸",
+       "title": {
+        "en": "Healthier blood sugar",
+        "it": "Glicemia più sana"
+       },
+       "text": {
+        "en": "Muscle is the body’s biggest “sponge” for sugar.",
+        "it": "Il muscolo è la “spugna” più grande del corpo per lo zucchero."
+       },
+       "tone": "pink"
+      },
+      {
+       "emoji": "🧠",
+       "title": {
+        "en": "Mood and mind",
+        "it": "Umore e mente"
+       },
+       "text": {
+        "en": "Training improves mood and sleep, and helps keep the mind sharp.",
+        "it": "L’allenamento migliora umore e sonno e aiuta a mantenere la mente lucida."
+       },
+       "tone": "purple"
+      },
+      {
+       "emoji": "🔥",
+       "title": {
+        "en": "Healthy weight",
+        "it": "Peso sano"
+       },
+       "text": {
+        "en": "More muscle makes it easier to keep a healthy weight and daily tasks feel lighter.",
+        "it": "Più muscolo rende più facile mantenere un peso sano e le attività quotidiane sembrano più leggere."
+       },
+       "tone": "yellow"
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "title": {
+      "en": "How to start safely",
+      "it": "Come iniziare in sicurezza"
+     },
+     "items": [
+      {
+       "title": {
+        "en": "Talk to your doctor first",
+        "it": "Parla prima con il medico"
+       },
+       "text": {
+        "en": "Especially with heart problems, high blood pressure or recent surgery.",
+        "it": "Soprattutto con problemi di cuore, pressione alta o interventi recenti."
+       }
+      },
+      {
+       "title": {
+        "en": "2–3 sessions a week",
+        "it": "2–3 allenamenti a settimana"
+       },
+       "text": {
+        "en": "Whole body, with at least one rest day in between.",
+        "it": "Tutto il corpo, con almeno un giorno di riposo in mezzo."
+       }
+      },
+      {
+       "title": {
+        "en": "Technique first",
+        "it": "Prima la tecnica"
+       },
+       "text": {
+        "en": "Start light, learn the movement, then add weight slowly.",
+        "it": "Parti leggero, impara il movimento, poi aumenta il peso piano piano."
+       }
+      },
+      {
+       "title": {
+        "en": "Challenging, never painful",
+        "it": "Impegnativo, mai doloroso"
+       },
+       "text": {
+        "en": "Finish each set with 1–3 reps still “in the tank”.",
+        "it": "Finisci ogni serie con 1–3 ripetizioni ancora “nel serbatoio”."
+       }
+      },
+      {
+       "title": {
+        "en": "Progress little by little",
+        "it": "Progredisci a piccoli passi"
+       },
+       "text": {
+        "en": "One more rep or a bit more weight when it feels easier.",
+        "it": "Una ripetizione o un po’ di peso in più quando diventa facile."
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🌱",
+     "text": {
+      "en": "It’s never too late: people in their 70s and 80s gain strength in just a few weeks of training.",
+      "it": "Non è mai troppo tardi: anche a 70 e 80 anni si guadagna forza in poche settimane di allenamento."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 0,
+   "sources": [
+    "fragala2019",
+    "peterson2010",
+    "cruzjentoft2019",
+    "who2020"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Can muscles still grow at 80?",
+      "it": "I muscoli possono ancora crescere a 80 anni?"
+     },
+     "options": [
+      {
+       "en": "No, after 60 it is too late",
+       "it": "No, dopo i 60 è troppo tardi"
+      },
+      {
+       "en": "Yes, they respond at any age",
+       "it": "Sì, rispondono a qualsiasi età"
+      }
+     ],
+     "answer": 1,
+     "why": {
+      "en": "Studies show strength gains in weeks, even in people over 80.",
+      "it": "Gli studi mostrano aumenti di forza in poche settimane, anche oltre gli 80 anni."
+     }
+    },
+    {
+     "q": {
+      "en": "How should a set end?",
+      "it": "Come dovrebbe finire una serie?"
+     },
+     "options": [
+      {
+       "en": "With 1–3 reps still “in the tank”",
+       "it": "Con 1–3 ripetizioni ancora “nel serbatoio”"
+      },
+      {
+       "en": "Only when you cannot move anymore",
+       "it": "Solo quando non riesci più a muoverti"
+      },
+      {
+       "en": "Before it gets tiring",
+       "it": "Prima che diventi faticosa"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Challenging but never painful: 1–3 reps in reserve.",
+      "it": "Impegnativa ma mai dolorosa: 1–3 ripetizioni in riserva."
+     }
+    }
+   ]
+  },
+  {
+   "id": "macros",
+   "emoji": "🍽️",
+   "tone": "blue",
+   "title": {
+    "en": "What are macronutrients?",
+    "it": "Cosa sono i macronutrienti?"
+   },
+   "subtitle": {
+    "en": "Protein, carbohydrates and fats explained",
+    "it": "Proteine, carboidrati e grassi spiegati"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Food gives us energy (calories) through three macronutrients. We need all three: the secret is the right amount and good sources.",
+      "it": "Il cibo ci dà energia (calorie) attraverso tre macronutrienti. Servono tutti e tre: il segreto è la quantità giusta e le fonti buone."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 3,
+     "items": [
+      {
+       "emoji": "🍗",
+       "title": {
+        "en": "Protein · 4 kcal/g",
+        "it": "Proteine · 4 kcal/g"
+       },
+       "text": {
+        "en": "Builds and repairs muscles, bones and skin. Keeps you full for longer. Meat, fish, eggs, dairy, legumes.",
+        "it": "Costruiscono e riparano muscoli, ossa e pelle. Saziano a lungo. Carne, pesce, uova, latticini, legumi."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🍞",
+       "title": {
+        "en": "Carbs · 4 kcal/g",
+        "it": "Carboidrati · 4 kcal/g"
+       },
+       "text": {
+        "en": "The quickest energy for brain and muscles. Prefer whole grains, legumes, fruit and vegetables to sugar and white flour.",
+        "it": "L’energia più rapida per cervello e muscoli. Meglio cereali integrali, legumi, frutta e verdura rispetto a zucchero e farine bianche."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🫒",
+       "title": {
+        "en": "Fats · 9 kcal/g",
+        "it": "Grassi · 9 kcal/g"
+       },
+       "text": {
+        "en": "Needed for hormones and to absorb vitamins A, D, E, K. Prefer olive oil, nuts and oily fish.",
+        "it": "Servono per gli ormoni e per assorbire le vitamine A, D, E, K. Meglio olio d’oliva, frutta secca e pesce azzurro."
+       },
+       "tone": "yellow"
+      }
+     ]
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "🥦",
+       "title": {
+        "en": "Fibre",
+        "it": "Fibre"
+       },
+       "text": {
+        "en": "A carbohydrate we don’t digest: it feeds good gut bacteria and slows down sugar.",
+        "it": "Un carboidrato che non digeriamo: nutre i batteri buoni dell’intestino e rallenta lo zucchero."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "💧",
+       "title": {
+        "en": "Water",
+        "it": "Acqua"
+       },
+       "text": {
+        "en": "Not a macronutrient, but essential. Thirst gets weaker with age: drink regularly.",
+        "it": "Non è un macronutriente, ma è essenziale. Con l’età la sete si sente meno: bevi regolarmente."
+       },
+       "tone": "blue"
+      }
+     ]
+    },
+    {
+     "type": "bars",
+     "title": {
+      "en": "Calories in 10 g of…",
+      "it": "Calorie in 10 g di…"
+     },
+     "unit": "kcal",
+     "items": [
+      {
+       "label": {
+        "en": "Protein",
+        "it": "Proteine"
+       },
+       "value": 40
+      },
+      {
+       "label": {
+        "en": "Carbohydrates",
+        "it": "Carboidrati"
+       },
+       "value": 40
+      },
+      {
+       "label": {
+        "en": "Fat",
+        "it": "Grassi"
+       },
+       "value": 90
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "⚖️",
+     "text": {
+      "en": "No macronutrient is “bad”. Problems come from eating too much overall, or from ultra-processed foods.",
+      "it": "Nessun macronutriente è “cattivo”. I problemi nascono dal mangiare troppo in totale o da cibi ultra-processati."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 1,
+   "sources": [
+    "trumbo2002",
+    "willett2019"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Which macronutrient builds and repairs muscle?",
+      "it": "Quale macronutriente costruisce e ripara i muscoli?"
+     },
+     "options": [
+      {
+       "en": "Carbohydrates",
+       "it": "Carboidrati"
+      },
+      {
+       "en": "Protein",
+       "it": "Proteine"
+      },
+      {
+       "en": "Fat",
+       "it": "Grassi"
+      }
+     ],
+     "answer": 1,
+     "why": {
+      "en": "Protein is the building material of muscles, bones and skin.",
+      "it": "Le proteine sono il materiale da costruzione di muscoli, ossa e pelle."
+     }
+    },
+    {
+     "q": {
+      "en": "How many calories in 1 g of fat?",
+      "it": "Quante calorie in 1 g di grassi?"
+     },
+     "options": [
+      {
+       "en": "4 kcal",
+       "it": "4 kcal"
+      },
+      {
+       "en": "9 kcal",
+       "it": "9 kcal"
+      },
+      {
+       "en": "1 kcal",
+       "it": "1 kcal"
+      }
+     ],
+     "answer": 1,
+     "why": {
+      "en": "Fat has 9 kcal per gram, more than twice protein and carbs (4).",
+      "it": "I grassi hanno 9 kcal per grammo, più del doppio di proteine e carboidrati (4)."
+     }
+    }
+   ]
+  },
+  {
+   "id": "plate",
+   "emoji": "🥗",
+   "tone": "green",
+   "title": {
+    "en": "How to build a balanced plate",
+    "it": "Come comporre un piatto equilibrato"
+   },
+   "subtitle": {
+    "en": "A simple method for every meal, no scales needed",
+    "it": "Un metodo semplice per ogni pasto, senza bilancia"
+   },
+   "blocks": [
+    {
+     "type": "plate"
+    },
+    {
+     "type": "hands"
+    },
+    {
+     "type": "dodont",
+     "dos": [
+      {
+       "en": "Start the meal with vegetables",
+       "it": "Inizia il pasto dalle verdure"
+      },
+      {
+       "en": "Measure olive oil with a spoon",
+       "it": "Misura l’olio con il cucchiaio"
+      },
+      {
+       "en": "Drink water with meals",
+       "it": "Bevi acqua durante i pasti"
+      },
+      {
+       "en": "Include a protein at every meal",
+       "it": "Metti una proteina in ogni pasto"
+      }
+     ],
+     "donts": [
+      {
+       "en": "Pasta + bread + potatoes in the same meal",
+       "it": "Pasta + pane + patate nello stesso pasto"
+      },
+      {
+       "en": "Half a plate of pasta with no vegetables",
+       "it": "Mezzo piatto di pasta senza verdure"
+      },
+      {
+       "en": "Sugary drinks with meals",
+       "it": "Bibite zuccherate a tavola"
+      },
+      {
+       "en": "Eating straight from the packet",
+       "it": "Mangiare direttamente dalla confezione"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🍴",
+     "text": {
+      "en": "Example: grilled chicken + a big salad + boiled potatoes + 1 spoon of olive oil.",
+      "it": "Esempio: pollo alla griglia + una grande insalata + patate lesse + 1 cucchiaio d’olio."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 2,
+   "sources": [
+    "harvard_plate",
+    "willett2019",
+    "estruch2018"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "How much of the plate should be vegetables?",
+      "it": "Quanta parte del piatto dovrebbe essere verdura?"
+     },
+     "options": [
+      {
+       "en": "Half",
+       "it": "Metà"
+      },
+      {
+       "en": "A quarter",
+       "it": "Un quarto"
+      },
+      {
+       "en": "Just a garnish",
+       "it": "Solo una decorazione"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Half a plate of vegetables: volume and fibre for few calories.",
+      "it": "Metà piatto di verdure: volume e fibre con poche calorie."
+     }
+    },
+    {
+     "q": {
+      "en": "A portion of protein is about…",
+      "it": "Una porzione di proteine è circa…"
+     },
+     "options": [
+      {
+       "en": "The palm of your hand",
+       "it": "Il palmo della mano"
+      },
+      {
+       "en": "Two fists",
+       "it": "Due pugni"
+      },
+      {
+       "en": "A fingertip",
+       "it": "Un polpastrello"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Your hand is your measuring tool: a palm of protein.",
+      "it": "La mano è il tuo strumento di misura: un palmo di proteine."
+     }
+    }
+   ]
+  },
+  {
+   "id": "protein",
+   "emoji": "🥚",
+   "tone": "blue",
+   "title": {
+    "en": "Protein: your energy ally",
+    "it": "Proteine: alleate della tua energia"
+   },
+   "subtitle": {
+    "en": "Enough protein means steadier energy and stronger muscles",
+    "it": "Abbastanza proteine significano energia costante e muscoli più forti"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Eating enough protein helps keep your muscles, keeps you full and avoids energy crashes between meals. After 60 the body needs MORE protein, not less.",
+      "it": "Mangiare abbastanza proteine aiuta a mantenere i muscoli, sazia ed evita i cali di energia tra i pasti. Dopo i 60 anni il corpo ne ha bisogno DI PIÙ, non di meno."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 3,
+     "items": [
+      {
+       "emoji": "🎯",
+       "title": {
+        "en": "How much",
+        "it": "Quante"
+       },
+       "text": {
+        "en": "About 1.2–1.6 g per kg of body weight a day if you train (70 kg → 85–110 g).",
+        "it": "Circa 1,2–1,6 g per kg di peso al giorno se ti alleni (70 kg → 85–110 g)."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🕒",
+       "title": {
+        "en": "Spread it out",
+        "it": "Distribuiscile"
+       },
+       "text": {
+        "en": "25–40 g at each main meal works better than one big portion at dinner.",
+        "it": "25–40 g a ogni pasto principale funzionano meglio di una sola grande porzione a cena."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "☕",
+       "title": {
+        "en": "Breakfast counts",
+        "it": "Conta la colazione"
+       },
+       "text": {
+        "en": "Coffee and biscuits have almost no protein: add yogurt, milk or eggs.",
+        "it": "Caffè e biscotti non hanno quasi proteine: aggiungi yogurt, latte o uova."
+       },
+       "tone": "orange"
+      }
+     ]
+    },
+    {
+     "type": "bars",
+     "title": {
+      "en": "Protein in a typical portion",
+      "it": "Proteine in una porzione tipica"
+     },
+     "unit": "g",
+     "items": [
+      {
+       "label": {
+        "en": "Chicken breast, 120 g",
+        "it": "Petto di pollo, 120 g"
+       },
+       "value": 37
+      },
+      {
+       "label": {
+        "en": "Tuna, 1 can (80 g)",
+        "it": "Tonno, 1 scatoletta (80 g)"
+       },
+       "value": 21
+      },
+      {
+       "label": {
+        "en": "Greek yogurt, 1 pot (170 g)",
+        "it": "Yogurt greco, 1 vasetto (170 g)"
+       },
+       "value": 17
+      },
+      {
+       "label": {
+        "en": "2 eggs",
+        "it": "2 uova"
+       },
+       "value": 14
+      },
+      {
+       "label": {
+        "en": "Lentils, cooked (150 g)",
+        "it": "Lenticchie cotte (150 g)"
+       },
+       "value": 14
+      },
+      {
+       "label": {
+        "en": "Ricotta (100 g)",
+        "it": "Ricotta (100 g)"
+       },
+       "value": 11
+      },
+      {
+       "label": {
+        "en": "Pasta, dry (80 g)",
+        "it": "Pasta a crudo (80 g)"
+       },
+       "value": 10
+      },
+      {
+       "label": {
+        "en": "Milk, 1 glass",
+        "it": "Latte, 1 bicchiere"
+       },
+       "value": 7
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "⚡",
+     "text": {
+      "en": "Enough protein = steadier energy, less snacking and better recovery after training.",
+      "it": "Abbastanza proteine = energia più costante, meno spuntini e recupero migliore dopo l’allenamento."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 3,
+   "sources": [
+    "bauer2013",
+    "morton2018",
+    "leidy2015"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Which breakfast has more protein?",
+      "it": "Quale colazione ha più proteine?"
+     },
+     "options": [
+      {
+       "en": "Biscuits and coffee",
+       "it": "Biscotti e caffè"
+      },
+      {
+       "en": "Greek yogurt with oats",
+       "it": "Yogurt greco con avena"
+      }
+     ],
+     "answer": 1,
+     "why": {
+      "en": "Greek yogurt has about 10 g of protein per 100 g.",
+      "it": "Lo yogurt greco ha circa 10 g di proteine ogni 100 g."
+     }
+    },
+    {
+     "q": {
+      "en": "Why does protein matter more after 60?",
+      "it": "Perché le proteine contano di più dopo i 60 anni?"
+     },
+     "options": [
+      {
+       "en": "Muscles use it less efficiently",
+       "it": "I muscoli la usano in modo meno efficiente"
+      },
+      {
+       "en": "It doesn’t: needs go down",
+       "it": "Non contano di più: il fabbisogno scende"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "With age muscles respond less, so a bit more protein is needed.",
+      "it": "Con l’età i muscoli rispondono meno, quindi serve un po’ più di proteine."
+     }
+    }
+   ]
+  },
+  {
+   "id": "food_sources",
+   "emoji": "🛒",
+   "tone": "yellow",
+   "title": {
+    "en": "Where to find the nutrients",
+    "it": "Dove trovare i nutrienti"
+   },
+   "subtitle": {
+    "en": "A shopping guide by nutrient",
+    "it": "Una guida alla spesa per nutriente"
+   },
+   "blocks": [
+    {
+     "type": "foods",
+     "groups": [
+      {
+       "emoji": "🍗",
+       "tone": "blue",
+       "title": {
+        "en": "Lean protein",
+        "it": "Proteine magre"
+       },
+       "foods": {
+        "en": "Chicken and turkey breast, white fish, tuna in water, Greek yogurt, skyr, cottage cheese, egg whites, bresaola",
+        "it": "Petto di pollo e tacchino, pesce bianco, tonno al naturale, yogurt greco, skyr, fiocchi di latte, albume, bresaola"
+       }
+      },
+      {
+       "emoji": "🥚",
+       "tone": "purple",
+       "title": {
+        "en": "Protein + healthy fats",
+        "it": "Proteine + grassi buoni"
+       },
+       "foods": {
+        "en": "Whole eggs, salmon, mackerel and sardines, parmesan and other cheeses, nuts",
+        "it": "Uova intere, salmone, sgombro e sardine, parmigiano e altri formaggi, frutta secca"
+       }
+      },
+      {
+       "emoji": "🫘",
+       "tone": "green",
+       "title": {
+        "en": "Protein + carbs",
+        "it": "Proteine + carboidrati"
+       },
+       "note": {
+        "en": "Also full of fibre!",
+        "it": "E tante fibre!"
+       },
+       "foods": {
+        "en": "Lentils, chickpeas, beans, peas, broad beans, soy and tofu",
+        "it": "Lenticchie, ceci, fagioli, piselli, fave, soia e tofu"
+       }
+      },
+      {
+       "emoji": "🌾",
+       "tone": "orange",
+       "title": {
+        "en": "Slow carbs",
+        "it": "Carboidrati lenti"
+       },
+       "foods": {
+        "en": "Oats, wholegrain bread and pasta, brown rice, potatoes, quinoa, barley, farro",
+        "it": "Avena, pane e pasta integrali, riso integrale, patate, quinoa, orzo, farro"
+       }
+      },
+      {
+       "emoji": "🫒",
+       "tone": "yellow",
+       "title": {
+        "en": "Healthy fats",
+        "it": "Grassi buoni"
+       },
+       "foods": {
+        "en": "Extra virgin olive oil, avocado, walnuts, almonds, seeds (flax, chia, pumpkin)",
+        "it": "Olio extravergine d’oliva, avocado, noci, mandorle, semi (lino, chia, zucca)"
+       }
+      },
+      {
+       "emoji": "🥦",
+       "tone": "green",
+       "title": {
+        "en": "Fibre and vitamins",
+        "it": "Fibre e vitamine"
+       },
+       "foods": {
+        "en": "Vegetables, fruit with the peel, berries, legumes, whole grains",
+        "it": "Verdura, frutta con la buccia, frutti di bosco, legumi, cereali integrali"
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🇮🇹",
+     "text": {
+      "en": "Grains + legumes together (like pasta e fagioli) give complete, high-quality protein.",
+      "it": "Cereali + legumi insieme (come pasta e fagioli) danno proteine complete e di qualità."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 4,
+   "sources": [
+    "usda_fdc",
+    "crea_tables"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Which is a plant source of protein?",
+      "it": "Quale è una fonte vegetale di proteine?"
+     },
+     "options": [
+      {
+       "en": "Lentils",
+       "it": "Lenticchie"
+      },
+      {
+       "en": "Rice cakes",
+       "it": "Gallette di riso"
+      },
+      {
+       "en": "Apples",
+       "it": "Mele"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Legumes like lentils, beans and chickpeas are rich in protein and fibre.",
+      "it": "I legumi come lenticchie, fagioli e ceci sono ricchi di proteine e fibre."
+     }
+    },
+    {
+     "q": {
+      "en": "Where do you find healthy fats?",
+      "it": "Dove trovi i grassi buoni?"
+     },
+     "options": [
+      {
+       "en": "Olive oil, nuts, oily fish",
+       "it": "Olio d’oliva, frutta secca, pesce azzurro"
+      },
+      {
+       "en": "Crisps and pastries",
+       "it": "Patatine e merendine"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Olive oil, nuts and oily fish bring the fats your heart likes.",
+      "it": "Olio d’oliva, frutta secca e pesce azzurro portano i grassi che piacciono al cuore."
+     }
+    }
+   ]
+  },
+  {
+   "id": "fiber",
+   "emoji": "🥦",
+   "tone": "green",
+   "title": {
+    "en": "Fibre: what it is and how to eat more",
+    "it": "Fibre: cosa sono e come mangiarne di più"
+   },
+   "subtitle": {
+    "en": "Most people eat about half of what they need",
+    "it": "La maggior parte delle persone ne mangia circa la metà del necessario"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Fibre is the part of plants we cannot digest. Aim for 25–35 g a day.",
+      "it": "Le fibre sono la parte delle piante che non riusciamo a digerire. L’obiettivo è 25–35 g al giorno."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 3,
+     "title": {
+      "en": "Why it’s good for you",
+      "it": "Perché fanno bene"
+     },
+     "items": [
+      {
+       "emoji": "🦠",
+       "title": {
+        "en": "Healthy gut",
+        "it": "Intestino sano"
+       },
+       "text": {
+        "en": "Feeds the good bacteria.",
+        "it": "Nutre i batteri buoni."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "🍽️",
+       "title": {
+        "en": "Fullness",
+        "it": "Sazietà"
+       },
+       "text": {
+        "en": "You feel full with fewer calories.",
+        "it": "Ti senti sazio con meno calorie."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "📉",
+       "title": {
+        "en": "Steady sugar",
+        "it": "Zucchero stabile"
+       },
+       "text": {
+        "en": "Slows down the rise of blood sugar.",
+        "it": "Rallenta la salita della glicemia."
+       },
+       "tone": "pink"
+      },
+      {
+       "emoji": "❤️",
+       "title": {
+        "en": "Heart",
+        "it": "Cuore"
+       },
+       "text": {
+        "en": "Helps lower cholesterol.",
+        "it": "Aiuta ad abbassare il colesterolo."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🚽",
+       "title": {
+        "en": "Regularity",
+        "it": "Regolarità"
+       },
+       "text": {
+        "en": "Helps bowel movements.",
+        "it": "Aiuta la regolarità intestinale."
+       },
+       "tone": "yellow"
+      },
+      {
+       "emoji": "💧",
+       "title": {
+        "en": "Drink more",
+        "it": "Bevi di più"
+       },
+       "text": {
+        "en": "Fibre needs water to work well.",
+        "it": "Le fibre hanno bisogno di acqua per funzionare."
+       },
+       "tone": "purple"
+      }
+     ]
+    },
+    {
+     "type": "swaps",
+     "title": {
+      "en": "Easy swaps",
+      "it": "Scambi facili"
+     },
+     "items": [
+      {
+       "from": {
+        "en": "White bread",
+        "it": "Pane bianco"
+       },
+       "to": {
+        "en": "Wholegrain bread",
+        "it": "Pane integrale"
+       }
+      },
+      {
+       "from": {
+        "en": "Fruit juice",
+        "it": "Succo di frutta"
+       },
+       "to": {
+        "en": "Whole fruit, with the peel",
+        "it": "Frutta intera, con la buccia"
+       }
+      },
+      {
+       "from": {
+        "en": "Plain pasta",
+        "it": "Pasta in bianco"
+       },
+       "to": {
+        "en": "Pasta with legumes or vegetables",
+        "it": "Pasta con legumi o verdure"
+       }
+      },
+      {
+       "from": {
+        "en": "Biscuits at breakfast",
+        "it": "Biscotti a colazione"
+       },
+       "to": {
+        "en": "Oats with fruit",
+        "it": "Avena con frutta"
+       }
+      },
+      {
+       "from": {
+        "en": "Crisps as a snack",
+        "it": "Patatine come spuntino"
+       },
+       "to": {
+        "en": "A handful of nuts",
+        "it": "Una manciata di frutta secca"
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🐢",
+     "text": {
+      "en": "Increase fibre slowly over 2–3 weeks and drink more water, to avoid bloating.",
+      "it": "Aumenta le fibre piano piano in 2–3 settimane e bevi di più, per evitare gonfiore."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 5,
+   "sources": [
+    "reynolds2019"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "How much fibre a day?",
+      "it": "Quante fibre al giorno?"
+     },
+     "options": [
+      {
+       "en": "About 25–30 g",
+       "it": "Circa 25–30 g"
+      },
+      {
+       "en": "About 5 g",
+       "it": "Circa 5 g"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Most people eat half of the 25–30 g they need.",
+      "it": "La maggior parte delle persone ne mangia la metà dei 25–30 g necessari."
+     }
+    },
+    {
+     "q": {
+      "en": "When you add fibre, also add…",
+      "it": "Quando aumenti le fibre, aumenta anche…"
+     },
+     "options": [
+      {
+       "en": "Water",
+       "it": "L’acqua"
+      },
+      {
+       "en": "Salt",
+       "it": "Il sale"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Fibre needs water to work well in the gut.",
+      "it": "Le fibre hanno bisogno di acqua per funzionare bene nell’intestino."
+     }
+    }
+   ]
+  },
+  {
+   "id": "insulin",
+   "emoji": "🔑",
+   "tone": "pink",
+   "title": {
+    "en": "Insulin sensitivity, made simple",
+    "it": "La sensibilità all’insulina, in parole semplici"
+   },
+   "subtitle": {
+    "en": "Why it matters and how to improve it",
+    "it": "Perché è importante e come migliorarla"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "After a meal, sugar enters the blood. Insulin is the “key” that opens the cells so sugar can get in and become energy.",
+      "it": "Dopo un pasto lo zucchero entra nel sangue. L’insulina è la “chiave” che apre le cellule per far entrare lo zucchero e trasformarlo in energia."
+     }
+    },
+    {
+     "type": "steps",
+     "items": [
+      {
+       "title": {
+        "en": "🔓 Sensitive cells",
+        "it": "🔓 Cellule sensibili"
+       },
+       "text": {
+        "en": "They open easily: little insulin is needed and energy stays stable.",
+        "it": "Si aprono facilmente: serve poca insulina e l’energia resta stabile."
+       }
+      },
+      {
+       "title": {
+        "en": "🚪 Resistant cells",
+        "it": "🚪 Cellule resistenti"
+       },
+       "text": {
+        "en": "With little movement, belly fat and poor sleep they “stop listening”: the body has to make more and more insulin.",
+        "it": "Con poco movimento, grasso sulla pancia e sonno scarso “smettono di ascoltare”: il corpo deve produrre sempre più insulina."
+       }
+      },
+      {
+       "title": {
+        "en": "⚠️ Over the years",
+        "it": "⚠️ Negli anni"
+       },
+       "text": {
+        "en": "Tiredness, hunger, belly fat and a higher risk of type 2 diabetes.",
+        "it": "Stanchezza, fame, grasso addominale e un rischio più alto di diabete di tipo 2."
+       }
+      }
+     ]
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "title": {
+      "en": "How to improve it",
+      "it": "Come migliorarla"
+     },
+     "items": [
+      {
+       "emoji": "🏋️",
+       "title": {
+        "en": "Strength training",
+        "it": "Allenamento di forza"
+       },
+       "text": {
+        "en": "Working muscles take up sugar even with little insulin.",
+        "it": "I muscoli che lavorano assorbono zucchero anche con poca insulina."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🚶",
+       "title": {
+        "en": "Walk after meals",
+        "it": "Cammina dopo i pasti"
+       },
+       "text": {
+        "en": "10–15 minutes is enough to lower the sugar peak.",
+        "it": "Bastano 10–15 minuti per abbassare il picco di zucchero."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "😴",
+       "title": {
+        "en": "Sleep 7–9 hours",
+        "it": "Dormi 7–9 ore"
+       },
+       "text": {
+        "en": "Even one bad night makes cells less sensitive.",
+        "it": "Anche una sola notte storta rende le cellule meno sensibili."
+       },
+       "tone": "purple"
+      },
+      {
+       "emoji": "🥦",
+       "title": {
+        "en": "Veg and protein first",
+        "it": "Prima verdure e proteine"
+       },
+       "text": {
+        "en": "Eat carbs at the end of the meal for a gentler rise.",
+        "it": "Mangia i carboidrati alla fine del pasto per una salita più dolce."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🥤",
+       "title": {
+        "en": "Fewer sugary drinks",
+        "it": "Meno bibite zuccherate"
+       },
+       "text": {
+        "en": "Liquid sugar arrives fast and doesn’t fill you up.",
+        "it": "Lo zucchero liquido arriva veloce e non sazia."
+       },
+       "tone": "pink"
+      },
+      {
+       "emoji": "📏",
+       "title": {
+        "en": "A smaller waist",
+        "it": "Un girovita più piccolo"
+       },
+       "text": {
+        "en": "Losing even a little belly fat helps a lot.",
+        "it": "Perdere anche poco grasso addominale aiuta molto."
+       },
+       "tone": "yellow"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "✨",
+     "text": {
+      "en": "Good news: a single workout improves insulin sensitivity for up to 1–2 days.",
+      "it": "Buona notizia: un solo allenamento migliora la sensibilità all’insulina fino a 1–2 giorni."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 6,
+   "sources": [
+    "bird2017",
+    "colberg2016"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "What helps blood sugar after a meal?",
+      "it": "Cosa aiuta la glicemia dopo un pasto?"
+     },
+     "options": [
+      {
+       "en": "A 10-minute walk",
+       "it": "Una camminata di 10 minuti"
+      },
+      {
+       "en": "A nap",
+       "it": "Un pisolino"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Walking muscles use the sugar from the meal.",
+      "it": "I muscoli che camminano usano lo zucchero del pasto."
+     }
+    },
+    {
+     "q": {
+      "en": "Best order to eat a meal?",
+      "it": "L’ordine migliore per mangiare un pasto?"
+     },
+     "options": [
+      {
+       "en": "Vegetables and protein first, carbs last",
+       "it": "Prima verdure e proteine, carboidrati alla fine"
+      },
+      {
+       "en": "Bread first",
+       "it": "Prima il pane"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Fibre and protein first make blood sugar rise more gently.",
+      "it": "Fibre e proteine all’inizio fanno salire la glicemia più dolcemente."
+     }
+    }
+   ]
+  },
+  {
+   "id": "workout_food",
+   "emoji": "🍌",
+   "tone": "orange",
+   "title": {
+    "en": "What to eat before and after training",
+    "it": "Cosa mangiare prima e dopo l’allenamento"
+   },
+   "subtitle": {
+    "en": "And why it helps",
+    "it": "E perché aiuta"
+   },
+   "blocks": [
+    {
+     "type": "timeline",
+     "items": [
+      {
+       "emoji": "🍝",
+       "time": {
+        "en": "2–3 hours before",
+        "it": "2–3 ore prima"
+       },
+       "text": {
+        "en": "A normal meal with carbs and protein, not too fatty: pasta with tuna, rice and chicken. It fuels your muscles.",
+        "it": "Un pasto normale con carboidrati e proteine, non troppo grasso: pasta al tonno, riso e pollo. Dà carburante ai muscoli."
+       }
+      },
+      {
+       "emoji": "🍌",
+       "time": {
+        "en": "30–60 min before (optional)",
+        "it": "30–60 min prima (facoltativo)"
+       },
+       "text": {
+        "en": "A light snack if you’re hungry: a banana, a yogurt, bread with jam.",
+        "it": "Uno spuntino leggero se hai fame: una banana, uno yogurt, pane e marmellata."
+       }
+      },
+      {
+       "emoji": "💧",
+       "time": {
+        "en": "During",
+        "it": "Durante"
+       },
+       "text": {
+        "en": "Water. For sessions under an hour, nothing else is needed.",
+        "it": "Acqua. Per allenamenti sotto l’ora non serve altro."
+       }
+      },
+      {
+       "emoji": "🥛",
+       "time": {
+        "en": "Within 1–2 hours after",
+        "it": "Entro 1–2 ore dopo"
+       },
+       "text": {
+        "en": "Protein (20–40 g) + carbs: yogurt with fruit and oats, chicken and potatoes, milk and bread. It repairs muscles and refills energy.",
+        "it": "Proteine (20–40 g) + carboidrati: yogurt con frutta e avena, pollo e patate, latte e pane. Ripara i muscoli e ricarica l’energia."
+       }
+      }
+     ]
+    },
+    {
+     "type": "dodont",
+     "dos": [
+      {
+       "en": "Eat something 1–3 hours before",
+       "it": "Mangia qualcosa 1–3 ore prima"
+      },
+      {
+       "en": "Bring a water bottle",
+       "it": "Porta una borraccia"
+      },
+      {
+       "en": "Have a protein-rich meal after",
+       "it": "Fai un pasto ricco di proteine dopo"
+      }
+     ],
+     "donts": [
+      {
+       "en": "Train on a completely empty stomach if you feel dizzy",
+       "it": "Allenarti a digiuno se ti gira la testa"
+      },
+      {
+       "en": "A big fried meal just before",
+       "it": "Un grande pasto fritto appena prima"
+      },
+      {
+       "en": "“Rewarding” yourself with sweets after",
+       "it": "“Premiarti” con i dolci dopo"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🎯",
+     "text": {
+      "en": "What matters most is total protein over the whole day; timing is the cherry on top.",
+      "it": "Quello che conta di più sono le proteine totali della giornata; il momento giusto è la ciliegina sulla torta."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 7,
+   "sources": [
+    "kerksick2017",
+    "thomas2016"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "After training, eat…",
+      "it": "Dopo l’allenamento mangia…"
+     },
+     "options": [
+      {
+       "en": "A meal with protein within a couple of hours",
+       "it": "Un pasto con proteine entro un paio d’ore"
+      },
+      {
+       "en": "Nothing until the next day",
+       "it": "Niente fino al giorno dopo"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Protein after training helps muscles repair and grow.",
+      "it": "Le proteine dopo l’allenamento aiutano i muscoli a ripararsi e crescere."
+     }
+    },
+    {
+     "q": {
+      "en": "Before a workout, if hungry…",
+      "it": "Prima dell’allenamento, se hai fame…"
+     },
+     "options": [
+      {
+       "en": "Something light, like a banana",
+       "it": "Qualcosa di leggero, come una banana"
+      },
+      {
+       "en": "A big pizza",
+       "it": "Una pizza grande"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Light and easy to digest: energy without a heavy stomach.",
+      "it": "Leggero e digeribile: energia senza appesantire lo stomaco."
+     }
+    }
+   ]
+  },
+  {
+   "id": "meals",
+   "emoji": "👩‍🍳",
+   "tone": "yellow",
+   "title": {
+    "en": "Simple meal ideas",
+    "it": "Idee per pasti semplici"
+   },
+   "subtitle": {
+    "en": "Balanced, tasty and quick to prepare",
+    "it": "Equilibrati, gustosi e veloci da preparare"
+   },
+   "blocks": [
+    {
+     "type": "meals",
+     "groups": [
+      {
+       "title": {
+        "en": "Breakfast",
+        "it": "Colazione"
+       },
+       "items": [
+        {
+         "emoji": "🥣",
+         "name": {
+          "en": "Greek yogurt, berries, walnuts and oats",
+          "it": "Yogurt greco, frutti di bosco, noci e avena"
+         },
+         "protein": 25
+        },
+        {
+         "emoji": "🍳",
+         "name": {
+          "en": "Scrambled eggs, wholegrain toast and fruit",
+          "it": "Uova strapazzate, pane integrale tostato e frutta"
+         },
+         "protein": 20
+        },
+        {
+         "emoji": "☕",
+         "name": {
+          "en": "Milky coffee and rusks with ricotta and honey",
+          "it": "Caffellatte e fette biscottate con ricotta e miele"
+         },
+         "protein": 20
+        }
+       ]
+      },
+      {
+       "title": {
+        "en": "Lunch",
+        "it": "Pranzo"
+       },
+       "items": [
+        {
+         "emoji": "🍲",
+         "name": {
+          "en": "Pasta e ceci (pasta with chickpeas) and a salad",
+          "it": "Pasta e ceci con un’insalata"
+         },
+         "protein": 25
+        },
+        {
+         "emoji": "🍚",
+         "name": {
+          "en": "Chicken, rice and vegetable bowl",
+          "it": "Bowl di pollo, riso e verdure"
+         },
+         "protein": 40
+        },
+        {
+         "emoji": "🥗",
+         "name": {
+          "en": "Tuna, beans and tomato salad with bread",
+          "it": "Insalata di tonno, fagioli e pomodori con pane"
+         },
+         "protein": 35
+        }
+       ]
+      },
+      {
+       "title": {
+        "en": "Dinner",
+        "it": "Cena"
+       },
+       "items": [
+        {
+         "emoji": "🐟",
+         "name": {
+          "en": "Baked salmon, potatoes and green beans",
+          "it": "Salmone al forno, patate e fagiolini"
+         },
+         "protein": 30
+        },
+        {
+         "emoji": "🥚",
+         "name": {
+          "en": "Vegetable frittata (3 eggs) and bread",
+          "it": "Frittata di verdure (3 uova) e pane"
+         },
+         "protein": 22
+        },
+        {
+         "emoji": "🥣",
+         "name": {
+          "en": "Lentil soup, wholegrain bread and a little cheese",
+          "it": "Zuppa di lenticchie, pane integrale e un po’ di formaggio"
+         },
+         "protein": 25
+        }
+       ]
+      },
+      {
+       "title": {
+        "en": "Snacks",
+        "it": "Spuntini"
+       },
+       "items": [
+        {
+         "emoji": "🫐",
+         "name": {
+          "en": "Skyr with fruit",
+          "it": "Skyr con frutta"
+         },
+         "protein": 15
+        },
+        {
+         "emoji": "🥩",
+         "name": {
+          "en": "Bresaola, rocket and parmesan",
+          "it": "Bresaola, rucola e parmigiano"
+         },
+         "protein": 20
+        },
+        {
+         "emoji": "🍎",
+         "name": {
+          "en": "An apple and a handful of almonds",
+          "it": "Una mela e una manciata di mandorle"
+         },
+         "protein": 6
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🧊",
+     "text": {
+      "en": "Cook once, eat twice: soups, legumes and grilled chicken keep 2–3 days in the fridge.",
+      "it": "Cucina una volta, mangia due: zuppe, legumi e pollo alla griglia si conservano 2–3 giorni in frigo."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 8,
+   "sources": [
+    "estruch2018",
+    "willett2019"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "A balanced lunch has…",
+      "it": "Un pranzo equilibrato ha…"
+     },
+     "options": [
+      {
+       "en": "Protein, vegetables and some carbs",
+       "it": "Proteine, verdure e un po’ di carboidrati"
+      },
+      {
+       "en": "Only pasta",
+       "it": "Solo pasta"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "All three together keep you full and give steady energy.",
+      "it": "Tutti e tre insieme saziano e danno energia costante."
+     }
+    },
+    {
+     "q": {
+      "en": "A quick protein snack is…",
+      "it": "Uno spuntino proteico veloce è…"
+     },
+     "options": [
+      {
+       "en": "Greek yogurt or a boiled egg",
+       "it": "Yogurt greco o un uovo sodo"
+      },
+      {
+       "en": "A croissant",
+       "it": "Un cornetto"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Yogurt and eggs are ready in seconds and rich in protein.",
+      "it": "Yogurt e uova sono pronti in un attimo e ricchi di proteine."
+     }
+    }
+   ]
+  },
+  {
+   "id": "steady_energy",
+   "emoji": "🔋",
+   "tone": "yellow",
+   "title": {
+    "en": "Steady energy all day",
+    "it": "Energia costante tutto il giorno"
+   },
+   "subtitle": {
+    "en": "Spread the carbs, pair them well, avoid the 4 pm slump",
+    "it": "Distribuisci i carboidrati, abbinali bene, evita il calo delle 16"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Carbohydrates are your body’s fuel, like petrol for a car. Eating them all at once is like filling the tank to the brim and then running dry: a big rush, then a slump. Spreading them over the day keeps you going.",
+      "it": "I carboidrati sono il carburante del corpo, come la benzina per l’auto. Mangiarli tutti in una volta è come riempire il serbatoio fino all’orlo e poi restare a secco: una grande spinta, poi il calo. Distribuirli nella giornata ti tiene in marcia."
+     }
+    },
+    {
+     "type": "timeline",
+     "title": {
+      "en": "A day with steady energy",
+      "it": "Una giornata con energia costante"
+     },
+     "items": [
+      {
+       "emoji": "🌅",
+       "time": {
+        "en": "Breakfast",
+        "it": "Colazione"
+       },
+       "text": {
+        "en": "Protein + slow carbs: yogurt with oats and fruit, or eggs with wholegrain bread.",
+        "it": "Proteine + carboidrati lenti: yogurt con fiocchi d’avena e frutta, oppure uova con pane integrale."
+       }
+      },
+      {
+       "emoji": "🍎",
+       "time": {
+        "en": "Mid-morning",
+        "it": "Metà mattina"
+       },
+       "text": {
+        "en": "If hungry: a fruit with a handful of nuts.",
+        "it": "Se hai fame: un frutto con una manciata di frutta secca."
+       }
+      },
+      {
+       "emoji": "🍝",
+       "time": {
+        "en": "Lunch",
+        "it": "Pranzo"
+       },
+       "text": {
+        "en": "A fist of pasta, rice or bread, a palm of protein, half the plate vegetables.",
+        "it": "Un pugno di pasta, riso o pane, un palmo di proteine, metà piatto di verdure."
+       }
+      },
+      {
+       "emoji": "🥛",
+       "time": {
+        "en": "Afternoon",
+        "it": "Pomeriggio"
+       },
+       "text": {
+        "en": "Yogurt or milk + fruit: beats the 4 pm slump better than biscuits.",
+        "it": "Yogurt o latte + frutta: batte il calo delle 16 meglio dei biscotti."
+       }
+      },
+      {
+       "emoji": "🍲",
+       "time": {
+        "en": "Dinner",
+        "it": "Cena"
+       },
+       "text": {
+        "en": "Like lunch, with a smaller portion of carbs if you are less active in the evening.",
+        "it": "Come il pranzo, con meno carboidrati se la sera ti muovi meno."
+       }
+      }
+     ]
+    },
+    {
+     "type": "cards",
+     "title": {
+      "en": "Three tricks",
+      "it": "Tre trucchi"
+     },
+     "cols": 3,
+     "items": [
+      {
+       "emoji": "🤝",
+       "title": {
+        "en": "Never carbs alone",
+        "it": "Mai carboidrati da soli"
+       },
+       "text": {
+        "en": "Add protein or fibre: bread with ham, fruit with yogurt. Sugar enters the blood more gently.",
+        "it": "Aggiungi proteine o fibre: pane e prosciutto, frutta e yogurt. Lo zucchero entra nel sangue più dolcemente."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "⚖️",
+       "title": {
+        "en": "Similar portions",
+        "it": "Porzioni simili"
+       },
+       "text": {
+        "en": "Two or three similar meals beat one small and one huge meal.",
+        "it": "Due o tre pasti simili sono meglio di uno piccolo e uno enorme."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🌾",
+       "title": {
+        "en": "Choose slow carbs",
+        "it": "Scegli carboidrati lenti"
+       },
+       "text": {
+        "en": "Whole grains, legumes, fruit: they last longer than white bread and sweets.",
+        "it": "Cereali integrali, legumi, frutta: durano più a lungo di pane bianco e dolci."
+       },
+       "tone": "orange"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "😴",
+     "text": {
+      "en": "Sleepy after lunch? Try a smaller plate of pasta with more vegetables and protein, and a 10-minute walk.",
+      "it": "Sonnolenza dopo pranzo? Prova un piatto di pasta più piccolo con più verdure e proteine, e una passeggiata di 10 minuti."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 9,
+   "sources": [
+    "jenkins1981",
+    "reynolds2019"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "To avoid the afternoon slump, eat carbs…",
+      "it": "Per evitare il calo del pomeriggio, mangia i carboidrati…"
+     },
+     "options": [
+      {
+       "en": "Spread over the meals, with protein or fibre",
+       "it": "Distribuiti nei pasti, con proteine o fibre"
+      },
+      {
+       "en": "All at lunch",
+       "it": "Tutti a pranzo"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Spreading and pairing carbs avoids big rushes and crashes.",
+      "it": "Distribuire e abbinare i carboidrati evita picchi e crolli."
+     }
+    },
+    {
+     "q": {
+      "en": "A good afternoon snack is…",
+      "it": "Un buono spuntino pomeridiano è…"
+     },
+     "options": [
+      {
+       "en": "Yogurt with fruit",
+       "it": "Yogurt con frutta"
+      },
+      {
+       "en": "Sweet biscuits",
+       "it": "Biscotti dolci"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Protein + fruit gives energy that lasts.",
+      "it": "Proteine + frutta danno un’energia che dura."
+     }
+    }
+   ]
+  },
+  {
+   "id": "meal_tricks",
+   "emoji": "🪄",
+   "tone": "green",
+   "title": {
+    "en": "Simple meal tricks",
+    "it": "Piccoli trucchi a tavola"
+   },
+   "subtitle": {
+    "en": "Eat well without counting anything",
+    "it": "Mangiare bene senza contare niente"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "You don’t need to weigh food or count calories to eat well. A few habits do most of the work.",
+      "it": "Non serve pesare il cibo o contare le calorie per mangiare bene. Poche abitudini fanno quasi tutto il lavoro."
+     }
+    },
+    {
+     "type": "steps",
+     "title": {
+      "en": "At every meal",
+      "it": "A ogni pasto"
+     },
+     "items": [
+      {
+       "title": {
+        "en": "Start with vegetables",
+        "it": "Inizia dalle verdure"
+       },
+       "text": {
+        "en": "A salad or vegetable soup first fills you up and slows down the sugar.",
+        "it": "Un’insalata o un minestrone all’inizio saziano e rallentano lo zucchero."
+       }
+      },
+      {
+       "title": {
+        "en": "A palm of protein",
+        "it": "Un palmo di proteine"
+       },
+       "text": {
+        "en": "Meat, fish, eggs, cheese, legumes or tofu: every meal, not just dinner.",
+        "it": "Carne, pesce, uova, formaggio, legumi o tofu: a ogni pasto, non solo a cena."
+       }
+      },
+      {
+       "title": {
+        "en": "A fist of carbs",
+        "it": "Un pugno di carboidrati"
+       },
+       "text": {
+        "en": "Bread, pasta, rice or potatoes: one fist is a good portion for most meals.",
+        "it": "Pane, pasta, riso o patate: un pugno è una buona porzione per quasi tutti i pasti."
+       }
+      },
+      {
+       "title": {
+        "en": "Eat slowly",
+        "it": "Mangia piano"
+       },
+       "text": {
+        "en": "Put the fork down between bites: fullness takes about 20 minutes to arrive.",
+        "it": "Appoggia la forchetta tra un boccone e l’altro: il senso di sazietà arriva dopo circa 20 minuti."
+       }
+      }
+     ]
+    },
+    {
+     "type": "swaps",
+     "title": {
+      "en": "Easy swaps",
+      "it": "Scambi facili"
+     },
+     "items": [
+      {
+       "from": {
+        "en": "Sweet biscuits at breakfast",
+        "it": "Biscotti a colazione"
+       },
+       "to": {
+        "en": "Greek yogurt, oats and fruit",
+        "it": "Yogurt greco, avena e frutta"
+       }
+      },
+      {
+       "from": {
+        "en": "Juice or soda",
+        "it": "Succo o bibita"
+       },
+       "to": {
+        "en": "Water, sparkling water, tea",
+        "it": "Acqua, acqua frizzante, tè"
+       }
+      },
+      {
+       "from": {
+        "en": "Crisps in front of the TV",
+        "it": "Patatine davanti alla TV"
+       },
+       "to": {
+        "en": "A handful of nuts or popcorn",
+        "it": "Una manciata di frutta secca o popcorn"
+       }
+      },
+      {
+       "from": {
+        "en": "Second plate of pasta",
+        "it": "Il bis di pasta"
+       },
+       "to": {
+        "en": "More vegetables and protein",
+        "it": "Più verdure e proteine"
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "📷",
+     "text": {
+      "en": "Not sure about a meal? Snap it in Forza!: it tells you what to add or change.",
+      "it": "Dubbi su un pasto? Fotografalo in Forza!: ti dice cosa aggiungere o cambiare."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 10,
+   "sources": [
+    "shukla2015",
+    "rolls2004"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "How long does fullness take to arrive?",
+      "it": "Dopo quanto arriva il senso di sazietà?"
+     },
+     "options": [
+      {
+       "en": "About 20 minutes",
+       "it": "Circa 20 minuti"
+      },
+      {
+       "en": "Immediately",
+       "it": "Subito"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Eating slowly gives fullness time to arrive.",
+      "it": "Mangiare piano dà tempo alla sazietà di arrivare."
+     }
+    },
+    {
+     "q": {
+      "en": "A good portion of pasta for most meals?",
+      "it": "Una buona porzione di pasta per quasi tutti i pasti?"
+     },
+     "options": [
+      {
+       "en": "About one fist",
+       "it": "Circa un pugno"
+      },
+      {
+       "en": "The whole plate",
+       "it": "Tutto il piatto"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "A fist of carbs, a palm of protein, half a plate of vegetables.",
+      "it": "Un pugno di carboidrati, un palmo di proteine, metà piatto di verdure."
+     }
+    }
+   ]
+  },
+  {
+   "id": "daily_activity",
+   "emoji": "🚶",
+   "tone": "green",
+   "title": {
+    "en": "More movement, with little effort",
+    "it": "Più movimento, con poco sforzo"
+   },
+   "subtitle": {
+    "en": "Every step counts",
+    "it": "Ogni passo conta"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "The energy you use in daily life (walking, standing, housework) often counts more than the gym. And it protects heart, joints and mood.",
+      "it": "L’energia che usi nella vita di tutti i giorni (camminare, stare in piedi, fare i lavori di casa) spesso conta più della palestra. E protegge cuore, articolazioni e umore."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "🍽️",
+       "title": {
+        "en": "After meals",
+        "it": "Dopo i pasti"
+       },
+       "text": {
+        "en": "A 10-minute walk after lunch and dinner.",
+        "it": "Una passeggiata di 10 minuti dopo pranzo e cena."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "📺",
+       "title": {
+        "en": "TV breaks",
+        "it": "Pause TV"
+       },
+       "text": {
+        "en": "Don’t binge: stand up and walk around during ads or every episode.",
+        "it": "Niente maratone: alzati e cammina durante la pubblicità o a ogni episodio."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🪜",
+       "title": {
+        "en": "Stairs",
+        "it": "Scale"
+       },
+       "text": {
+        "en": "Take the stairs for one or two floors.",
+        "it": "Fai uno o due piani a piedi."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🚌",
+       "title": {
+        "en": "Park further away",
+        "it": "Parcheggia più lontano"
+       },
+       "text": {
+        "en": "Or get off the bus one stop early.",
+        "it": "O scendi dall’autobus una fermata prima."
+       },
+       "tone": "yellow"
+      },
+      {
+       "emoji": "📞",
+       "title": {
+        "en": "Walk and talk",
+        "it": "Cammina e parla"
+       },
+       "text": {
+        "en": "Walk around while you’re on the phone.",
+        "it": "Cammina mentre sei al telefono."
+       },
+       "tone": "purple"
+      },
+      {
+       "emoji": "🌻",
+       "title": {
+        "en": "Active hobbies",
+        "it": "Hobby attivi"
+       },
+       "text": {
+        "en": "Gardening, housework, playing with the grandchildren.",
+        "it": "Giardinaggio, lavori di casa, giocare con i nipoti."
+       },
+       "tone": "pink"
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "title": {
+      "en": "Increase gradually",
+      "it": "Aumenta gradualmente"
+     },
+     "items": [
+      {
+       "title": {
+        "en": "Week 1: find your average",
+        "it": "Settimana 1: trova la tua media"
+       },
+       "text": {
+        "en": "Look at your daily steps in the app.",
+        "it": "Guarda i tuoi passi giornalieri nell’app."
+       }
+      },
+      {
+       "title": {
+        "en": "Every week: +500–1,000 steps a day",
+        "it": "Ogni settimana: +500–1.000 passi al giorno"
+       },
+       "text": {
+        "en": "About 5–10 more minutes of walking.",
+        "it": "Circa 5–10 minuti di camminata in più."
+       }
+      },
+      {
+       "title": {
+        "en": "Goal: 6,000–8,000 steps",
+        "it": "Obiettivo: 6.000–8.000 passi"
+       },
+       "text": {
+        "en": "For people over 60, most of the health benefit comes by this point.",
+        "it": "Per chi ha più di 60 anni, la maggior parte dei benefici arriva a questo punto."
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "👟",
+     "text": {
+      "en": "Carrying the shopping bags is strength training too!",
+      "it": "Anche portare le borse della spesa è allenamento di forza!"
+     }
+    }
+   ],
+   "track": "course",
+   "position": 11,
+   "sources": [
+    "paluch2022",
+    "who2020"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Does walking count for health?",
+      "it": "Camminare conta per la salute?"
+     },
+     "options": [
+      {
+       "en": "Yes, every step adds up",
+       "it": "Sì, ogni passo si somma"
+      },
+      {
+       "en": "No, only sport counts",
+       "it": "No, conta solo lo sport"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Daily movement burns more calories over a week than one workout.",
+      "it": "Il movimento quotidiano consuma più calorie in una settimana di un singolo allenamento."
+     }
+    },
+    {
+     "q": {
+      "en": "An easy way to add steps…",
+      "it": "Un modo facile per aggiungere passi…"
+     },
+     "options": [
+      {
+       "en": "Walk during phone calls",
+       "it": "Camminare durante le telefonate"
+      },
+      {
+       "en": "Sit closer to the TV",
+       "it": "Sedersi più vicino alla TV"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Small habits like walking calls add thousands of steps.",
+      "it": "Piccole abitudini come telefonare camminando aggiungono migliaia di passi."
+     }
+    }
+   ]
+  },
+  {
+   "id": "sleep",
+   "emoji": "😴",
+   "tone": "purple",
+   "title": {
+    "en": "Sleep: why it matters and how to improve it",
+    "it": "Il sonno: perché conta e come migliorarlo"
+   },
+   "subtitle": {
+    "en": "Aim for 7–9 hours a night",
+    "it": "L’obiettivo è 7–9 ore a notte"
+   },
+   "blocks": [
+    {
+     "type": "cards",
+     "cols": 2,
+     "title": {
+      "en": "While you sleep…",
+      "it": "Mentre dormi…"
+     },
+     "items": [
+      {
+       "emoji": "💪",
+       "title": {
+        "en": "Muscles recover",
+        "it": "I muscoli recuperano"
+       },
+       "text": {
+        "en": "Training is the signal; sleep is when you get stronger.",
+        "it": "L’allenamento è il segnale; nel sonno diventi più forte."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🍩",
+       "title": {
+        "en": "Hunger is regulated",
+        "it": "La fame si regola"
+       },
+       "text": {
+        "en": "Poor sleep increases hunger and cravings for sweets.",
+        "it": "Dormire poco aumenta la fame e la voglia di dolci."
+       },
+       "tone": "pink"
+      },
+      {
+       "emoji": "🩸",
+       "title": {
+        "en": "Sugar is managed",
+        "it": "Lo zucchero è gestito"
+       },
+       "text": {
+        "en": "One bad night already reduces insulin sensitivity.",
+        "it": "Già una notte storta riduce la sensibilità all’insulina."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "🧠",
+       "title": {
+        "en": "Memory and mood",
+        "it": "Memoria e umore"
+       },
+       "text": {
+        "en": "The brain sorts memories and “cleans up”.",
+        "it": "Il cervello ordina i ricordi e “fa pulizia”."
+       },
+       "tone": "purple"
+      }
+     ]
+    },
+    {
+     "type": "timeline",
+     "title": {
+      "en": "A day for good sleep",
+      "it": "Una giornata per dormire bene"
+     },
+     "items": [
+      {
+       "emoji": "☀️",
+       "time": {
+        "en": "Morning",
+        "it": "Mattina"
+       },
+       "text": {
+        "en": "10–20 minutes of daylight outside: it sets your body clock.",
+        "it": "10–20 minuti di luce naturale all’aperto: regola l’orologio biologico."
+       }
+      },
+      {
+       "emoji": "☕",
+       "time": {
+        "en": "By 2 pm",
+        "it": "Entro le 14"
+       },
+       "text": {
+        "en": "Last coffee or tea with caffeine.",
+        "it": "Ultimo caffè o tè con caffeina."
+       }
+      },
+      {
+       "emoji": "🍽️",
+       "time": {
+        "en": "2–3 hours before bed",
+        "it": "2–3 ore prima di dormire"
+       },
+       "text": {
+        "en": "Last meal. Avoid sweets, processed foods, heavy fried food and alcohol: they make sleep lighter and more broken.",
+        "it": "Ultimo pasto. Evita dolci, cibi processati, fritti pesanti e alcol: rendono il sonno più leggero e interrotto."
+       }
+      },
+      {
+       "emoji": "📱",
+       "time": {
+        "en": "1 hour before",
+        "it": "1 ora prima"
+       },
+       "text": {
+        "en": "Dim the lights, put the phone away, read or stretch.",
+        "it": "Luci soffuse, telefono lontano, leggi o fai stretching."
+       }
+      },
+      {
+       "emoji": "🛏️",
+       "time": {
+        "en": "Bedtime",
+        "it": "A letto"
+       },
+       "text": {
+        "en": "Cool (17–19 °C), dark and quiet room. Same time every day.",
+        "it": "Stanza fresca (17–19 °C), buia e silenziosa. Stessa ora ogni giorno."
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "💤",
+     "text": {
+      "en": "Naps are fine if short (under 30 minutes) and before 3 pm.",
+      "it": "I sonnellini vanno bene se brevi (meno di 30 minuti) e prima delle 15."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 12,
+   "sources": [
+    "watson2015",
+    "hirshkowitz2015"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Last coffee of the day, ideally before…",
+      "it": "L’ultimo caffè della giornata, idealmente prima delle…"
+     },
+     "options": [
+      {
+       "en": "2 pm",
+       "it": "14"
+      },
+      {
+       "en": "10 pm",
+       "it": "22"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Caffeine works for 6+ hours and makes sleep lighter.",
+      "it": "La caffeina agisce per più di 6 ore e rende il sonno più leggero."
+     }
+    },
+    {
+     "q": {
+      "en": "Poor sleep makes you…",
+      "it": "Dormire male ti fa…"
+     },
+     "options": [
+      {
+       "en": "Hungrier, especially for sweets",
+       "it": "Avere più fame, soprattutto di dolci"
+      },
+      {
+       "en": "Lose fat faster",
+       "it": "Perdere grasso più in fretta"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Short sleep raises hunger hormones and cravings.",
+      "it": "Dormire poco aumenta gli ormoni della fame e le voglie."
+     }
+    }
+   ]
+  },
+  {
+   "id": "small_habits",
+   "emoji": "✅",
+   "tone": "orange",
+   "title": {
+    "en": "10 small habits, big results",
+    "it": "10 piccole abitudini, grandi risultati"
+   },
+   "subtitle": {
+    "en": "Low effort, high impact",
+    "it": "Poco sforzo, tanto effetto"
+   },
+   "blocks": [
+    {
+     "type": "steps",
+     "items": [
+      {
+       "title": {
+        "en": "A glass of water when you wake up",
+        "it": "Un bicchiere d’acqua appena ti svegli"
+       }
+      },
+      {
+       "title": {
+        "en": "Protein at every meal, starting with breakfast",
+        "it": "Proteine a ogni pasto, a partire dalla colazione"
+       }
+      },
+      {
+       "title": {
+        "en": "Half the plate vegetables",
+        "it": "Metà piatto di verdure"
+       }
+      },
+      {
+       "title": {
+        "en": "A 10-minute walk after lunch and dinner",
+        "it": "10 minuti di camminata dopo pranzo e cena"
+       }
+      },
+      {
+       "title": {
+        "en": "Water instead of sugary drinks",
+        "it": "Acqua al posto delle bibite zuccherate"
+       }
+      },
+      {
+       "title": {
+        "en": "Sweets after a meal, not on their own",
+        "it": "I dolci dopo il pasto, non da soli"
+       }
+      },
+      {
+       "title": {
+        "en": "No processed snacks or sugar at night: you’ll sleep better",
+        "it": "Niente snack processati o zuccheri la sera: dormirai meglio"
+       }
+      },
+      {
+       "title": {
+        "en": "Two strength workouts a week",
+        "it": "Due allenamenti di forza a settimana"
+       }
+      },
+      {
+       "title": {
+        "en": "Bed and wake-up at the same time every day",
+        "it": "A letto e sveglia alla stessa ora ogni giorno"
+       }
+      },
+      {
+       "title": {
+        "en": "Weigh yourself 2–3 times a week and watch the trend, not the single day",
+        "it": "Pesati 2–3 volte a settimana e guarda la tendenza, non il singolo giorno"
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🎯",
+     "text": {
+      "en": "Pick ONE habit this week. When it becomes automatic, add the next one.",
+      "it": "Scegli UNA sola abitudine questa settimana. Quando diventa automatica, aggiungi la prossima."
+     }
+    }
+   ],
+   "track": "course",
+   "position": 13,
+   "sources": [
+    "lally2010"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Which calories are easiest to cut?",
+      "it": "Quali calorie sono le più facili da togliere?"
+     },
+     "options": [
+      {
+       "en": "Sugary drinks",
+       "it": "Bevande zuccherate"
+      },
+      {
+       "en": "Vegetables",
+       "it": "Verdure"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Drinks don’t fill you up: swapping them for water saves a lot.",
+      "it": "Le bevande non saziano: sostituirle con acqua fa risparmiare molto."
+     }
+    },
+    {
+     "q": {
+      "en": "Small habits work because…",
+      "it": "Le piccole abitudini funzionano perché…"
+     },
+     "options": [
+      {
+       "en": "They are easy to repeat every day",
+       "it": "Sono facili da ripetere ogni giorno"
+      },
+      {
+       "en": "They burn many calories at once",
+       "it": "Bruciano tante calorie in una volta"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Consistency beats intensity: small things done daily add up.",
+      "it": "La costanza batte l’intensità: piccole cose fatte ogni giorno si sommano."
+     }
+    }
+   ]
+  },
+  {
+   "id": "glycogen",
+   "emoji": "⛽",
+   "tone": "orange",
+   "title": {
+    "en": "What is glycogen?",
+    "it": "Cos’è il glicogeno?"
+   },
+   "subtitle": {
+    "en": "The fuel tank in your muscles and liver",
+    "it": "Il serbatoio di carburante in muscoli e fegato"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Glycogen is how the body stores carbohydrates: long chains of glucose kept in the muscles (about 400 g) and in the liver (about 100 g). Each gram is stored with about 3 g of water.",
+      "it": "Il glicogeno è il modo in cui il corpo conserva i carboidrati: lunghe catene di glucosio nei muscoli (circa 400 g) e nel fegato (circa 100 g). Ogni grammo è legato a circa 3 g di acqua."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 3,
+     "items": [
+      {
+       "emoji": "💪",
+       "title": {
+        "en": "Muscle glycogen",
+        "it": "Glicogeno muscolare"
+       },
+       "text": {
+        "en": "Fuel for the muscle that holds it: sets, sprints, climbs. Low glycogen = weaker, slower sets.",
+        "it": "Carburante per il muscolo che lo contiene: serie, scatti, salite. Poco glicogeno = serie più deboli e lente."
+       },
+       "tone": "orange"
+      },
+      {
+       "emoji": "🫀",
+       "title": {
+        "en": "Liver glycogen",
+        "it": "Glicogeno epatico"
+       },
+       "text": {
+        "en": "Keeps blood sugar steady between meals and overnight, for the brain too.",
+        "it": "Mantiene stabile la glicemia tra i pasti e di notte, anche per il cervello."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "⚖️",
+       "title": {
+        "en": "Water weight",
+        "it": "Peso dell’acqua"
+       },
+       "text": {
+        "en": "Fewer carbs → less glycogen and water: 1–2 kg can disappear in days. It is not fat.",
+        "it": "Meno carboidrati → meno glicogeno e acqua: 1–2 kg possono sparire in pochi giorni. Non è grasso."
+       },
+       "tone": "green"
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "title": {
+      "en": "What it means in practice",
+      "it": "Cosa significa in pratica"
+     },
+     "items": [
+      {
+       "title": {
+        "en": "Lifting runs on glycogen",
+        "it": "Allenarsi con i pesi usa il glicogeno"
+       },
+       "text": {
+        "en": "A meal with carbs 2–4 hours before training helps you perform.",
+        "it": "Un pasto con carboidrati 2–4 ore prima dell’allenamento aiuta la prestazione."
+       }
+      },
+      {
+       "title": {
+        "en": "Refill after training",
+        "it": "Ricarica dopo l’allenamento"
+       },
+       "text": {
+        "en": "Carbs + protein after a workout rebuild glycogen and muscle.",
+        "it": "Carboidrati + proteine dopo l’allenamento ricostruiscono glicogeno e muscolo."
+       }
+      },
+      {
+       "title": {
+        "en": "Read the scale wisely",
+        "it": "Leggi la bilancia con giudizio"
+       },
+       "text": {
+        "en": "A salty or carb-rich dinner can add 1 kg of water overnight: look at the trend.",
+        "it": "Una cena salata o ricca di carboidrati può aggiungere 1 kg d’acqua in una notte: guarda la tendenza."
+       }
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🧠",
+     "text": {
+      "en": "Low-carb diets make the first week look great on the scale: most of it is glycogen water coming back later.",
+      "it": "Le diete povere di carboidrati fanno sembrare ottima la prima settimana sulla bilancia: è soprattutto acqua del glicogeno, che poi ritorna."
+     }
+    }
+   ],
+   "track": "expert",
+   "position": 0,
+   "sources": [
+    "hearris2018",
+    "burke2011"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Where is glycogen stored?",
+      "it": "Dove si trova il glicogeno?"
+     },
+     "options": [
+      {
+       "en": "In muscles and liver",
+       "it": "Nei muscoli e nel fegato"
+      },
+      {
+       "en": "In fat cells",
+       "it": "Nelle cellule di grasso"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "About 400 g in muscles and 100 g in the liver.",
+      "it": "Circa 400 g nei muscoli e 100 g nel fegato."
+     }
+    },
+    {
+     "q": {
+      "en": "Losing 1.5 kg in the first low-carb week is mostly…",
+      "it": "Perdere 1,5 kg nella prima settimana low-carb è soprattutto…"
+     },
+     "options": [
+      {
+       "en": "Glycogen and water",
+       "it": "Glicogeno e acqua"
+      },
+      {
+       "en": "Fat",
+       "it": "Grasso"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Each gram of glycogen holds about 3 g of water.",
+      "it": "Ogni grammo di glicogeno trattiene circa 3 g di acqua."
+     }
+    }
+   ]
+  },
+  {
+   "id": "meal_timing",
+   "emoji": "⏰",
+   "tone": "blue",
+   "title": {
+    "en": "What is meal timing?",
+    "it": "Cos’è il meal timing?"
+   },
+   "subtitle": {
+    "en": "When you eat matters less than what and how much, but it helps",
+    "it": "Quando mangi conta meno di cosa e quanto, ma aiuta"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Meal timing means planning when you eat, mainly around training and sleep. The order of importance: 1) total calories, 2) total protein, 3) food quality, 4) timing.",
+      "it": "Meal timing significa pianificare quando mangi, soprattutto intorno ad allenamento e sonno. L’ordine di importanza: 1) calorie totali, 2) proteine totali, 3) qualità del cibo, 4) orari."
+     }
+    },
+    {
+     "type": "timeline",
+     "title": {
+      "en": "Around a workout",
+      "it": "Intorno all’allenamento"
+     },
+     "items": [
+      {
+       "emoji": "🍽️",
+       "time": {
+        "en": "2–4 h before",
+        "it": "2–4 ore prima"
+       },
+       "text": {
+        "en": "A normal meal with carbs and protein.",
+        "it": "Un pasto normale con carboidrati e proteine."
+       }
+      },
+      {
+       "emoji": "🍌",
+       "time": {
+        "en": "30–60 min before",
+        "it": "30–60 min prima"
+       },
+       "text": {
+        "en": "Only if hungry: something light, like a banana or yogurt.",
+        "it": "Solo se hai fame: qualcosa di leggero, come una banana o uno yogurt."
+       }
+      },
+      {
+       "emoji": "🏋️",
+       "time": {
+        "en": "During",
+        "it": "Durante"
+       },
+       "text": {
+        "en": "Water. Sports drinks only for sessions longer than ~90 minutes.",
+        "it": "Acqua. Bevande sportive solo per sedute oltre i ~90 minuti."
+       }
+      },
+      {
+       "emoji": "🥚",
+       "time": {
+        "en": "Within ~2 h after",
+        "it": "Entro ~2 ore dopo"
+       },
+       "text": {
+        "en": "A meal with 25–40 g of protein and some carbs.",
+        "it": "Un pasto con 25–40 g di proteine e un po’ di carboidrati."
+       }
+      }
+     ]
+    },
+    {
+     "type": "dodont",
+     "dos": [
+      {
+       "en": "Spread protein over 3–4 meals",
+       "it": "Distribuisci le proteine in 3–4 pasti"
+      },
+      {
+       "en": "Keep regular meal times: hunger becomes predictable",
+       "it": "Tieni orari regolari: la fame diventa prevedibile"
+      },
+      {
+       "en": "Finish big meals 2–3 h before bed",
+       "it": "Finisci i pasti abbondanti 2–3 ore prima di dormire"
+      }
+     ],
+     "donts": [
+      {
+       "en": "Stress about a 30-minute \"anabolic window\"",
+       "it": "Preoccuparti di una “finestra anabolica” di 30 minuti"
+      },
+      {
+       "en": "Skip meals and then binge in the evening",
+       "it": "Saltare i pasti e poi abbuffarti la sera"
+      },
+      {
+       "en": "Train hard on an empty stomach if it makes you dizzy",
+       "it": "Allenarti forte a digiuno se ti gira la testa"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🧩",
+     "text": {
+      "en": "Intermittent fasting works only if it helps you eat less overall: it has no magic of its own.",
+      "it": "Il digiuno intermittente funziona solo se ti aiuta a mangiare meno in totale: non ha magie proprie."
+     }
+    }
+   ],
+   "track": "expert",
+   "position": 1,
+   "sources": [
+    "kerksick2017",
+    "schoenfeld2013timing"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "What matters most for results?",
+      "it": "Cosa conta di più per i risultati?"
+     },
+     "options": [
+      {
+       "en": "Total calories and protein",
+       "it": "Calorie e proteine totali"
+      },
+      {
+       "en": "Eating within 30 minutes of training",
+       "it": "Mangiare entro 30 minuti dall’allenamento"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Timing is fourth after calories, protein and food quality.",
+      "it": "Gli orari vengono quarti, dopo calorie, proteine e qualità del cibo."
+     }
+    },
+    {
+     "q": {
+      "en": "Protein is best…",
+      "it": "Le proteine è meglio…"
+     },
+     "options": [
+      {
+       "en": "Spread over 3–4 meals",
+       "it": "Distribuirle in 3–4 pasti"
+      },
+      {
+       "en": "All at dinner",
+       "it": "Tutte a cena"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Each meal can switch on muscle building.",
+      "it": "Ogni pasto può accendere la costruzione muscolare."
+     }
+    }
+   ]
+  },
+  {
+   "id": "creatine",
+   "emoji": "🧪",
+   "tone": "purple",
+   "title": {
+    "en": "What does creatine do?",
+    "it": "A cosa serve la creatina?"
+   },
+   "subtitle": {
+    "en": "The most studied supplement for strength",
+    "it": "L’integratore più studiato per la forza"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Creatine is a natural substance in meat and fish that muscles use for short, intense efforts (like a heavy set). As a supplement (creatine monohydrate), it fills the muscles’ “quick energy” stores.",
+      "it": "La creatina è una sostanza naturale presente in carne e pesce, che i muscoli usano per sforzi brevi e intensi (come una serie pesante). Come integratore (creatina monoidrato) riempie le riserve di “energia rapida” dei muscoli."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "📈",
+       "title": {
+        "en": "What it does",
+        "it": "Cosa fa"
+       },
+       "text": {
+        "en": "1–2 more reps per set, a bit more strength and muscle over months. Studies also show benefits in older adults.",
+        "it": "1–2 ripetizioni in più per serie, un po’ più di forza e muscolo nei mesi. Gli studi mostrano benefici anche negli anziani."
+       },
+       "tone": "purple"
+      },
+      {
+       "emoji": "🥄",
+       "title": {
+        "en": "How to take it",
+        "it": "Come si prende"
+       },
+       "text": {
+        "en": "3–5 g a day, any time, every day. No loading phase or cycling needed.",
+        "it": "3–5 g al giorno, a qualsiasi ora, tutti i giorni. Non servono fasi di carico né pause."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "💧",
+       "title": {
+        "en": "Water in the muscle",
+        "it": "Acqua nel muscolo"
+       },
+       "text": {
+        "en": "Weight may go up 0.5–1 kg in the first weeks: water inside the muscle, not fat.",
+        "it": "Il peso può salire di 0,5–1 kg nelle prime settimane: acqua dentro il muscolo, non grasso."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "🩺",
+       "title": {
+        "en": "Ask your doctor",
+        "it": "Chiedi al medico"
+       },
+       "text": {
+        "en": "Safe for healthy people. With kidney problems, talk to your doctor first.",
+        "it": "Sicura per le persone sane. Con problemi ai reni, parlane prima con il medico."
+       },
+       "tone": "pink"
+      }
+     ]
+    },
+    {
+     "type": "dodont",
+     "dos": [
+      {
+       "en": "Choose plain creatine monohydrate",
+       "it": "Scegli creatina monoidrato semplice"
+      },
+      {
+       "en": "Take it daily, also on rest days",
+       "it": "Prendila ogni giorno, anche a riposo"
+      },
+      {
+       "en": "Keep training and eating protein: it amplifies, it doesn’t replace",
+       "it": "Continua ad allenarti e a mangiare proteine: amplifica, non sostituisce"
+      }
+     ],
+     "donts": [
+      {
+       "en": "Pay more for \"advanced\" forms",
+       "it": "Pagare di più per forme “avanzate”"
+      },
+      {
+       "en": "Expect results without training",
+       "it": "Aspettarti risultati senza allenarti"
+      },
+      {
+       "en": "Exceed the dose: more is not better",
+       "it": "Superare la dose: di più non è meglio"
+      }
+     ]
+    }
+   ],
+   "track": "expert",
+   "position": 2,
+   "sources": [
+    "kreider2017",
+    "chilibeck2017"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Recommended creatine dose?",
+      "it": "La dose consigliata di creatina?"
+     },
+     "options": [
+      {
+       "en": "3–5 g every day",
+       "it": "3–5 g ogni giorno"
+      },
+      {
+       "en": "20 g only on training days",
+       "it": "20 g solo nei giorni di allenamento"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "3–5 g daily, every day, no loading needed.",
+      "it": "3–5 g al giorno, tutti i giorni, senza fase di carico."
+     }
+    },
+    {
+     "q": {
+      "en": "The first-weeks weight gain with creatine is…",
+      "it": "L’aumento di peso delle prime settimane con la creatina è…"
+     },
+     "options": [
+      {
+       "en": "Water in the muscles",
+       "it": "Acqua nei muscoli"
+      },
+      {
+       "en": "Fat",
+       "it": "Grasso"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Creatine pulls water into the muscle cells.",
+      "it": "La creatina richiama acqua nelle cellule muscolari."
+     }
+    }
+   ]
+  },
+  {
+   "id": "progressive_overload",
+   "emoji": "📶",
+   "tone": "green",
+   "title": {
+    "en": "Progressive overload",
+    "it": "Il sovraccarico progressivo"
+   },
+   "subtitle": {
+    "en": "Why the weights in Forza! go up little by little",
+    "it": "Perché i pesi in Forza! salgono poco alla volta"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Muscles grow when they are asked to do a bit more than they are used to. Doing exactly the same workout forever stops working: you need to progress, slowly and safely.",
+      "it": "I muscoli crescono quando gli si chiede un po’ più di quanto sono abituati. Fare per sempre lo stesso identico allenamento smette di funzionare: bisogna progredire, piano e in sicurezza."
+     }
+    },
+    {
+     "type": "steps",
+     "title": {
+      "en": "Double progression (what Forza! does)",
+      "it": "Doppia progressione (quello che fa Forza!)"
+     },
+     "items": [
+      {
+       "title": {
+        "en": "Pick a rep range",
+        "it": "Scegli un intervallo di ripetizioni"
+       },
+       "text": {
+        "en": "For example 8–12.",
+        "it": "Per esempio 8–12."
+       }
+      },
+      {
+       "title": {
+        "en": "Add reps first",
+        "it": "Prima aggiungi ripetizioni"
+       },
+       "text": {
+        "en": "Same weight, one more rep each week, until every set reaches 12.",
+        "it": "Stesso peso, una ripetizione in più ogni settimana, finché ogni serie arriva a 12."
+       }
+      },
+      {
+       "title": {
+        "en": "Then add weight",
+        "it": "Poi aggiungi peso"
+       },
+       "text": {
+        "en": "Go up 2–2.5 kg and start again from 8.",
+        "it": "Sali di 2–2,5 kg e riparti da 8."
+       }
+      }
+     ]
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "🎯",
+       "title": {
+        "en": "Reps in reserve (RIR)",
+        "it": "Ripetizioni in riserva (RIR)"
+       },
+       "text": {
+        "en": "How many more reps you could do. Stop most sets with 1–3 in reserve: hard but safe.",
+        "it": "Quante ripetizioni potresti ancora fare. Ferma quasi tutte le serie con 1–3 in riserva: impegnativo ma sicuro."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "📦",
+       "title": {
+        "en": "Volume",
+        "it": "Volume"
+       },
+       "text": {
+        "en": "About 10 hard sets per muscle per week work well for most people.",
+        "it": "Circa 10 serie impegnative per muscolo a settimana funzionano bene per la maggior parte delle persone."
+       },
+       "tone": "blue"
+      }
+     ]
+    },
+    {
+     "type": "callout",
+     "emoji": "🐢",
+     "text": {
+      "en": "Slow progress is still progress: +2.5 kg a month is +30 kg a year.",
+      "it": "Un progresso lento è comunque progresso: +2,5 kg al mese sono +30 kg in un anno."
+     }
+    }
+   ],
+   "track": "expert",
+   "position": 3,
+   "sources": [
+    "acsm2009",
+    "schoenfeld2017volume"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "In double progression, you first add…",
+      "it": "Nella doppia progressione prima aggiungi…"
+     },
+     "options": [
+      {
+       "en": "Reps",
+       "it": "Ripetizioni"
+      },
+      {
+       "en": "Weight",
+       "it": "Peso"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Reps up to the top of the range, then a little weight.",
+      "it": "Ripetizioni fino al massimo dell’intervallo, poi un po’ di peso."
+     }
+    },
+    {
+     "q": {
+      "en": "RIR 2 means…",
+      "it": "RIR 2 significa…"
+     },
+     "options": [
+      {
+       "en": "You could do 2 more reps",
+       "it": "Potresti fare ancora 2 ripetizioni"
+      },
+      {
+       "en": "Rest 2 minutes",
+       "it": "Riposa 2 minuti"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Reps in reserve: how many more you could have done.",
+      "it": "Ripetizioni in riserva: quante ne avresti ancora fatte."
+     }
+    }
+   ]
+  },
+  {
+   "id": "protein_timing",
+   "emoji": "🥚",
+   "tone": "pink",
+   "title": {
+    "en": "Protein: how much per meal?",
+    "it": "Proteine: quante per pasto?"
+   },
+   "subtitle": {
+    "en": "Leucine, distribution and the evening meal",
+    "it": "Leucina, distribuzione e il pasto serale"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Muscles build best when each meal brings enough protein to \"switch on\" muscle building: about 0.4 g per kg of body weight, which contains roughly 2.5–3 g of leucine, the amino acid that acts as the switch.",
+      "it": "I muscoli si costruiscono meglio quando ogni pasto porta abbastanza proteine da “accendere” la sintesi muscolare: circa 0,4 g per kg di peso, che contengono circa 2,5–3 g di leucina, l’aminoacido che fa da interruttore."
+     }
+    },
+    {
+     "type": "bars",
+     "title": {
+      "en": "Protein in a typical day (g)",
+      "it": "Proteine in una giornata tipo (g)"
+     },
+     "unit": "g",
+     "items": [
+      {
+       "label": {
+        "en": "Usual breakfast",
+        "it": "Colazione abituale"
+       },
+       "value": 8
+      },
+      {
+       "label": {
+        "en": "Better breakfast",
+        "it": "Colazione migliore"
+       },
+       "value": 30
+      },
+      {
+       "label": {
+        "en": "Lunch",
+        "it": "Pranzo"
+       },
+       "value": 30
+      },
+      {
+       "label": {
+        "en": "Dinner",
+        "it": "Cena"
+       },
+       "value": 35
+      }
+     ]
+    },
+    {
+     "type": "cards",
+     "cols": 3,
+     "items": [
+      {
+       "emoji": "🧓",
+       "title": {
+        "en": "After 60",
+        "it": "Dopo i 60 anni"
+       },
+       "text": {
+        "en": "Muscles respond less: aim higher, about 30–40 g per meal.",
+        "it": "I muscoli rispondono meno: punta più in alto, circa 30–40 g per pasto."
+       },
+       "tone": "pink"
+      },
+      {
+       "emoji": "🌱",
+       "title": {
+        "en": "Plant protein",
+        "it": "Proteine vegetali"
+       },
+       "text": {
+        "en": "Has less leucine: eat a bit more, and mix legumes with grains.",
+        "it": "Hanno meno leucina: mangiane un po’ di più e abbina legumi e cereali."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "🌙",
+       "title": {
+        "en": "Before bed",
+        "it": "Prima di dormire"
+       },
+       "text": {
+        "en": "A yogurt or milk (casein) feeds the muscles overnight.",
+        "it": "Uno yogurt o del latte (caseina) nutrono i muscoli durante la notte."
+       },
+       "tone": "blue"
+      }
+     ]
+    }
+   ],
+   "track": "expert",
+   "position": 4,
+   "sources": [
+    "areta2013",
+    "mamerow2014",
+    "schoenfeld2018meal"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "Protein per meal to switch on muscle building?",
+      "it": "Proteine per pasto per accendere la costruzione muscolare?"
+     },
+     "options": [
+      {
+       "en": "About 0.4 g per kg of body weight",
+       "it": "Circa 0,4 g per kg di peso"
+      },
+      {
+       "en": "5 g is enough",
+       "it": "Bastano 5 g"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "About 25–40 g for most adults, more after 60.",
+      "it": "Circa 25–40 g per la maggior parte degli adulti, di più dopo i 60."
+     }
+    },
+    {
+     "q": {
+      "en": "Which amino acid acts as the \"switch\"?",
+      "it": "Quale aminoacido fa da “interruttore”?"
+     },
+     "options": [
+      {
+       "en": "Leucine",
+       "it": "Leucina"
+      },
+      {
+       "en": "Glucose",
+       "it": "Glucosio"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Leucine signals the muscle to start building.",
+      "it": "La leucina segnala al muscolo di iniziare a costruire."
+     }
+    }
+   ]
+  },
+  {
+   "id": "recovery",
+   "emoji": "🛌",
+   "tone": "blue",
+   "title": {
+    "en": "Recovery, sleep and deload weeks",
+    "it": "Recupero, sonno e settimane di scarico"
+   },
+   "subtitle": {
+    "en": "Muscles grow between workouts, not during",
+    "it": "I muscoli crescono tra un allenamento e l’altro, non durante"
+   },
+   "blocks": [
+    {
+     "type": "intro",
+     "text": {
+      "en": "Training is the signal; recovery is when the body answers. Without enough rest, sleep and food, the signal is wasted and the risk of injury goes up.",
+      "it": "L’allenamento è il segnale; il recupero è quando il corpo risponde. Senza abbastanza riposo, sonno e cibo il segnale va sprecato e il rischio di infortuni sale."
+     }
+    },
+    {
+     "type": "cards",
+     "cols": 2,
+     "items": [
+      {
+       "emoji": "😴",
+       "title": {
+        "en": "7–9 hours of sleep",
+        "it": "7–9 ore di sonno"
+       },
+       "text": {
+        "en": "Deep sleep is when growth hormone peaks and muscles repair.",
+        "it": "Nel sonno profondo l’ormone della crescita è al massimo e i muscoli si riparano."
+       },
+       "tone": "blue"
+      },
+      {
+       "emoji": "📅",
+       "title": {
+        "en": "48 h per muscle",
+        "it": "48 ore per muscolo"
+       },
+       "text": {
+        "en": "Train the same muscle again after about two days.",
+        "it": "Allena lo stesso muscolo dopo circa due giorni."
+       },
+       "tone": "green"
+      },
+      {
+       "emoji": "📉",
+       "title": {
+        "en": "Deload week",
+        "it": "Settimana di scarico"
+       },
+       "text": {
+        "en": "Every 6–10 weeks, halve the sets for a week: joints and motivation recover.",
+        "it": "Ogni 6–10 settimane dimezza le serie per una settimana: articolazioni e motivazione si ricaricano."
+       },
+       "tone": "yellow"
+      },
+      {
+       "emoji": "🚶",
+       "title": {
+        "en": "Active rest",
+        "it": "Riposo attivo"
+       },
+       "text": {
+        "en": "Walking on rest days speeds up recovery more than the sofa.",
+        "it": "Camminare nei giorni di riposo accelera il recupero più del divano."
+       },
+       "tone": "orange"
+      }
+     ]
+    },
+    {
+     "type": "dodont",
+     "dos": [
+      {
+       "en": "Expect some soreness after new exercises",
+       "it": "Aspettarti un po’ di indolenzimento dopo esercizi nuovi"
+      },
+      {
+       "en": "Take an extra day off when you feel run down",
+       "it": "Prenderti un giorno in più quando ti manca l’energia"
+      }
+     ],
+     "donts": [
+      {
+       "en": "Train through sharp or joint pain",
+       "it": "Allenarti con un dolore acuto o alle articolazioni"
+      },
+      {
+       "en": "Cut sleep to fit training in",
+       "it": "Togliere ore di sonno per allenarti"
+      }
+     ]
+    }
+   ],
+   "track": "expert",
+   "position": 5,
+   "sources": [
+    "kellmann2018",
+    "watson2015"
+   ],
+   "quiz": [
+    {
+     "q": {
+      "en": "When do muscles grow?",
+      "it": "Quando crescono i muscoli?"
+     },
+     "options": [
+      {
+       "en": "During recovery, between workouts",
+       "it": "Durante il recupero, tra un allenamento e l’altro"
+      },
+      {
+       "en": "During the workout",
+       "it": "Durante l’allenamento"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Training is the signal; rest, sleep and food build the muscle.",
+      "it": "L’allenamento è il segnale; riposo, sonno e cibo costruiscono il muscolo."
+     }
+    },
+    {
+     "q": {
+      "en": "A deload week means…",
+      "it": "Una settimana di scarico significa…"
+     },
+     "options": [
+      {
+       "en": "Halving the sets for a week",
+       "it": "Dimezzare le serie per una settimana"
+      },
+      {
+       "en": "Stopping for a month",
+       "it": "Fermarsi per un mese"
+      }
+     ],
+     "answer": 0,
+     "why": {
+      "en": "Every 6–10 weeks, lighter training lets joints and motivation recover.",
+      "it": "Ogni 6–10 settimane un allenamento più leggero fa recuperare articolazioni e motivazione."
+     }
+    }
+   ]
+  }
+ ],
+ "tips": [
+  {
+   "id": "tip1",
+   "topic": "protein",
+   "text": {
+    "en": "Eat enough protein at breakfast: eggs, yogurt or milk keep you full and give steady energy all morning.",
+    "it": "Proteine a colazione: uova, yogurt o latte ti saziano e danno energia costante per tutta la mattina."
+   }
+  },
+  {
+   "id": "tip2",
+   "topic": "sleep",
+   "text": {
+    "en": "Avoid sweets and processed snacks in the evening: they can make your sleep lighter and more broken.",
+    "it": "Evita dolci e snack confezionati la sera: possono rendere il sonno più leggero e interrotto."
+   }
+  },
+  {
+   "id": "tip3",
+   "topic": "insulin",
+   "text": {
+    "en": "A 10-minute walk after a meal helps your muscles use the sugar from the food.",
+    "it": "Una passeggiata di 10 minuti dopo il pasto aiuta i muscoli a usare lo zucchero del cibo."
+   }
+  },
+  {
+   "id": "tip4",
+   "topic": "plate",
+   "text": {
+    "en": "Fill half of your plate with vegetables: more volume, fewer calories, more fibre.",
+    "it": "Riempi metà piatto di verdure: più volume, meno calorie, più fibre."
+   }
+  },
+  {
+   "id": "tip5",
+   "topic": "why_strength",
+   "text": {
+    "en": "Muscles are like a savings account for old age: every workout is a deposit.",
+    "it": "I muscoli sono come un conto di risparmio per la vecchiaia: ogni allenamento è un versamento."
+   }
+  },
+  {
+   "id": "tip6",
+   "topic": "daily_activity",
+   "text": {
+    "en": "During TV ad breaks, stand up and walk around the house. It adds up!",
+    "it": "Durante la pubblicità in TV alzati e fai un giro per casa. Si somma tutto!"
+   }
+  },
+  {
+   "id": "tip7",
+   "topic": "fiber",
+   "text": {
+    "en": "Add a spoon of legumes (beans, chickpeas, lentils) to your salad or soup: protein and fibre together.",
+    "it": "Aggiungi un cucchiaio di legumi (fagioli, ceci, lenticchie) a insalate o zuppe: proteine e fibre insieme."
+   }
+  },
+  {
+   "id": "tip8",
+   "topic": "macros",
+   "text": {
+    "en": "No food is forbidden. What matters is how much and how often.",
+    "it": "Nessun cibo è vietato. Conta quanto e quanto spesso."
+   }
+  },
+  {
+   "id": "tip9",
+   "topic": "sleep",
+   "text": {
+    "en": "Coffee keeps working for 6+ hours: have the last one before 2 pm for better sleep.",
+    "it": "Il caffè agisce per più di 6 ore: prendi l'ultimo prima delle 14 per dormire meglio."
+   }
+  },
+  {
+   "id": "tip10",
+   "topic": "workout_food",
+   "text": {
+    "en": "After training, have a meal with protein within a couple of hours to help your muscles recover.",
+    "it": "Dopo l'allenamento fai un pasto con proteine entro un paio d'ore per aiutare il recupero."
+   }
+  },
+  {
+   "id": "tip11",
+   "topic": "small_habits",
+   "text": {
+    "en": "Drink a glass of water as soon as you wake up.",
+    "it": "Bevi un bicchiere d'acqua appena ti svegli."
+   }
+  },
+  {
+   "id": "tip12",
+   "topic": "insulin",
+   "text": {
+    "en": "Eat vegetables and protein first, carbs last: your blood sugar rises more gently.",
+    "it": "Mangia prima verdure e proteine, i carboidrati alla fine: la glicemia sale più dolcemente."
+   }
+  },
+  {
+   "id": "tip13",
+   "topic": "food_sources",
+   "text": {
+    "en": "Greek yogurt has about twice the protein of regular yogurt.",
+    "it": "Lo yogurt greco ha circa il doppio delle proteine dello yogurt normale."
+   }
+  },
+  {
+   "id": "tip14",
+   "topic": "why_strength",
+   "text": {
+    "en": "Strong legs mean safer stairs and fewer falls. Squats are your best friend.",
+    "it": "Gambe forti significano scale più sicure e meno cadute. Lo squat è il tuo migliore amico."
+   }
+  },
+  {
+   "id": "tip15",
+   "topic": "small_habits",
+   "text": {
+    "en": "Sugary drinks are the easiest calories to cut: switch to water, sparkling water or tea.",
+    "it": "Le bevande zuccherate sono le calorie più facili da togliere: passa ad acqua, acqua frizzante o tè."
+   }
+  },
+  {
+   "id": "tip16",
+   "topic": "daily_activity",
+   "text": {
+    "en": "Take the stairs for one or two floors instead of the lift.",
+    "it": "Fai uno o due piani a piedi invece di prendere l'ascensore."
+   }
+  },
+  {
+   "id": "tip17",
+   "topic": "meals",
+   "text": {
+    "en": "Cook once, eat twice: a pot of lentil soup or chicken and vegetables lasts for two days.",
+    "it": "Cucina una volta, mangia due: una pentola di zuppa di lenticchie o pollo e verdure dura due giorni."
+   }
+  },
+  {
+   "id": "tip18",
+   "topic": "sleep",
+   "text": {
+    "en": "Go to bed and wake up at the same time, even on Sundays.",
+    "it": "Vai a letto e alzati alla stessa ora, anche la domenica."
+   }
+  },
+  {
+   "id": "tip19",
+   "topic": "protein",
+   "text": {
+    "en": "Spread protein across the day: about a palm-sized portion at every meal.",
+    "it": "Distribuisci le proteine nella giornata: una porzione grande come il palmo a ogni pasto."
+   }
+  },
+  {
+   "id": "tip20",
+   "topic": "fiber",
+   "text": {
+    "en": "Choose wholegrain bread and pasta: same taste after a week, much more fibre.",
+    "it": "Scegli pane e pasta integrali: dopo una settimana il gusto ti sembrerà lo stesso, con molte più fibre."
+   }
+  },
+  {
+   "id": "tip21",
+   "topic": "why_strength",
+   "text": {
+    "en": "Progress is slow but real: a little more weight or one more rep is a win.",
+    "it": "I progressi sono lenti ma reali: un po' di peso in più o una ripetizione in più è una vittoria."
+   }
+  },
+  {
+   "id": "tip22",
+   "topic": "macros",
+   "text": {
+    "en": "Olive oil is healthy but dense: one tablespoon is about 90 kcal. Measure it with a spoon.",
+    "it": "L'olio d'oliva è sano ma calorico: un cucchiaio sono circa 90 kcal. Misuralo con il cucchiaio."
+   }
+  },
+  {
+   "id": "tip23",
+   "topic": "daily_activity",
+   "text": {
+    "en": "Walk while you are on the phone.",
+    "it": "Cammina mentre sei al telefono."
+   }
+  },
+  {
+   "id": "tip24",
+   "topic": "workout_food",
+   "text": {
+    "en": "Before training, a banana or a slice of bread with jam gives you quick energy.",
+    "it": "Prima dell'allenamento una banana o una fetta di pane con marmellata ti danno energia rapida."
+   }
+  }
+ ],
+ "sources": [
+  {
+   "id": "who2020",
+   "authors": "Bull FC et al.",
+   "year": 2020,
+   "title": "World Health Organization 2020 guidelines on physical activity and sedentary behaviour",
+   "journal": "British Journal of Sports Medicine 54:1451–1462",
+   "url": "https://doi.org/10.1136/bjsports-2020-102955"
+  },
+  {
+   "id": "fragala2019",
+   "authors": "Fragala MS et al.",
+   "year": 2019,
+   "title": "Resistance Training for Older Adults: Position Statement From the National Strength and Conditioning Association",
+   "journal": "Journal of Strength and Conditioning Research 33(8):2019–2052",
+   "url": "https://doi.org/10.1519/JSC.0000000000003230"
+  },
+  {
+   "id": "peterson2010",
+   "authors": "Peterson MD et al.",
+   "year": 2010,
+   "title": "Resistance exercise for muscular strength in older adults: a meta-analysis",
+   "journal": "Ageing Research Reviews 9(3):226–237",
+   "url": "https://doi.org/10.1016/j.arr.2010.03.004"
+  },
+  {
+   "id": "acsm2009",
+   "authors": "American College of Sports Medicine",
+   "year": 2009,
+   "title": "Progression Models in Resistance Training for Healthy Adults (position stand)",
+   "journal": "Medicine & Science in Sports & Exercise 41(3):687–708",
+   "url": "https://doi.org/10.1249/MSS.0b013e3181915670"
+  },
+  {
+   "id": "schoenfeld2017load",
+   "authors": "Schoenfeld BJ et al.",
+   "year": 2017,
+   "title": "Strength and Hypertrophy Adaptations Between Low- vs. High-Load Resistance Training: A Systematic Review and Meta-analysis",
+   "journal": "Journal of Strength and Conditioning Research 31(12):3508–3523",
+   "url": "https://doi.org/10.1519/JSC.0000000000002200"
+  },
+  {
+   "id": "schoenfeld2017volume",
+   "authors": "Schoenfeld BJ et al.",
+   "year": 2017,
+   "title": "Dose-response relationship between weekly resistance training volume and increases in muscle mass: a systematic review and meta-analysis",
+   "journal": "Journal of Sports Sciences 35(11):1073–1082",
+   "url": "https://doi.org/10.1080/02640414.2016.1210197"
+  },
+  {
+   "id": "schoenfeld2016frequency",
+   "authors": "Schoenfeld BJ et al.",
+   "year": 2016,
+   "title": "Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy: A Systematic Review and Meta-Analysis",
+   "journal": "Sports Medicine 46(11):1689–1697",
+   "url": "https://doi.org/10.1007/s40279-016-0543-8"
+  },
+  {
+   "id": "grgic2022",
+   "authors": "Grgic J et al.",
+   "year": 2022,
+   "title": "Effects of resistance training performed to repetition failure or non-failure on muscular strength and hypertrophy: a systematic review and meta-analysis",
+   "journal": "Journal of Sport and Health Science 11(2):202–211",
+   "url": "https://doi.org/10.1016/j.jshs.2021.01.007"
+  },
+  {
+   "id": "zourdos2016",
+   "authors": "Zourdos MC et al.",
+   "year": 2016,
+   "title": "Novel Resistance Training–Specific Rating of Perceived Exertion Scale Measuring Repetitions in Reserve",
+   "journal": "Journal of Strength and Conditioning Research 30(1):267–275",
+   "url": "https://doi.org/10.1519/JSC.0000000000001049"
+  },
+  {
+   "id": "fradkin2010",
+   "authors": "Fradkin AJ et al.",
+   "year": 2010,
+   "title": "Effects of Warming-up on Physical Performance: A Systematic Review With Meta-analysis",
+   "journal": "Journal of Strength and Conditioning Research 24(1):140–148",
+   "url": "https://doi.org/10.1519/JSC.0b013e3181c643a0"
+  },
+  {
+   "id": "grgic2018",
+   "authors": "Grgic J et al.",
+   "year": 2018,
+   "title": "Effects of Rest Interval Duration in Resistance Training on Measures of Muscular Strength: A Systematic Review",
+   "journal": "Sports Medicine 48(1):137–151",
+   "url": "https://doi.org/10.1007/s40279-017-0788-x"
+  },
+  {
+   "id": "weakley2017",
+   "authors": "Weakley JJS et al.",
+   "year": 2017,
+   "title": "The effects of traditional, superset, and tri-set resistance training structures on perceived intensity and physiological responses",
+   "journal": "European Journal of Applied Physiology 117(9):1877–1889",
+   "url": "https://doi.org/10.1007/s00421-017-3680-3"
+  },
+  {
+   "id": "morton2018",
+   "authors": "Morton RW et al.",
+   "year": 2018,
+   "title": "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults",
+   "journal": "British Journal of Sports Medicine 52(6):376–384",
+   "url": "https://doi.org/10.1136/bjsports-2017-097608"
+  },
+  {
+   "id": "cruzjentoft2019",
+   "authors": "Cruz-Jentoft AJ et al.",
+   "year": 2019,
+   "title": "Sarcopenia: revised European consensus on definition and diagnosis",
+   "journal": "Age and Ageing 48(1):16–31",
+   "url": "https://doi.org/10.1093/ageing/afy169"
+  },
+  {
+   "id": "trumbo2002",
+   "authors": "Trumbo P et al.",
+   "year": 2002,
+   "title": "Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol, Protein and Amino Acids",
+   "journal": "Journal of the American Dietetic Association 102(11):1621–1630",
+   "url": "https://doi.org/10.1016/S0002-8223(02)90346-9"
+  },
+  {
+   "id": "willett2019",
+   "authors": "Willett W et al.",
+   "year": 2019,
+   "title": "Food in the Anthropocene: the EAT–Lancet Commission on healthy diets from sustainable food systems",
+   "journal": "The Lancet 393(10170):447–492",
+   "url": "https://doi.org/10.1016/S0140-6736(18)31788-4"
+  },
+  {
+   "id": "estruch2018",
+   "authors": "Estruch R et al.",
+   "year": 2018,
+   "title": "Primary Prevention of Cardiovascular Disease with a Mediterranean Diet Supplemented with Extra-Virgin Olive Oil or Nuts",
+   "journal": "New England Journal of Medicine 378(25):e34",
+   "url": "https://doi.org/10.1056/NEJMoa1800389"
+  },
+  {
+   "id": "bauer2013",
+   "authors": "Bauer J et al.",
+   "year": 2013,
+   "title": "Evidence-based recommendations for optimal dietary protein intake in older people: a position paper from the PROT-AGE Study Group",
+   "journal": "Journal of the American Medical Directors Association 14(8):542–559",
+   "url": "https://doi.org/10.1016/j.jamda.2013.05.021"
+  },
+  {
+   "id": "leidy2015",
+   "authors": "Leidy HJ et al.",
+   "year": 2015,
+   "title": "The role of protein in weight loss and maintenance",
+   "journal": "American Journal of Clinical Nutrition 101(6):1320S–1329S",
+   "url": "https://doi.org/10.3945/ajcn.114.084038"
+  },
+  {
+   "id": "reynolds2019",
+   "authors": "Reynolds A et al.",
+   "year": 2019,
+   "title": "Carbohydrate quality and human health: a series of systematic reviews and meta-analyses",
+   "journal": "The Lancet 393(10170):434–445",
+   "url": "https://doi.org/10.1016/S0140-6736(18)31809-9"
+  },
+  {
+   "id": "bird2017",
+   "authors": "Bird SR, Hawley JA",
+   "year": 2017,
+   "title": "Update on the effects of physical activity on insulin sensitivity in humans",
+   "journal": "BMJ Open Sport & Exercise Medicine 2(1):e000143",
+   "url": "https://doi.org/10.1136/bmjsem-2016-000143"
+  },
+  {
+   "id": "colberg2016",
+   "authors": "Colberg SR et al.",
+   "year": 2016,
+   "title": "Physical Activity/Exercise and Diabetes: A Position Statement of the American Diabetes Association",
+   "journal": "Diabetes Care 39(11):2065–2079",
+   "url": "https://doi.org/10.2337/dc16-1728"
+  },
+  {
+   "id": "kerksick2017",
+   "authors": "Kerksick CM et al.",
+   "year": 2017,
+   "title": "International Society of Sports Nutrition position stand: nutrient timing",
+   "journal": "Journal of the International Society of Sports Nutrition 14:33",
+   "url": "https://doi.org/10.1186/s12970-017-0189-4"
+  },
+  {
+   "id": "thomas2016",
+   "authors": "Thomas DT, Erdman KA, Burke LM",
+   "year": 2016,
+   "title": "Nutrition and Athletic Performance (joint position statement)",
+   "journal": "Medicine & Science in Sports & Exercise 48(3):543–568",
+   "url": "https://doi.org/10.1249/MSS.0000000000000852"
+  },
+  {
+   "id": "paluch2022",
+   "authors": "Paluch AE et al.",
+   "year": 2022,
+   "title": "Daily steps and all-cause mortality: a meta-analysis of 15 international cohorts",
+   "journal": "The Lancet Public Health 7(3):e219–e228",
+   "url": "https://doi.org/10.1016/S2468-2667(21)00302-9"
+  },
+  {
+   "id": "watson2015",
+   "authors": "Watson NF et al.",
+   "year": 2015,
+   "title": "Recommended Amount of Sleep for a Healthy Adult: A Joint Consensus Statement of the American Academy of Sleep Medicine and Sleep Research Society",
+   "journal": "Sleep 38(6):843–844",
+   "url": "https://doi.org/10.5665/sleep.4716"
+  },
+  {
+   "id": "hirshkowitz2015",
+   "authors": "Hirshkowitz M et al.",
+   "year": 2015,
+   "title": "National Sleep Foundation’s sleep time duration recommendations: methodology and results summary",
+   "journal": "Sleep Health 1(1):40–43",
+   "url": "https://doi.org/10.1016/j.sleh.2014.12.010"
+  },
+  {
+   "id": "lally2010",
+   "authors": "Lally P et al.",
+   "year": 2010,
+   "title": "How are habits formed: Modelling habit formation in the real world",
+   "journal": "European Journal of Social Psychology 40(6):998–1009",
+   "url": "https://doi.org/10.1002/ejsp.674"
+  },
+  {
+   "id": "jenkins1981",
+   "authors": "Jenkins DJ et al.",
+   "year": 1981,
+   "title": "Glycemic index of foods: a physiological basis for carbohydrate exchange",
+   "journal": "American Journal of Clinical Nutrition 34(3):362–366",
+   "url": "https://doi.org/10.1093/ajcn/34.3.362"
+  },
+  {
+   "id": "shukla2015",
+   "authors": "Shukla AP et al.",
+   "year": 2015,
+   "title": "Food Order Has a Significant Impact on Postprandial Glucose and Insulin Levels",
+   "journal": "Diabetes Care 38(7):e98–e99",
+   "url": "https://doi.org/10.2337/dc15-0429"
+  },
+  {
+   "id": "rolls2004",
+   "authors": "Rolls BJ et al.",
+   "year": 2004,
+   "title": "Salad and satiety: energy density and portion size of a first-course salad affect energy intake at lunch",
+   "journal": "Journal of the American Dietetic Association 104(10):1570–1576",
+   "url": "https://doi.org/10.1016/j.jada.2004.07.001"
+  },
+  {
+   "id": "hearris2018",
+   "authors": "Hearris MA et al.",
+   "year": 2018,
+   "title": "Regulation of Muscle Glycogen Metabolism during Exercise: Implications for Endurance Performance and Training Adaptations",
+   "journal": "Nutrients 10(3):298",
+   "url": "https://doi.org/10.3390/nu10030298"
+  },
+  {
+   "id": "burke2011",
+   "authors": "Burke LM et al.",
+   "year": 2011,
+   "title": "Carbohydrates for training and competition",
+   "journal": "Journal of Sports Sciences 29(sup1):S17–S27",
+   "url": "https://doi.org/10.1080/02640414.2011.585473"
+  },
+  {
+   "id": "schoenfeld2013timing",
+   "authors": "Schoenfeld BJ et al.",
+   "year": 2013,
+   "title": "The effect of protein timing on muscle strength and hypertrophy: a meta-analysis",
+   "journal": "Journal of the International Society of Sports Nutrition 10:53",
+   "url": "https://doi.org/10.1186/1550-2783-10-53"
+  },
+  {
+   "id": "kreider2017",
+   "authors": "Kreider RB et al.",
+   "year": 2017,
+   "title": "International Society of Sports Nutrition position stand: safety and efficacy of creatine supplementation in exercise, sport, and medicine",
+   "journal": "Journal of the International Society of Sports Nutrition 14:18",
+   "url": "https://doi.org/10.1186/s12970-017-0173-z"
+  },
+  {
+   "id": "chilibeck2017",
+   "authors": "Chilibeck PD et al.",
+   "year": 2017,
+   "title": "Effect of creatine supplementation during resistance training on lean tissue mass and muscular strength in older adults: a meta-analysis",
+   "journal": "Open Access Journal of Sports Medicine 8:213–226",
+   "url": "https://doi.org/10.2147/OAJSM.S123529"
+  },
+  {
+   "id": "areta2013",
+   "authors": "Areta JL et al.",
+   "year": 2013,
+   "title": "Timing and distribution of protein ingestion during prolonged recovery from resistance exercise alters myofibrillar protein synthesis",
+   "journal": "Journal of Physiology 591(9):2319–2331",
+   "url": "https://doi.org/10.1113/jphysiol.2012.244897"
+  },
+  {
+   "id": "mamerow2014",
+   "authors": "Mamerow MM et al.",
+   "year": 2014,
+   "title": "Dietary Protein Distribution Positively Influences 24-h Muscle Protein Synthesis in Healthy Adults",
+   "journal": "Journal of Nutrition 144(6):876–880",
+   "url": "https://doi.org/10.3945/jn.113.185280"
+  },
+  {
+   "id": "schoenfeld2018meal",
+   "authors": "Schoenfeld BJ, Aragon AA",
+   "year": 2018,
+   "title": "How much protein can the body use in a single meal for muscle-building? Implications for daily protein distribution",
+   "journal": "Journal of the International Society of Sports Nutrition 15:10",
+   "url": "https://doi.org/10.1186/s12970-018-0215-1"
+  },
+  {
+   "id": "kellmann2018",
+   "authors": "Kellmann M et al.",
+   "year": 2018,
+   "title": "Recovery and Performance in Sport: Consensus Statement",
+   "journal": "International Journal of Sports Physiology and Performance 13(2):240–245",
+   "url": "https://doi.org/10.1123/ijspp.2017-0759"
+  },
+  {
+   "id": "harvard_plate",
+   "authors": "Harvard T.H. Chan School of Public Health",
+   "year": 2011,
+   "title": "Healthy Eating Plate",
+   "journal": "www.hsph.harvard.edu",
+   "url": "https://www.hsph.harvard.edu/nutritionsource/healthy-eating-plate/"
+  },
+  {
+   "id": "usda_fdc",
+   "authors": "U.S. Department of Agriculture",
+   "year": 2019,
+   "title": "FoodData Central (food composition database)",
+   "journal": "fdc.nal.usda.gov",
+   "url": "https://fdc.nal.usda.gov/"
+  },
+  {
+   "id": "crea_tables",
+   "authors": "CREA – Centro di ricerca Alimenti e Nutrizione",
+   "year": 2019,
+   "title": "Tabelle di composizione degli alimenti",
+   "journal": "www.alimentinutrizione.it",
+   "url": "https://www.alimentinutrizione.it/"
+  }
+ ]
+}

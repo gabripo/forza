@@ -169,9 +169,14 @@ The calorie target is built in five explainable steps, shown in the app with the
 3. **Reality check**: after 14 days with meals logged and a weight trend, the measured need is
    `average intake − weight change × 7,700 kcal / days`; the app then uses the average of formula and
    measurement (only when the measurement is plausible).
-4. **Goal**: fat loss −20% (about 0.5% of body weight a week), muscle gain +250 kcal, maintain = TDEE.
-   A **weekly check-in** compares the trend with the goal pace and suggests ±100–150 kcal, never more than
-   ±600 in total; never below 1,200 (women) / 1,500 (men) kcal.
+4. **Goal and pace**: a fixed daily difference from TDEE, chosen as a pace (*Food → Adjust*, Settings, or
+   the coach): fat loss −250 / **−500** / −750 kcal (slow / **normal** / fast; 500 kcal a day is about
+   0.45 kg a week, at 7,700 kcal per kg), muscle gain +150 / **+250** / +400 kcal, maintain = TDEE.
+   A **weekly check-in** compares the trend with that pace and suggests ±100–150 kcal, never more than
+   ±600 in total; on top, a **manual adjustment** (±1,500 kcal, in 50 kcal steps in the app); never below
+   1,200 (women) / 1,500 (men) kcal. Someone who uses Build With Science can **follow its target** instead:
+   the phone reads its daily calorie and macro ranges with the food log, and the app uses their middle
+   (no check-in then: Build With Science adjusts its own target).
 5. **Split**: protein 1.8 / 1.6 / 1.4 g per kg (at least 1.4 after 60; above BMI 30 a reference weight
    is used), fat 30% of calories, carbohydrates the rest, fibre 14 g per 1,000 kcal.
 
@@ -249,7 +254,17 @@ Two tracks of infographics, in English and Italian:
   one), moving more, sleep, ten small habits.
 - **Expert lessons** (6): glycogen, meal timing, creatine, progressive overload, protein timing, recovery.
 
-Every lesson ends with a **two-question quiz**; each answer explains itself, right or wrong.
+Every lesson ends with a **two-question quiz**; each answer explains itself, right or wrong, and then its
+**references**: the studies, guidelines and food tables the lesson is based on (`LESSON_SOURCES` in
+`app/src/data/sources.ts`), each with its DOI or link.
+
+**The coach shapes the course.** In Forza! Coach (*Lessons & tips*) the coach can change any lesson (texts,
+cards, references), hide or reorder lessons, write new ones and change the tips of the day. Changes are rows
+in `kb_lessons` and `kb_tips`, laid over the lessons built into the app (a row only stores what changed, so
+built-in lessons keep getting the app's updates); the app keeps the last copy, so Learn works offline.
+Coach reads the built-in lessons from `shared/knowledge.json`, which `npm run export-knowledge` (in `app/`)
+writes from the app's TypeScript, together with the food table (`shared/foods.json`) that Coach uses to add
+meals; CI checks both are up to date.
 
 **Printing on A4.** Lessons are real text and SVG, not images, so they print sharp: one lesson, the whole
 course, the expert track or everything, laid out on ISO A4 sheets (210 × 297 mm, `@page size A4`, a page

@@ -100,7 +100,7 @@ function render() {
     app.innerHTML = setupView()
     return
   }
-  app.innerHTML = state.view === 'exercises' ? exercisesView() : peopleView()
+  app.innerHTML = state.view === 'exercises' ? exercisesView() : state.view === 'knowledge' ? knowledgeView() : peopleView()
 }
 
 function peopleView() {
@@ -324,19 +324,162 @@ function workoutsView(d) {
   </tbody></table></div>`
 }
 
+const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
+const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
+// Meals logged by another app come back from there at the next sync: they are changed in that app.
+const syncedMeal = (f) => f.source === 'health_connect' || (f.source === 'import' && Boolean(f.origin))
+
 function foodView(d) {
-  if (!d.food.length) return '<div class="card muted">No meals logged in the last 30 days.</div>'
-  return `<div class="card"><table><thead><tr><th></th><th>When</th><th>Meal</th><th class="num">kcal</th><th class="num">P / C / F</th><th class="num">Score (fat loss · muscle)</th></tr></thead><tbody>
+  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button></div>`
+  const editor = state.mealEdit ? mealEditor(d) : ''
+  if (!d.food.length) return `${editor}${state.mealEdit ? '' : add}<div class="card muted">No meals logged in the last 30 days.</div>`
+  return `${editor}${state.mealEdit ? '' : add}<div class="card"><table><thead><tr><th></th><th>When</th><th>Meal</th><th class="num">kcal</th><th class="num">P / C / F</th><th class="num">Score (fat loss · muscle)</th><th></th></tr></thead><tbody>
     ${d.food
       .map(
         (f) => `<tr><td>${f.photo_path ? `<img class="thumb" data-photo="${esc(f.photo_path)}" alt="">` : ''}</td>
         <td>${fmtDate(f.eaten_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}<div class="muted small">${esc(f.meal)}</div></td>
         <td>${esc(f.title)}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
         <td class="num">${fmtNum(f.kcal)}</td><td class="num">${fmtNum(f.protein_g)} / ${fmtNum(f.carbs_g)} / ${fmtNum(f.fat_g)}</td>
-        <td class="num">${f.score_fat_loss ?? '—'} · ${f.score_muscle_gain ?? '—'}</td></tr>`,
+        <td class="num">${f.score_fat_loss ?? '—'} · ${f.score_muscle_gain ?? '—'}</td>
+        <td class="no-print">${
+          syncedMeal(f)
+            ? `<span class="muted small">From ${esc(f.origin || 'Health Connect')}: change it there</span>`
+            : `<div class="row"><button class="btn small secondary" data-action="meal-edit" data-id="${f.id}">Change</button><button class="btn small danger" data-action="meal-del" data-id="${f.id}">Delete</button></div>`
+        }</td></tr>`,
       )
       .join('')}
   </tbody></table></div>`
+}
+
+/** yyyy-MM-ddTHH:mm in this computer's time zone, for a datetime-local field. */
+function localInput(d) {
+  const t = new Date(d)
+  return new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
+/** Nutrients per gram, so a new amount scales the food (none for a food without grams). */
+function withPer(item) {
+  const grams = Number(item.grams) || 0
+  return { ...item, per: grams > 0 ? Object.fromEntries(NUTRIENTS.map((k) => [k, (Number(item[k]) || 0) / grams])) : null }
+}
+
+const nutrientValue = (k, v) => (k === 'kcal' ? Math.round(v) : Math.round(v * 10) / 10)
+
+function mealTotalsText() {
+  const t = Object.fromEntries(NUTRIENTS.map((k) => [k, state.mealEdit.items.reduce((s, i) => s + (Number(i[k]) || 0), 0)]))
+  return `Total: ${fmtNum(t.kcal)} kcal · protein ${fmtNum(t.protein_g, 1)} g · carbs ${fmtNum(t.carbs_g, 1)} g · fat ${fmtNum(t.fat_g, 1)} g · fibre ${fmtNum(t.fiber_g, 1)} g`
+}
+
+function mealEditor(d) {
+  const m = state.mealEdit
+  const lang = d.profile?.locale === 'it' ? 'it' : 'en'
+  const cell = (i, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-meal-item="${i}" data-field="${k}" value="${m.items[i][k] ?? 0}"></td>`
+  return `<div class="card" id="meal-editor"><h2>${m.id ? 'Change the meal' : 'Add a meal'}</h2>
+    <div class="grid2">
+      <label class="field">Meal <select data-meal-field="meal">${MEALS.map((x) => `<option value="${x}"${m.meal === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="field">When <input type="datetime-local" data-meal-field="at" value="${esc(m.at)}"></label>
+      <label class="field">Name <input data-meal-field="title" value="${esc(m.title)}" placeholder="The foods' names if empty"></label>
+    </div>
+    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th></th></tr></thead><tbody>
+      ${m.items
+        .map(
+          (it, i) => `<tr><td><input data-meal-item="${i}" data-field="name" value="${esc(it.name)}" style="width:100%;min-width:180px"></td>
+          ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}
+          <td><button class="btn small danger" data-action="meal-item-del" data-i="${i}" aria-label="Remove">✕</button></td></tr>`,
+        )
+        .join('')}
+    </tbody></table>
+    <p class="small" id="meal-totals">${mealTotalsText()}</p>
+    <p class="small muted">Changing the grams changes the food's calories and nutrients with them.</p>
+    <div class="row small">Whole meal: ${[0.5, 0.75, 1.25, 1.5, 2].map((f) => `<button class="btn small secondary" data-action="meal-scale" data-f="${f}">× ${fmtNum(f, 2)}</button>`).join('')}</div>
+    <div class="row" style="margin-top:10px">
+      <input list="food-table" id="meal-food" placeholder="Add from the food table (English or Italian)" style="flex:1;min-width:220px">
+      <input class="n" type="number" min="1" id="meal-food-g" placeholder="g">
+      <button class="btn small" data-action="meal-add-food">Add</button>
+      <button class="btn small secondary" data-action="meal-add-other">Add another food</button>
+    </div>
+    <datalist id="food-table">${(state.foods ?? []).map((f) => `<option value="${esc(f.name[lang])}">${esc(f.name[lang === 'it' ? 'en' : 'it'])} · ${f.kcal} kcal/100 g</option>`).join('')}</datalist>
+    <p class="small muted">The app works out the meal's score again, from the new amounts and the person's own calorie target.</p>
+    <div class="row"><button class="btn" data-action="meal-save">Save</button><button class="btn secondary" data-action="meal-cancel">Cancel</button></div>
+  </div>`
+}
+
+async function mealAction(action, btn) {
+  const m = state.mealEdit
+  if (action === 'meal-new' || action === 'meal-edit') {
+    state.foods ??= await api('/api/foods')
+    const f = action === 'meal-edit' ? state.data.food.find((x) => x.id === btn.dataset.id) : null
+    const items = f?.items?.length ? f.items : f ? [{ name: f.title, grams: 0, ...Object.fromEntries(NUTRIENTS.map((k) => [k, Number(f[k]) || 0])) }] : []
+    state.mealEdit = { id: f?.id ?? null, meal: f?.meal ?? 'snack', at: localInput(f?.eaten_at ?? new Date()), title: f?.title ?? '', items: items.map(withPer) }
+    render()
+    return document.getElementById('meal-editor')?.scrollIntoView({ behavior: 'smooth' })
+  }
+  if (action === 'meal-cancel') state.mealEdit = null
+  if (action === 'meal-item-del') m.items.splice(Number(btn.dataset.i), 1)
+  if (action === 'meal-add-other') m.items.push(withPer({ name: '', grams: 100, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }))
+  if (action === 'meal-scale') {
+    const k = Number(btn.dataset.f)
+    for (const it of m.items) {
+      it.grams = Math.round((Number(it.grams) || 0) * k)
+      for (const n of NUTRIENTS) it[n] = nutrientValue(n, (Number(it[n]) || 0) * k)
+    }
+  }
+  if (action === 'meal-add-food') {
+    const name = document.getElementById('meal-food').value.trim().toLowerCase()
+    const food = state.foods.find((f) => f.name.en.toLowerCase() === name || f.name.it.toLowerCase() === name)
+    if (!food) return toast('Choose a food from the list')
+    const grams = Number(document.getElementById('meal-food-g').value) || food.portion
+    const lang = state.data.profile?.locale === 'it' ? 'it' : 'en'
+    // The table's values are per 100 g.
+    const per100 = { kcal: food.kcal, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat, fiber_g: food.fiber, sugar_g: food.sugar }
+    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])) }))
+  }
+  if (action === 'meal-save') {
+    if (!m.items.length) return toast('Add at least one food')
+    const body = { meal: m.meal, eaten_at: new Date(m.at).toISOString(), title: m.title, items: m.items.map(({ per: _per, ...i }) => i) }
+    if (m.id) await api(`/api/food/${m.id}`, { method: 'PUT', body })
+    else await api(`/api/users/${state.selected}/food`, { method: 'POST', body })
+    state.mealEdit = null
+    toast(m.id ? 'Meal changed' : 'Meal added')
+    return reloadFood()
+  }
+  if (action === 'meal-del') {
+    const f = state.data.food.find((x) => x.id === btn.dataset.id)
+    if (!confirm(`Delete “${f?.title ?? 'this meal'}”? It disappears from their phone too.`)) return
+    await api(`/api/food/${btn.dataset.id}`, { method: 'DELETE' })
+    toast('Meal deleted')
+    return reloadFood()
+  }
+  render()
+}
+
+/** Shows the food log again after a change, keeping any unsaved change to the plan. */
+async function reloadFood() {
+  const d = await api(`/api/users/${state.selected}`)
+  state.data.food = d.food
+  render()
+  loadPhotos()
+}
+
+/** A grams change scales that food; a nutrient typed in becomes its new value per gram. */
+function mealItemInput(el) {
+  const i = Number(el.dataset.mealItem)
+  const it = state.mealEdit.items[i]
+  const k = el.dataset.field
+  if (k === 'name') {
+    it.name = el.value
+    return
+  }
+  const v = Math.max(0, Number(el.value) || 0)
+  it[k] = v
+  if (k === 'grams' && it.per) {
+    for (const n of NUTRIENTS) {
+      it[n] = nutrientValue(n, it.per[n] * v)
+      const field = app.querySelector(`[data-meal-item="${i}"][data-field="${n}"]`)
+      if (field) field.value = it[n]
+    }
+  } else it.per = withPer(it).per
+  document.getElementById('meal-totals').textContent = mealTotalsText()
 }
 
 function checkinsView(d) {
@@ -356,6 +499,96 @@ function accountView() {
     <div class="card"><h2>Delete account</h2>
       <p class="muted">Permanently deletes the account and all of its data (weights, workouts, food, photos). This cannot be undone.</p>
       <form class="row" data-form="delete"><input name="confirm" placeholder="type the email to confirm" style="min-width:260px"><button class="btn danger">Delete forever</button></form></div>`
+}
+
+// ---------------------------------------------------------------------------
+// Lessons & tips: the knowledge base, as the app shows it to everyone
+// ---------------------------------------------------------------------------
+
+/** Built-in lessons with the coach's changes on top, per track, in the order the app shows them. */
+function kbLessons() {
+  const kb = state.kb
+  const rows = new Map(kb.lessons.map((r) => [r.id, r]))
+  const all = kb.builtIn.lessons.map((l) => ({ ...l, row: rows.get(l.id) ?? null, builtIn: true }))
+  for (const r of kb.lessons) if (!all.some((l) => l.id === r.id)) all.push({ id: r.id, track: r.track, position: null, ...r.content, row: r, builtIn: false })
+  const view = (l) => ({ ...l, ...(l.row?.content ?? {}), track: l.row?.track ?? l.track, hidden: l.row?.hidden ?? false, order: l.row?.position ?? l.position ?? 999 })
+  const lessons = all.map(view)
+  return ['course', 'expert'].map((track) => lessons.filter((l) => l.track === track).sort((a, b) => a.order - b.order))
+}
+
+const KB_BLOCK_EXAMPLE = `[
+  { "type": "intro", "text": { "en": "One or two sentences.", "it": "Una o due frasi." } },
+  { "type": "callout", "emoji": "💡", "text": { "en": "The one thing to remember.", "it": "La cosa da ricordare." } },
+  { "type": "steps", "title": { "en": "How to", "it": "Come fare" }, "items": [{ "title": { "en": "First", "it": "Primo" } }] },
+  { "type": "dodont", "dos": [{ "en": "Do this", "it": "Fai questo" }], "donts": [{ "en": "Not this", "it": "Non questo" }] }
+]`
+
+function knowledgeView() {
+  const kb = state.kb
+  if (!kb) return '<p class="pad muted">Loading…</p>'
+  if (state.kbEdit) return `<div class="pad">${lessonEditor(state.kbEdit)}</div>`
+  const [course, expert] = kbLessons()
+  // A lesson only moved keeps the built-in text (and its later updates): it is not "changed".
+  const edited = (l) => l.row && (Object.keys(l.row.content ?? {}).length > 0 || l.row.track !== kb.builtIn.lessons.find((b) => b.id === l.id)?.track)
+  const status = (l) => (l.hidden ? '<span class="pill warn">hidden</span>' : !l.builtIn ? '<span class="pill good">new</span>' : edited(l) ? '<span class="pill info">changed</span>' : '')
+  const moved = kb.lessons.some((r) => r.position != null && kb.builtIn.lessons.some((b) => b.id === r.id))
+  const rows = (list) =>
+    list
+      .map(
+        (l, i) => `<tr${l.hidden ? ' class="muted"' : ''}><td>${esc(l.emoji ?? '')}</td><td><b>${esc(l.title?.en ?? l.id)}</b><div class="small muted">${esc(l.title?.it ?? '')}</div></td><td>${status(l)}</td>
+        <td class="row" style="flex-wrap:nowrap"><button class="btn secondary small" data-action="kb-move" data-id="${esc(l.id)}" data-dir="-1" ${i ? '' : 'disabled'}>↑</button><button class="btn secondary small" data-action="kb-move" data-id="${esc(l.id)}" data-dir="1" ${i < list.length - 1 ? '' : 'disabled'}>↓</button>
+        <button class="btn secondary small" data-action="kb-edit" data-id="${esc(l.id)}">Edit</button><button class="btn secondary small" data-action="kb-hide" data-id="${esc(l.id)}">${l.hidden ? 'Show' : 'Hide'}</button></td></tr>`,
+      )
+      .join('')
+  const lessonsTable = (title, list) => `<h3>${title}</h3><table><tbody>${rows(list)}</tbody></table>`
+  const tipRows = new Map(kb.tips.map((r) => [r.id, r]))
+  const tips = [...kb.builtIn.tips.map((t) => ({ id: t.id, text_en: t.text.en, text_it: t.text.it, topic: t.topic, builtIn: true })), ...kb.tips.filter((r) => !kb.builtIn.tips.some((t) => t.id === r.id))]
+    .map((t) => ({ ...t, ...(tipRows.get(t.id) ?? {}) }))
+  const lessonOptions = (selected) => [...course, ...expert].map((l) => `<option value="${esc(l.id)}" ${l.id === selected ? 'selected' : ''}>${esc(l.title?.en ?? l.id)}</option>`).join('')
+  return `<div class="pad">
+    <div class="card"><h2>Lessons</h2>
+      <p class="muted">Change a lesson, hide it, move it, or write a new one: everyone sees it in Forza! the next time they open Learn. ${state.status?.appUrl ? `Preview: <a href="${esc(state.status.appUrl)}#/learn" target="_blank">open Learn ↗</a>` : ''}</p>
+      ${lessonsTable("Beginners' course", course)}
+      ${lessonsTable('Expert lessons', expert)}
+      <div class="row" style="margin-top:10px"><button class="btn" data-action="kb-new">+ New lesson</button>${moved ? '<button class="btn secondary" data-action="kb-order-reset">Original order</button>' : ''}</div>
+    </div>
+    <div class="card"><h2>Tips of the day</h2>
+      <p class="muted">One a day on everyone's Home page, with a link to the lesson that explains it.</p>
+      <table><thead><tr><th>English</th><th>Italiano</th><th>Lesson</th><th></th></tr></thead><tbody>
+      ${tips
+        .map(
+          (t) => `<tr data-tip="${esc(t.id)}"${t.hidden ? ' class="muted"' : ''}><td><textarea name="text_en" rows="2">${esc(t.text_en)}</textarea></td><td><textarea name="text_it" rows="2">${esc(t.text_it)}</textarea></td>
+          <td><select name="topic"><option value="">—</option>${lessonOptions(t.topic)}</select></td>
+          <td class="row" style="flex-wrap:nowrap"><button class="btn small" data-action="tip-save" data-id="${esc(t.id)}">Save</button><button class="btn secondary small" data-action="tip-hide" data-id="${esc(t.id)}">${t.hidden ? 'Show' : 'Hide'}</button>${tipRows.has(t.id) ? `<button class="btn secondary small" data-action="tip-reset" data-id="${esc(t.id)}" title="${t.builtIn ? 'Back to the original' : 'Delete'}">${t.builtIn ? 'Undo' : '✕'}</button>` : ''}</td></tr>`,
+        )
+        .join('')}
+      </tbody></table>
+      <div class="row" style="margin-top:10px"><button class="btn secondary" data-action="tip-new">+ New tip</button></div>
+    </div></div>`
+}
+
+function lessonEditor(l) {
+  const sources = (l.sources ?? []).map((s) => (typeof s === 'string' ? s : [s.authors && `${s.authors}${s.year ? ` (${s.year})` : ''}.`, s.title, s.journal, s.url].filter(Boolean).join(' '))).join('\n')
+  const field = (name, label, value, extra = '') => `<label class="field">${label}<input name="${name}" value="${esc(value ?? '')}" ${extra}></label>`
+  return `<form class="card stack" data-form="kb-lesson">
+    <h2>${l.isNew ? 'New lesson' : `Edit: ${esc(l.title?.en ?? l.id)}`}</h2>
+    <div class="grid2">
+      ${field('id', 'Id (letters, digits, - and _)', l.id, l.isNew ? 'required pattern="[a-z0-9_-]{2,40}"' : 'readonly')}
+      ${field('emoji', 'Emoji', l.emoji)}
+      <label class="field">Colour<select name="tone">${['orange', 'green', 'blue', 'yellow', 'pink', 'purple'].map((t) => `<option ${t === l.tone ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label class="field">Track<select name="track"><option value="course" ${l.track === 'expert' ? '' : 'selected'}>Beginners' course</option><option value="expert" ${l.track === 'expert' ? 'selected' : ''}>Expert lessons</option></select></label>
+      ${field('title_en', 'Title (English)', l.title?.en, 'required')}
+      ${field('title_it', 'Titolo (italiano)', l.title?.it, 'required')}
+      ${field('subtitle_en', 'Subtitle (English)', l.subtitle?.en)}
+      ${field('subtitle_it', 'Sottotitolo (italiano)', l.subtitle?.it)}
+    </div>
+    <label class="field">Content: blocks, in JSON (each block is shown as a card in the lesson)<textarea name="blocks" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">${esc(JSON.stringify(l.blocks ?? [], null, 2))}</textarea></label>
+    <details><summary class="small">Block types and an example</summary><p class="small muted">Types: intro, callout, steps, dodont, cards, swaps, timeline, bars, foods, meals, plate, hands. Every text has "en" and "it".</p><pre class="small">${esc(KB_BLOCK_EXAMPLE)}</pre></details>
+    <label class="field">Sources, one per line: the id of a known source (${esc(state.kb.builtIn.sources.slice(0, 3).map((s) => s.id).join(', '))}…) or a reference with its link<textarea name="sources" rows="4">${esc(sources)}</textarea></label>
+    <details><summary class="small">Known sources</summary><ul class="small">${state.kb.builtIn.sources.map((s) => `<li><code>${esc(s.id)}</code> ${esc(s.authors)} (${s.year}). ${esc(s.title)}</li>`).join('')}</ul></details>
+    <div class="row"><button class="btn">Save</button><button type="button" class="btn secondary" data-action="kb-cancel">Cancel</button>
+      ${l.row ? `<button type="button" class="btn danger" data-action="kb-reset" data-id="${esc(l.id)}">${l.builtIn ? 'Back to the original' : 'Delete lesson'}</button>` : ''}</div>
+  </form>`
 }
 
 function exercisesView() {
@@ -776,6 +1009,61 @@ const fileToBase64 = (file) =>
     img.src = URL.createObjectURL(file)
   })
 
+/** Buttons of the Lessons & tips page. */
+async function knowledgeAction(action, btn) {
+  const kb = state.kb
+  const [course, expert] = kbLessons()
+  const lesson = [...course, ...expert].find((l) => l.id === btn.dataset.id)
+  const save = (l, patch) => api(`/api/kb/lessons/${encodeURIComponent(l.id)}`, { method: 'PUT', body: { track: l.track, position: l.row?.position ?? null, hidden: l.hidden, content: l.row?.content ?? {}, ...patch } })
+  if (action === 'kb-edit') state.kbEdit = { ...lesson, isNew: false }
+  if (action === 'kb-new') state.kbEdit = { id: '', isNew: true, track: 'course', emoji: '📘', tone: 'blue', title: { en: '', it: '' }, subtitle: { en: '', it: '' }, blocks: JSON.parse(KB_BLOCK_EXAMPLE).slice(0, 2), sources: [] }
+  if (action === 'kb-cancel') state.kbEdit = null
+  if (action === 'kb-hide') await save(lesson, { hidden: !lesson.hidden })
+  if (action === 'kb-move') {
+    // Every lesson of the track gets its place, so the order is the same everywhere.
+    const list = lesson.track === 'expert' ? expert : course
+    const i = list.indexOf(lesson)
+    const j = i + Number(btn.dataset.dir)
+    ;[list[i], list[j]] = [list[j], list[i]]
+    await Promise.all(list.map((l, k) => save(l, { position: k })))
+  }
+  if (action === 'kb-order-reset') {
+    // Built-in lessons go back to their places; new lessons stay where they are, after them.
+    const builtIn = (r) => kb.builtIn.lessons.find((b) => b.id === r.id)
+    await Promise.all(
+      kb.lessons
+        .filter((r) => r.position != null && builtIn(r))
+        .map((r) =>
+          !r.hidden && !Object.keys(r.content ?? {}).length && r.track === builtIn(r).track
+            ? api(`/api/kb/lessons/${encodeURIComponent(r.id)}`, { method: 'DELETE' })
+            : api(`/api/kb/lessons/${encodeURIComponent(r.id)}`, { method: 'PUT', body: { ...r, position: null } }),
+        ),
+    )
+  }
+  if (action === 'kb-reset') {
+    if (!confirm(lesson.builtIn ? 'Go back to the original lesson? Your changes to it are lost.' : 'Delete this lesson for everyone?')) return
+    await api(`/api/kb/lessons/${encodeURIComponent(lesson.id)}`, { method: 'DELETE' })
+    state.kbEdit = null
+  }
+  const tipRow = (id) => app.querySelector(`[data-tip="${CSS.escape(id)}"]`)
+  const tipBody = (id) => Object.fromEntries([...tipRow(id).querySelectorAll('textarea, select')].map((x) => [x.name, x.value.trim()]))
+  if (action === 'tip-save') await api(`/api/kb/tips/${btn.dataset.id}`, { method: 'PUT', body: { ...tipBody(btn.dataset.id), hidden: kb.tips.find((t) => t.id === btn.dataset.id)?.hidden ?? false } })
+  if (action === 'tip-hide') {
+    const current = kb.tips.find((t) => t.id === btn.dataset.id)
+    await api(`/api/kb/tips/${btn.dataset.id}`, { method: 'PUT', body: { ...tipBody(btn.dataset.id), hidden: !current?.hidden } })
+  }
+  if (action === 'tip-reset') await api(`/api/kb/tips/${btn.dataset.id}`, { method: 'DELETE' })
+  if (action === 'tip-new') {
+    const n = Math.max(0, ...[...kb.builtIn.tips, ...kb.tips].map((t) => Number(/^tip(\d+)$/.exec(t.id)?.[1] ?? 0))) + 1
+    await api(`/api/kb/tips/tip${n}`, { method: 'PUT', body: { text_en: 'New tip', text_it: 'Nuovo consiglio', topic: '', hidden: false } })
+  }
+  if (!['kb-edit', 'kb-new', 'kb-cancel'].includes(action)) {
+    state.kb = await api('/api/kb')
+    toast('Saved')
+  }
+  render()
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
@@ -784,6 +1072,10 @@ document.querySelector('.top nav').addEventListener('click', async (e) => {
   const view = e.target.closest('button')?.dataset.view
   if (!view) return
   state.view = view
+  if (view === 'knowledge') {
+    render()
+    state.kb = await api('/api/kb')
+  }
   if (view === 'setup') {
     state.autostart = (await api('/api/setup/autostart').catch(() => ({ enabled: false }))).enabled
     render()
@@ -805,6 +1097,11 @@ app.addEventListener('change', async (e) => {
 
 app.addEventListener('input', (e) => {
   const el = e.target
+  if (el.dataset.mealField) {
+    state.mealEdit[el.dataset.mealField] = el.value
+    return
+  }
+  if (el.dataset.mealItem !== undefined) return mealItemInput(el)
   if (el.dataset.ai !== undefined) {
     state.ai.order[Number(el.dataset.ai)][el.dataset.field] = el.value
     return
@@ -824,6 +1121,7 @@ app.addEventListener('click', async (e) => {
   try {
     if (action === 'select') {
       state.signin = null
+      state.mealEdit = null
       return selectUser(btn.dataset.id)
     }
     if (action === 'setup-projects') {
@@ -994,6 +1292,8 @@ app.addEventListener('click', async (e) => {
       toast(`Copied ${r.copied} workouts (${r.added} new, ${r.replaced} replaced)`)
       return selectUser(state.selected)
     }
+    if (action.startsWith('kb-') || action.startsWith('tip-')) return knowledgeAction(action, btn)
+    if (action.startsWith('meal-')) return mealAction(action, btn)
     if (action === 'tpl-copy') {
       const t = state.data.templates[Number(btn.dataset.plan)]
       const select = document.getElementById(`copy-to-${btn.dataset.plan}`)
@@ -1057,6 +1357,38 @@ app.addEventListener('submit', async (e) => {
       await api('/api/setup/app-url', { method: 'POST', body: data })
       await loadStatus()
       toast('Saved')
+      return render()
+    }
+    if (form.dataset.form === 'kb-lesson') {
+      const l = state.kbEdit
+      const lines = String(data.sources ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+      const known = new Set(state.kb.builtIn.sources.map((x) => x.id))
+      const sources = lines.map((line) => {
+        if (known.has(line)) return line
+        const url = line.match(/https?:\/\/\S+/)?.[0]
+        return { title: line.replace(url ?? '', '').trim().replace(/[.\s]+$/, ''), ...(url ? { url } : {}) }
+      })
+      let blocks
+      try {
+        blocks = JSON.parse(data.blocks || '[]')
+      } catch (err) {
+        return toast(`The content is not valid JSON: ${err.message}`)
+      }
+      const content = {
+        emoji: data.emoji,
+        tone: data.tone,
+        title: { en: data.title_en, it: data.title_it },
+        subtitle: { en: data.subtitle_en ?? '', it: data.subtitle_it ?? '' },
+        blocks,
+        sources,
+      }
+      const track = data.track
+      // A lesson moved to the other track goes to its end.
+      const position = l.track === track ? (l.row?.position ?? null) : null
+      await api(`/api/kb/lessons/${encodeURIComponent(data.id)}`, { method: 'PUT', body: { track, position, hidden: l.hidden ?? false, content } })
+      state.kbEdit = null
+      state.kb = await api('/api/kb')
+      toast('Saved: everyone sees it the next time they open Learn')
       return render()
     }
     if (form.dataset.form === 'profile') {
