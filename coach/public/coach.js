@@ -1623,8 +1623,13 @@ async function knowledgeAction(action, btn) {
     const topic = document.getElementById('kb-topic').value.trim()
     if (!topic) return toast('Write a topic first')
     state.kbTopic = topic
-    toast('Writing a draft… (about 20 seconds)')
-    state.kbIdea = { ...(await api('/api/kb/suggest', { method: 'POST', body: { topic } })), added: [] }
+    toast('Writing a draft… (up to a minute)')
+    btn.disabled = true
+    try {
+      state.kbIdea = { ...(await api('/api/kb/suggest', { method: 'POST', body: { topic } })), added: [] }
+    } finally {
+      btn.disabled = false
+    }
     return render()
   }
   if (action === 'kb-idea-close') {
