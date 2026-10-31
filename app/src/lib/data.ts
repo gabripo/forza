@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import catalogue from '../data/exercises.json'
 import { daysAgo, localDay } from './calc'
 import { supabase } from './supabase'
+import type { WorkoutMove } from './plan'
 import type { QuizAnswer } from './pointsQuiz'
 import type { LessonRow } from './rewards'
 import type {
@@ -271,6 +272,26 @@ export async function getSession(id: string): Promise<SessionWithSets | null> {
 
 export async function deleteSession(id: string): Promise<void> {
   check(await supabase.from('workout_sessions').delete().eq('id', id))
+}
+
+/** Workouts moved to another day, from two weeks ago on. */
+export async function getMoves(): Promise<WorkoutMove[]> {
+  const since = localDay(daysAgo(14))
+  return check(await supabase.from('workout_moves').select('id, template_id, from_day, to_day').or(`from_day.gte.${since},to_day.gte.${since}`)) as WorkoutMove[]
+}
+
+/** Moves a planned workout to another day, this time only; back to its own day removes the move. */
+export async function moveWorkout(templateId: string, fromDay: string, toDay: string): Promise<void> {
+  if (fromDay === toDay) {
+    check(await supabase.from('workout_moves').delete().eq('template_id', templateId).eq('from_day', fromDay))
+    return
+  }
+  check(await supabase.from('workout_moves').upsert({ template_id: templateId, from_day: fromDay, to_day: toDay }, { onConflict: 'user_id,template_id,from_day' }))
+}
+
+/** Saves a workout logged or changed after the fact (any day): the session and all its sets. */
+export async function saveSession(session: Omit<WorkoutSession, 'source'>, sets: Omit<SetLog, 'session_id'>[]): Promise<void> {
+  check(await supabase.rpc('save_workout', { p_session: { ...session, source: 'app' }, p_sets: sets }))
 }
 
 /** For each exercise, the sets of the most recent session where it was done. */

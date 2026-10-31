@@ -206,7 +206,15 @@ Open Forza! Coach whenever you like:
   a meal** logs one for them, from the built-in food table or typed in. **Meal** moves it to another part of the
   day, and **Salt** is optional (blank means not known). The app scores the changed meal again.
   Meals logged in another app (through Health Connect, or Build With Science) are changed in that app.
-- **Workouts**, **Check-ins**: what they logged.
+- **Workouts**: what they logged. **Log a workout** adds one they did without the phone (pick it from their
+  plan: the sets of last time are filled in), **Change** fixes any workout (day, time, sets, effort, notes),
+  **Delete** removes it. In **Workout plan**, **This week** shows their week as on the phone: **Move to…** shifts
+  a planned workout to another day this time only (Wednesday's workout on Thursday), and a missed one can be
+  logged afterwards. They can do all of this in the app too.
+- **Check-ins**: what they logged.
+- **Overview → Progress**: their weight, strength per exercise, workouts and volume a week, steps, calories and
+  protein over 1 month to 1 year; point at the chart to read a day or a week. In the app: **Progress → Progress
+  dashboard**.
 - **Profile → Pace towards the goal**: how fast to lose fat (slow, normal or fast: 250, 500 or 750 kcal a day
   below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or
   takes away a fixed amount every day, and **Calorie target from** can follow Build With Science's daily target
@@ -214,7 +222,10 @@ Open Forza! Coach whenever you like:
   and protein, carbohydrates and fat follow. **Salt and sodium** shows salt in their food log (limit 5 g a day).
   They can change the same in the app: **Food → Adjust** and **Settings**.
 - **Lessons & tips** (at the top): change any lesson's text, cards, references and quiz, hide or reorder
-  lessons, write new ones, and change the tips of the day. Quiz questions are also asked in **Gain Family
+  lessons, write new ones, and change the tips of the day. **Ideas from a topic**: write a topic ("sleep
+  habits") and the food AI drafts a lesson with its quiz and three tips of the day, in English and Italian;
+  check them, then **Use this lesson** (it opens in the editor) or **Add** a tip. Every lesson and tip has a
+  preview drawn by the app itself, as on their phone, that follows what you type. Quiz questions are also asked in **Gain Family
   Points**, the daily quiz that keeps earning points after every lesson is read (2 questions a day from the
   lessons read, 5 points for each right answer; the Overview shows how it goes). Everyone sees the change the next time they open Learn;
   **Back to the original** returns a lesson to the built-in version, which keeps getting the app's own updates.

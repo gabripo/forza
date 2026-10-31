@@ -227,8 +227,7 @@ function overview(d) {
     </div></div>
     ${targetsView(d)}
     ${syncReportView(d)}
-    <div class="card"><h2>Weight</h2><div class="chart">${lineChart(weights, (v) => `${fmtNum(v, 1)}`)}</div></div>
-    <div class="card"><h2>Steps (90 days)</h2><div class="chart">${barChart(d.steps.map((s) => ({ label: s.day.slice(5), v: s.steps })), p(d).steps_goal)}</div></div>
+    ${dashboardCard(d)}
     ${d.photos.length ? `<div class="card"><h2>Progress photos (${d.photos.length})</h2><p class="muted small">Private photos: open them only if the person is happy to share them with you.</p><button class="btn secondary" data-action="show-photos">Show photos</button><div id="photo-grid" class="row" style="margin-top:10px"></div></div>` : ''}
     <div class="card"><h2>Strength by exercise</h2>
       <table><thead><tr><th>Exercise</th><th class="num">Sessions</th><th class="num">First est. max</th><th class="num">Latest</th><th class="num">Change</th></tr></thead>
@@ -264,6 +263,160 @@ function lineChart(points, fmt) {
   </svg>`
 }
 
+/**
+ * An interactive chart: a line (with dots when few) or weekly bars, an optional goal line, and a reading of the
+ * nearest day or week under the pointer (or finger). series: [{ t, v, label }] oldest first.
+ */
+function ichart(series, { bars = false, goal = null, fmt = (v) => fmtNum(v), dots = null } = {}) {
+  if (!series.length || (!bars && series.length < 2)) return '<p class="muted">Not enough data in this time.</p>'
+  const W = 720
+  const H = 240
+  const pad = { l: 52, r: 14, t: 14, b: 26 }
+  const values = [...series.map((p) => p.v), ...(dots ?? []).map((p) => p.v), ...(goal ? [goal.v] : [])]
+  let lo = bars ? 0 : Math.min(...values)
+  let hi = Math.max(...values)
+  if (hi === lo) hi = lo + 1
+  if (!bars) {
+    const m = (hi - lo) * 0.08
+    lo -= m
+    hi += m
+  }
+  const t0 = series[0].t
+  const t1 = series.at(-1).t
+  const band = (W - pad.l - pad.r) / series.length
+  const x = (p, i) => (bars ? pad.l + band * (i + 0.5) : pad.l + ((p.t - t0) / (t1 - t0 || 1)) * (W - pad.l - pad.r))
+  const y = (v) => pad.t + (1 - (v - lo) / (hi - lo)) * (H - pad.t - pad.b)
+  const ticks = [lo, (lo + hi) / 2, hi]
+  const marks = bars
+    ? series.map((p, i) => `<rect x="${(x(p, i) - Math.min(18, band * 0.6) / 2).toFixed(1)}" y="${y(p.v).toFixed(1)}" width="${Math.min(18, band * 0.6).toFixed(1)}" height="${Math.max(0, y(lo) - y(p.v)).toFixed(1)}" rx="3" fill="var(--series)"/>`).join('')
+    : `${(dots ?? []).map((p) => `<circle cx="${x(p).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.5" fill="var(--muted-series)"/>`).join('')}
+       <path d="${series.map((p, i) => `${i ? 'L' : 'M'}${x(p, i).toFixed(1)},${y(p.v).toFixed(1)}`).join('')}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round"/>
+       ${series.length <= 60 && !dots ? series.map((p, i) => `<circle cx="${x(p, i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.5" fill="var(--series)" stroke="#fff" stroke-width="1.5"/>`).join('') : ''}`
+  const points = series.map((p, i) => [Math.round(x(p, i)), Math.round(y(p.v)), `${p.label}: ${fmt(p.v)}`])
+  return `<div class="ichart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(points.map((p) => p[2]).join(', '))}">
+    ${ticks.map((v) => `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#898781">${fmt(v)}</text>`).join('')}
+    ${goal ? `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(goal.v)}" y2="${y(goal.v)}" stroke="var(--ink-3)" stroke-dasharray="4 4"/><text x="${W - pad.r}" y="${y(goal.v) - 5}" text-anchor="end" font-size="11" fill="#57534e">${esc(goal.label)} ${fmt(goal.v)}</text>` : ''}
+    ${marks}
+    <text x="${pad.l}" y="${H - 6}" font-size="11" fill="#898781">${esc(series[0].label)}</text>
+    <text x="${W - pad.r}" y="${H - 6}" font-size="11" fill="#898781" text-anchor="end">${esc(series.at(-1).label)}</text>
+    <line class="cross" x1="0" x2="0" y1="${pad.t}" y2="${H - pad.b}" stroke="var(--ink-3)" visibility="hidden"/>
+    <circle class="hot" r="5" fill="var(--series)" stroke="#fff" stroke-width="2" visibility="hidden"/>
+  </svg><div class="tip" hidden></div><script type="application/json">${JSON.stringify(points).replace(/</g, '\\u003c')}</script></div>`
+}
+
+/** Shows the value nearest to the pointer or finger. */
+function readChart(e) {
+  const box = e.target.closest?.('.ichart')
+  if (!box) return
+  const svg = box.querySelector('svg')
+  const points = JSON.parse(box.querySelector('script').textContent)
+  const rect = svg.getBoundingClientRect()
+  const px = (((e.touches?.[0] ?? e).clientX - rect.left) / rect.width) * 720
+  const p = points.reduce((best, q) => (Math.abs(q[0] - px) < Math.abs(best[0] - px) ? q : best), points[0])
+  const cross = svg.querySelector('.cross')
+  const hot = svg.querySelector('.hot')
+  cross.setAttribute('x1', p[0])
+  cross.setAttribute('x2', p[0])
+  cross.setAttribute('visibility', 'visible')
+  hot.setAttribute('cx', p[0])
+  hot.setAttribute('cy', p[1])
+  hot.setAttribute('visibility', 'visible')
+  const tip = box.querySelector('.tip')
+  tip.textContent = p[2]
+  tip.hidden = false
+  tip.style.left = `${Math.min(rect.width - 160, Math.max(0, (p[0] / 720) * rect.width - 70))}px`
+}
+
+const DASH_METRICS = [
+  ['weight', 'Weight'],
+  ['strength', 'Strength'],
+  ['workouts', 'Workouts a week'],
+  ['volume', 'Volume a week'],
+  ['steps', 'Steps'],
+  ['kcal', 'Calories'],
+  ['protein', 'Protein'],
+]
+
+/** Their progress over time, one measure at a time, with the range and (for strength) the exercise to show. */
+function dashboardCard(d) {
+  const dash = (state.dash ??= { metric: 'weight', range: 90, exercise: null })
+  const since = Date.now() - dash.range * 86_400_000
+  const short = (t) => fmtDate(t, { day: 'numeric', month: 'short' })
+  const pr = p(d)
+  let chart = ''
+  let headline = ''
+  if (dash.metric === 'weight') {
+    const raw = d.weights.filter((w) => new Date(w.measured_at).getTime() >= since).map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.weight_kg), label: short(w.measured_at) }))
+    const trend = raw.map((q, i) => ({ ...q, v: raw.slice(Math.max(0, i - 6), i + 1).reduce((a, x) => a + x.v, 0) / Math.min(i + 1, 7) }))
+    chart = ichart(trend, { dots: raw, goal: pr.target_weight_kg ? { v: Number(pr.target_weight_kg), label: 'target' } : null, fmt: (v) => `${fmtNum(v, 1)} kg` })
+    headline = raw.length >= 2 ? `${fmtKg(raw.at(-1).v)} kg · ${raw.at(-1).v - raw[0].v >= 0 ? '+' : ''}${fmtKg(raw.at(-1).v - raw[0].v)} kg in this time` : ''
+  }
+  const weekly = (fn) => {
+    const out = []
+    const start = new Date(since)
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
+    start.setHours(0, 0, 0, 0)
+    for (let w = new Date(start); w <= new Date(); w.setDate(w.getDate() + 7)) {
+      const end = new Date(w)
+      end.setDate(end.getDate() + 7)
+      const inWeek = d.sessions.filter((s) => new Date(s.started_at) >= w && new Date(s.started_at) < end)
+      out.push({ t: w.getTime(), v: fn(inWeek), label: `week of ${short(w)}` })
+    }
+    return out
+  }
+  if (dash.metric === 'workouts') {
+    const bars = weekly((xs) => xs.length)
+    chart = ichart(bars, { bars: true, goal: { v: pr.workouts_per_week ?? 3, label: 'goal' }, fmt: (v) => fmtNum(v, 1) })
+    headline = `${fmtNum(bars.reduce((a, b) => a + b.v, 0) / Math.max(1, bars.length), 1)} a week on average`
+  }
+  if (dash.metric === 'volume') {
+    const bars = weekly((xs) =>
+      Math.round(d.sets.filter((x) => xs.some((s) => s.id === x.session_id) && !x.is_warmup).reduce((v, x) => v + Number(x.weight_kg ?? 0) * Number(x.reps ?? 0), 0)),
+    )
+    chart = ichart(bars, { bars: true, fmt: (v) => `${fmtNum(v)} kg` })
+    headline = `${fmtNum(bars.reduce((a, b) => a + b.v, 0) / Math.max(1, bars.length))} kg a week on average`
+  }
+  let exercises = []
+  if (dash.metric === 'strength') {
+    const byEx = new Map()
+    for (const x of d.sets.filter((y) => !y.is_warmup && y.weight_kg && y.reps && new Date(y.performed_at).getTime() >= since)) {
+      const day = dayKey(new Date(x.performed_at))
+      const e1rm = Number(x.weight_kg) * (1 + Math.min(x.reps, 15) / 30)
+      const m = byEx.get(x.exercise_id) ?? new Map()
+      m.set(day, Math.max(m.get(day) ?? 0, e1rm))
+      byEx.set(x.exercise_id, m)
+    }
+    exercises = [...byEx].filter(([, m]) => m.size >= 2).sort((a, b) => b[1].size - a[1].size).map(([id]) => id)
+    const ex = exercises.includes(dash.exercise) ? dash.exercise : exercises[0]
+    if (ex) {
+      const pts = [...byEx.get(ex)].sort((a, b) => a[0].localeCompare(b[0])).map(([day, v]) => ({ t: new Date(`${day}T12:00:00`).getTime(), v, label: short(`${day}T12:00:00`) }))
+      chart = ichart(pts, { fmt: (v) => `${fmtNum(v, 1)} kg` })
+      headline = `${esc(exerciseName(ex))}: estimated max ${fmtNum(pts.at(-1).v, 1)} kg · ${pts.at(-1).v >= pts[0].v ? '+' : ''}${fmtNum(((pts.at(-1).v - pts[0].v) / pts[0].v) * 100)}%`
+    } else chart = '<p class="muted">Not enough workouts in this time.</p>'
+  }
+  const daily = (rows, key, value) => rows.filter((r) => new Date(`${r[key]}T12:00:00`).getTime() >= since).sort((a, b) => a[key].localeCompare(b[key])).map((r) => ({ t: new Date(`${r[key]}T12:00:00`).getTime(), v: Math.round(value(r)), label: short(`${r[key]}T12:00:00`) }))
+  const average = (pts, unit = '') => (pts.length ? `${fmtNum(pts.reduce((a, b) => a + b.v, 0) / pts.length)}${unit} a day on average` : '')
+  if (dash.metric === 'steps') {
+    const pts = daily(d.steps.filter((x) => x.steps > 0), 'day', (x) => x.steps)
+    chart = ichart(pts, { goal: { v: pr.steps_goal ?? 7000, label: 'goal' } })
+    headline = average(pts)
+  }
+  if (dash.metric === 'kcal' || dash.metric === 'protein') {
+    const pts = daily(d.foodDays ?? [], 'day', (x) => (dash.metric === 'kcal' ? x.kcal : x.protein_g))
+    const target = d.energy?.targets?.[dash.metric === 'kcal' ? 'kcal' : 'protein_g']
+    chart = ichart(pts, { goal: target ? { v: target, label: 'target' } : null, fmt: (v) => `${fmtNum(v)}${dash.metric === 'kcal' ? ' kcal' : ' g'}` })
+    headline = average(pts, dash.metric === 'kcal' ? ' kcal' : ' g')
+  }
+  return `<div class="card"><h2>Progress</h2>
+    <div class="row" style="margin-bottom:8px">${DASH_METRICS.map(([k, label]) => `<button class="btn small ${dash.metric === k ? '' : 'secondary'}" data-action="dash-metric" data-k="${k}">${label}</button>`).join('')}</div>
+    <div class="row" style="margin-bottom:8px">${[[30, '1 month'], [90, '3 months'], [180, '6 months'], [365, '1 year']].map(([r, label]) => `<button class="btn small ${dash.range === r ? '' : 'secondary'}" data-action="dash-range" data-r="${r}">${label}</button>`).join('')}
+      ${dash.metric === 'strength' && exercises.length ? `<select id="dash-exercise">${exercises.map((id) => `<option value="${esc(id)}" ${id === (exercises.includes(dash.exercise) ? dash.exercise : exercises[0]) ? 'selected' : ''}>${esc(exerciseName(id))}</option>`).join('')}</select>` : ''}</div>
+    ${headline ? `<p><b>${headline}</b></p>` : ''}
+    <div class="chart">${chart}</div>
+    <p class="muted small">Point at the chart (or touch it) to read a day or a week.</p>
+  </div>`
+}
+
 function barChart(bars, goal) {
   if (!bars.length) return '<p class="muted">No steps synced yet.</p>'
   const W = 640
@@ -283,7 +436,7 @@ function exerciseOptions(selected) {
   if (!c) return `<option value="${esc(selected)}">${esc(selected)}</option>`
   const builtIn = [...c.builtIn].sort((a, b) => a.name.en.localeCompare(b.name.en))
   return `<optgroup label="Catalogue">${builtIn.map((e) => `<option value="${esc(e.id)}" ${e.id === selected ? 'selected' : ''}>${esc(e.name.en)} · ${esc(e.name.it)}</option>`).join('')}</optgroup>
-    <optgroup label="Custom">${c.custom.map((e) => `<option value="${esc(e.id)}" ${e.id === selected ? 'selected' : ''}>${esc(e.name_en)}</option>`).join('')}</optgroup>`
+    <optgroup label="Custom">${c.custom.filter((e) => !e.archived || e.id === selected).map((e) => `<option value="${esc(e.id)}" ${e.id === selected ? 'selected' : ''}>${esc(e.name_en)}</option>`).join('')}</optgroup>`
 }
 
 function planView() {
@@ -323,7 +476,7 @@ function planView() {
       ${state.versions?.[t.id] ? versionsList(t, ti) : ''}</div>`,
     )
     .join('')
-  return `${templates || '<div class="card muted">No workouts in the plan yet.</div>'}
+  return `${weekCard(state.data)}${templates || '<div class="card muted">No workouts in the plan yet.</div>'}
     <div class="card row">
       <button class="btn" data-action="tpl-new">+ New workout</button>
       ${others.length ? `<span class="muted">or copy the whole plan from</span><select id="copy-from">${others.map((u) => `<option value="${esc(u.id)}">${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select><button class="btn secondary" data-action="plan-copy">Copy</button>` : ''}
@@ -343,9 +496,62 @@ function versionsList(t, ti) {
     .join('')}</tbody></table>`
 }
 
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+/** yyyy-MM-dd in this computer's time zone. */
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const addDays = (d, n) => {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+
+/** What is planned on a day: the plan's workouts for that weekday, less those moved away, plus those moved there (as in the app). */
+function plannedOn(d, date) {
+  const day = dayKey(date)
+  const weekday = (date.getDay() + 6) % 7
+  const own = d.templates.filter((t) => t.weekday === weekday && !d.moves.some((m) => m.template_id === t.id && m.from_day === day)).map((t) => ({ t, from: null }))
+  const moved = d.moves.filter((m) => m.to_day === day).flatMap((m) => {
+    const t = d.templates.find((x) => x.id === m.template_id)
+    return t ? [{ t, from: m.from_day }] : []
+  })
+  return [...own, ...moved]
+}
+
+/** This week as on their phone, with a "Move to" for each workout still to do. */
+function weekCard(d) {
+  if (!d.templates.some((t) => t.weekday != null) && !d.moves.length) return ''
+  const now = new Date()
+  const monday = addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), -((now.getDay() + 6) % 7))
+  const today = dayKey(now)
+  const rows = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(monday, i)
+    const day = dayKey(date)
+    const done = d.sessions.filter((s) => dayKey(new Date(s.started_at)) === day)
+    const planned = plannedOn(d, date)
+    const cell = done.length
+      ? `<span class="ok">✓ ${done.map((s) => esc(s.name)).join(' + ')}</span>`
+      : planned.length
+        ? planned
+            .map(({ t, from }) => {
+              const own = from ?? day
+              const options = Array.from({ length: 10 }, (_, k) => addDays(new Date(), k))
+                .map(dayKey)
+                .filter((k) => k !== day && k <= dayKey(addDays(new Date(`${own}T12:00:00`), 7)))
+              return `<div class="row"><b>${esc(t.name)}</b>${from ? `<span class="muted small">moved from ${fmtDate(`${from}T12:00:00`, { weekday: 'long' })}</span>` : ''}
+                ${day >= today ? `<select data-move="${esc(t.id)}" data-from="${own}"><option value="">Move to…</option>${options.map((k) => `<option value="${k}">${fmtDate(`${k}T12:00:00`, { weekday: 'long', day: 'numeric', month: 'short' })}${k === own ? ' (its usual day)' : ''}</option>`).join('')}</select>` : `<button class="btn small secondary" data-action="ses-new" data-template="${esc(t.id)}" data-day="${day}">Log it</button>`}</div>`
+            })
+            .join('')
+        : '<span class="muted">rest</span>'
+    return `<tr${day === today ? ' style="background:var(--brand-soft)"' : ''}><td><b>${WEEKDAYS[i].slice(0, 3)}</b> <span class="muted small">${fmtDate(date, { day: 'numeric', month: 'short' })}</span></td><td>${cell}</td></tr>`
+  }).join('')
+  return `<div class="card"><h2>This week</h2><p class="muted small">Moving a workout changes this week only: the plan keeps its days. They can do the same in the app (Train → This week → Move).</p><table><tbody>${rows}</tbody></table></div>`
+}
+
 function workoutsView(d) {
-  if (!d.sessions.length) return '<div class="card muted">No workouts yet.</div>'
-  return `<div class="card"><table><thead><tr><th>Date</th><th>Workout</th><th class="num">Minutes</th><th class="num">Sets</th><th class="num">Effort</th></tr></thead><tbody>
+  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="ses-new">Log a workout</button></div>`
+  if (state.sesEdit) return sessionEditor(d)
+  if (!d.sessions.length) return `${add}<div class="card muted">No workouts yet.</div>`
+  return `${add}<div class="card"><table><thead><tr><th>Date</th><th>Workout</th><th class="num">Minutes</th><th class="num">Sets</th><th class="num">Effort</th><th></th></tr></thead><tbody>
     ${d.sessions
       .map((s) => {
         const sets = d.sets.filter((x) => x.session_id === s.id)
@@ -355,10 +561,105 @@ function workoutsView(d) {
         const detail = [...byEx]
           .map(([id, xs]) => `<div><b>${esc(exerciseName(id))}</b>: ${xs.map((x) => (x.weight_kg ? `${fmtNum(x.weight_kg, 2)}×` : '') + (x.reps ?? `${x.duration_s ?? 0}s`)).join(', ')}</div>`)
           .join('')
-        return `<tr><td>${fmtDate(s.started_at)}</td><td><details><summary>${esc(s.name)}</summary><div class="small" style="margin-top:6px">${detail}${s.notes ? `<p class="muted">“${esc(s.notes)}”</p>` : ''}</div></details></td><td class="num">${mins ?? '—'}</td><td class="num">${sets.length}</td><td class="num">${s.effort ?? '—'}/10</td></tr>`
+        return `<tr><td>${fmtDate(s.started_at)}</td><td><details><summary>${esc(s.name)}</summary><div class="small" style="margin-top:6px">${detail}${s.notes ? `<p class="muted">“${esc(s.notes)}”</p>` : ''}</div></details></td><td class="num">${mins ?? '—'}</td><td class="num">${sets.length}</td><td class="num">${s.effort ?? '—'}/10</td>
+          <td class="no-print"><div class="row"><button class="btn small secondary" data-action="ses-edit" data-id="${s.id}">Change</button><button class="btn small danger" data-action="ses-del" data-id="${s.id}">Delete</button></div></td></tr>`
       })
       .join('')}
   </tbody></table></div>`
+}
+
+const exerciseKind = (id) => state.catalogue?.builtIn.find((x) => x.id === id)?.kind ?? state.catalogue?.custom.find((x) => x.id === id)?.kind ?? 'reps'
+
+function sessionEditor(d) {
+  const e = state.sesEdit
+  const cell = (ei, si, k, step) => `<td class="num"><input class="n" type="number" min="0" step="${step}" data-ses-ex="${ei}" data-ses-set="${si}" data-field="${k}" value="${e.exercises[ei].sets[si][k] ?? ''}"></td>`
+  return `<div class="card" id="ses-editor"><h2>${e.id ? 'Change the workout' : 'Log a workout'}</h2>
+    ${e.source && !['app', 'coach'].includes(e.source) ? '<p class="small pill info">This workout came from another app: a new sync may replace your changes.</p>' : ''}
+    <div class="grid2">
+      <label class="field">When <input type="datetime-local" data-ses-field="at" value="${esc(e.at)}"></label>
+      <label class="field">Minutes <input type="number" min="1" data-ses-field="minutes" value="${esc(e.minutes)}"></label>
+      <label class="field">Name <input data-ses-field="name" value="${esc(e.name)}"></label>
+      <label class="field">From their plan <select data-ses-field="template_id"><option value="">—</option>${d.templates.map((t) => `<option value="${t.id}" ${e.template_id === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
+    </div>
+    ${e.exercises
+      .map(
+        (x, ei) => `<div style="margin-top:12px"><div class="row"><select data-ses-ex="${ei}" data-field="exercise_id" style="flex:1">${exerciseOptions(x.exercise_id)}</select><button class="btn small danger" data-action="ses-ex-del" data-i="${ei}">Remove exercise</button></div>
+        <table><thead><tr><th>Set</th><th class="num">kg</th><th class="num">${exerciseKind(x.exercise_id) === 'time' || exerciseKind(x.exercise_id) === 'cardio' ? 'Seconds' : 'Reps'}</th><th></th></tr></thead><tbody>
+          ${x.sets
+            .map(
+              (st, si) => `<tr><td>${st.is_warmup ? '<span class="warn">W</span>' : si + 1 - x.sets.slice(0, si).filter((y) => y.is_warmup).length}</td>${cell(ei, si, 'weight_kg', 0.25)}${
+                exerciseKind(x.exercise_id) === 'time' || exerciseKind(x.exercise_id) === 'cardio' ? cell(ei, si, 'duration_s', 1) : cell(ei, si, 'reps', 1)
+              }<td><button class="btn small secondary" data-action="ses-set-del" data-i="${ei}" data-j="${si}" ${x.sets.length > 1 ? '' : 'disabled'}>✕</button></td></tr>`,
+            )
+            .join('')}
+        </tbody></table><button class="btn small secondary" data-action="ses-set-add" data-i="${ei}">+ Set</button></div>`,
+      )
+      .join('')}
+    <div class="row" style="margin-top:12px"><button class="btn small secondary" data-action="ses-ex-add">+ Exercise</button></div>
+    <div class="grid2" style="margin-top:12px">
+      <label class="field">Effort (1–10)<input type="number" min="1" max="10" data-ses-field="effort" value="${esc(e.effort ?? '')}"></label>
+      <label class="field">Notes<input data-ses-field="notes" value="${esc(e.notes ?? '')}"></label>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn" data-action="ses-save">Save</button><button class="btn secondary" data-action="ses-cancel">Cancel</button></div>
+  </div>`
+}
+
+/** A plan's workout with the sets they did last time (or the plan's numbers), ready to change. */
+function setsFromTemplate(d, t) {
+  return t.exercises.map((te) => {
+    const lastSession = d.sessions.find((s) => d.sets.some((x) => x.session_id === s.id && x.exercise_id === te.exercise_id))
+    const last = lastSession ? d.sets.filter((x) => x.session_id === lastSession.id && x.exercise_id === te.exercise_id && !x.is_warmup) : []
+    return {
+      exercise_id: te.exercise_id,
+      sets: Array.from({ length: Math.max(1, te.sets) }, (_, i) => ({ weight_kg: last[i]?.weight_kg ?? te.target_kg ?? null, reps: last[i]?.reps ?? te.rep_min, duration_s: last[i]?.duration_s ?? null, is_warmup: false })),
+    }
+  })
+}
+
+async function sessionAction(action, btn) {
+  const d = state.data
+  const e = state.sesEdit
+  if (action === 'ses-new') {
+    const t = d.templates.find((x) => x.id === btn.dataset.template) ?? null
+    const day = btn.dataset.day
+    state.tab = 'workouts'
+    state.sesEdit = { id: null, source: null, at: day ? `${day}T18:00` : localInput(new Date()), minutes: 45, name: t?.name ?? 'Workout', template_id: t?.id ?? '', effort: '', notes: '', exercises: t ? setsFromTemplate(d, t) : [] }
+  }
+  if (action === 'ses-edit') {
+    const s = d.sessions.find((x) => x.id === btn.dataset.id)
+    const byOrder = new Map()
+    for (const x of d.sets.filter((y) => y.session_id === s.id).sort((a, b) => a.exercise_order - b.exercise_order || a.set_index - b.set_index)) {
+      const ex = byOrder.get(x.exercise_order) ?? { exercise_id: x.exercise_id, sets: [] }
+      ex.sets.push({ weight_kg: x.weight_kg, reps: x.reps, duration_s: x.duration_s, is_warmup: x.is_warmup })
+      byOrder.set(x.exercise_order, ex)
+    }
+    const minutes = s.finished_at ? Math.max(1, Math.round((new Date(s.finished_at) - new Date(s.started_at)) / 60000)) : 45
+    state.sesEdit = { id: s.id, source: s.source, at: localInput(s.started_at), minutes, name: s.name, template_id: s.template_id ?? '', effort: s.effort ?? '', notes: s.notes ?? '', exercises: [...byOrder.values()] }
+  }
+  if (action === 'ses-cancel') state.sesEdit = null
+  if (action === 'ses-ex-add') e.exercises.push({ exercise_id: state.catalogue?.builtIn[0]?.id ?? 'goblet_squat', sets: [{ weight_kg: null, reps: null, duration_s: null, is_warmup: false }] })
+  if (action === 'ses-ex-del') e.exercises.splice(Number(btn.dataset.i), 1)
+  if (action === 'ses-set-add') {
+    const sets = e.exercises[Number(btn.dataset.i)].sets
+    sets.push({ ...(sets.at(-1) ?? {}), is_warmup: false })
+  }
+  if (action === 'ses-set-del') e.exercises[Number(btn.dataset.i)].sets.splice(Number(btn.dataset.j), 1)
+  if (action === 'ses-del') {
+    const s = d.sessions.find((x) => x.id === btn.dataset.id)
+    if (!confirm(`Delete “${s?.name ?? 'this workout'}” of ${fmtDate(s?.started_at)}? It disappears from their phone too.`)) return
+    await api(`/api/sessions/${btn.dataset.id}`, { method: 'DELETE' })
+    toast('Workout deleted')
+    return selectUser(state.selected)
+  }
+  if (action === 'ses-save') {
+    const body = { ...e, started_at: new Date(e.at).toISOString() }
+    if (e.id) await api(`/api/sessions/${e.id}`, { method: 'PUT', body })
+    else await api(`/api/users/${state.selected}/sessions`, { method: 'POST', body })
+    state.sesEdit = null
+    toast(e.id ? 'Workout changed' : 'Workout logged')
+    return selectUser(state.selected)
+  }
+  render()
 }
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -602,7 +903,24 @@ function knowledgeView() {
   const tips = [...kb.builtIn.tips.map((t) => ({ id: t.id, text_en: t.text.en, text_it: t.text.it, topic: t.topic, builtIn: true })), ...kb.tips.filter((r) => !kb.builtIn.tips.some((t) => t.id === r.id))]
     .map((t) => ({ ...t, ...(tipRows.get(t.id) ?? {}) }))
   const lessonOptions = (selected) => [...course, ...expert].map((l) => `<option value="${esc(l.id)}" ${l.id === selected ? 'selected' : ''}>${esc(l.title?.en ?? l.id)}</option>`).join('')
+  const idea = state.kbIdea
   return `<div class="pad">
+    <div class="card"><h2>Ideas from a topic</h2>
+      <p class="muted">Write a topic (for example “sleep habits” or “protein at breakfast”): the food AI drafts a short lesson with its quiz, and tips of the day, in English and Italian. Check them before using them: references come only from the app's verified list.</p>
+      <div class="row"><input id="kb-topic" placeholder="e.g. sleep habits" value="${esc(state.kbTopic ?? '')}" style="flex:1;min-width:220px"><button class="btn" data-action="kb-suggest">Suggest a lesson and tips</button></div>
+      ${
+        idea
+          ? `<div class="kb-edit" style="margin-top:12px"><div class="stack">
+              <h3>${esc(idea.lesson.emoji)} ${esc(idea.lesson.title.en)} · <span class="muted">${esc(idea.lesson.title.it)}</span></h3>
+              <p class="small muted">${esc(idea.lesson.subtitle.en)}</p>
+              <p class="small">${idea.lesson.quiz.length} quiz questions · ${idea.lesson.sources.length ? `references: ${idea.lesson.sources.map(esc).join(', ')}` : 'no reference from the list fits: add one before saving'}</p>
+              <div class="row"><button class="btn" data-action="kb-idea-use">Use this lesson (edit, then save)</button><button class="btn secondary" data-action="kb-idea-close">Close</button></div>
+              <h3 style="margin-top:8px">Tips of the day</h3>
+              <ul class="media-list">${idea.tips.map((t, i) => `<li><span style="flex:1">${esc(t.en)}<br><span class="muted small">${esc(t.it)}</span></span>${idea.added?.includes(i) ? '<span class="ok small">added</span>' : `<button class="btn small secondary" data-action="tip-idea-add" data-i="${i}">Add</button>`}</li>`).join('')}</ul>
+            </div>${previewFrame('idea')}</div>`
+          : ''
+      }
+    </div>
     <div class="card"><h2>Lessons</h2>
       <p class="muted">Change a lesson, hide it, move it, or write a new one: everyone sees it in Forza! the next time they open Learn. ${state.status?.appUrl ? `Preview: <a href="${esc(state.status.appUrl)}#/learn" target="_blank">open Learn ↗</a>` : ''}</p>
       ${lessonsTable("Beginners' course", course)}
@@ -611,12 +929,13 @@ function knowledgeView() {
     </div>
     <div class="card"><h2>Tips of the day</h2>
       <p class="muted">One a day on everyone's Home page, with a link to the lesson that explains it.</p>
+      ${state.tipPreview ? previewFrame('tip') : ''}
       <table><thead><tr><th>English</th><th>Italiano</th><th>Lesson</th><th></th></tr></thead><tbody>
       ${tips
         .map(
           (t) => `<tr data-tip="${esc(t.id)}"${t.hidden ? ' class="muted"' : ''}><td><textarea name="text_en" rows="2">${esc(t.text_en)}</textarea></td><td><textarea name="text_it" rows="2">${esc(t.text_it)}</textarea></td>
           <td><select name="topic"><option value="">—</option>${lessonOptions(t.topic)}</select></td>
-          <td class="row" style="flex-wrap:nowrap"><button class="btn small" data-action="tip-save" data-id="${esc(t.id)}">Save</button><button class="btn secondary small" data-action="tip-hide" data-id="${esc(t.id)}">${t.hidden ? 'Show' : 'Hide'}</button>${tipRows.has(t.id) ? `<button class="btn secondary small" data-action="tip-reset" data-id="${esc(t.id)}" title="${t.builtIn ? 'Back to the original' : 'Delete'}">${t.builtIn ? 'Undo' : '✕'}</button>` : ''}</td></tr>`,
+          <td class="row" style="flex-wrap:nowrap"><button class="btn small secondary" data-action="tip-preview" data-id="${esc(t.id)}">Preview</button><button class="btn small" data-action="tip-save" data-id="${esc(t.id)}">Save</button><button class="btn secondary small" data-action="tip-hide" data-id="${esc(t.id)}">${t.hidden ? 'Show' : 'Hide'}</button>${tipRows.has(t.id) ? `<button class="btn secondary small" data-action="tip-reset" data-id="${esc(t.id)}" title="${t.builtIn ? 'Back to the original' : 'Delete'}">${t.builtIn ? 'Undo' : '✕'}</button>` : ''}</td></tr>`,
         )
         .join('')}
       </tbody></table>
@@ -629,10 +948,88 @@ function quizDays(d) {
   return `${n} day${n === 1 ? '' : 's'}`
 }
 
+/** The lesson as written in the editor (throws when the blocks or the quiz are not valid JSON). */
+function lessonFromForm(form) {
+  const data = Object.fromEntries(new FormData(form))
+  const lines = String(data.sources ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+  const known = new Set(state.kb.builtIn.sources.map((x) => x.id))
+  const sources = lines.map((line) => {
+    if (known.has(line)) return line
+    const url = line.match(/https?:\/\/\S+/)?.[0]
+    return { title: line.replace(url ?? '', '').trim().replace(/[.\s]+$/, ''), ...(url ? { url } : {}) }
+  })
+  const blocks = JSON.parse(data.blocks || '[]')
+  const quiz = JSON.parse(data.quiz || '[]')
+  return {
+    emoji: data.emoji,
+    tone: data.tone,
+    title: { en: data.title_en, it: data.title_it },
+    subtitle: { en: data.subtitle_en ?? '', it: data.subtitle_it ?? '' },
+    blocks,
+    sources,
+    ...(quiz.length ? { quiz } : {}),
+  }
+}
+
+/** The app itself, in a frame, drawing what is being written (a lesson or a tip). */
+function previewFrame(kind) {
+  const app = state.status?.appUrl
+  if (!app) return '<p class="muted small">Set the app address in Setup to see the preview.</p>'
+  return `<div class="preview-pane"><p class="small muted" style="margin:0 0 4px">As on their phone</p><iframe class="kb-frame" data-kind="${kind}" src="${esc(app)}#/learn/preview?lang=it" title="Preview"></iframe></div>`
+}
+
+const appOrigin = () => {
+  try {
+    return new URL(state.status?.appUrl).origin
+  } catch {
+    return '*'
+  }
+}
+
+/** What each preview shows: the lesson in the editor, the suggested lesson, or a tip. */
+function previewOf(kind) {
+  if (kind === 'lesson') {
+    const form = document.querySelector('form[data-form="kb-lesson"]')
+    try {
+      return form ? { lesson: lessonFromForm(form) } : null
+    } catch {
+      return null
+    }
+  }
+  if (kind === 'idea') return state.kbIdea ? { lesson: state.kbIdea.lesson } : null
+  if (kind === 'tip') {
+    const row = state.tipPreview && document.querySelector(`[data-tip="${CSS.escape(state.tipPreview)}"]`)
+    if (!row) return null
+    const text = { en: row.querySelector('[name=text_en]').value, it: row.querySelector('[name=text_it]').value }
+    const topic = row.querySelector('[name=topic]').value
+    const lesson = [...kbLessons()[0], ...kbLessons()[1]].find((x) => x.id === topic)
+    return { tip: { text, lesson: lesson ? { emoji: lesson.emoji, title: lesson.title } : null } }
+  }
+  return null
+}
+
+function sendPreviews(onlyWindow = null) {
+  for (const frame of document.querySelectorAll('.kb-frame')) {
+    if (onlyWindow && frame.contentWindow !== onlyWindow) continue
+    const payload = previewOf(frame.dataset.kind)
+    if (payload) frame.contentWindow?.postMessage({ type: 'forza-preview', ...payload }, appOrigin())
+  }
+}
+
+let previewTimer = 0
+const schedulePreview = () => {
+  clearTimeout(previewTimer)
+  previewTimer = setTimeout(() => sendPreviews(), 300)
+}
+
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'forza-preview-ready') sendPreviews(e.source)
+})
+
 function lessonEditor(l) {
   const sources = (l.sources ?? []).map((s) => (typeof s === 'string' ? s : [s.authors && `${s.authors}${s.year ? ` (${s.year})` : ''}.`, s.title, s.journal, s.url].filter(Boolean).join(' '))).join('\n')
   const field = (name, label, value, extra = '') => `<label class="field">${label}<input name="${name}" value="${esc(value ?? '')}" ${extra}></label>`
-  return `<form class="card stack" data-form="kb-lesson">
+  return `<div class="kb-edit"><form class="card stack" data-form="kb-lesson">
     <h2>${l.isNew ? 'New lesson' : `Edit: ${esc(l.title?.en ?? l.id)}`}</h2>
     <div class="grid2">
       ${field('id', 'Id (letters, digits, - and _)', l.id, l.isNew ? 'required pattern="[a-z0-9_-]{2,40}"' : 'readonly')}
@@ -652,7 +1049,7 @@ function lessonEditor(l) {
     <details><summary class="small">Known sources</summary><ul class="small">${state.kb.builtIn.sources.map((s) => `<li><code>${esc(s.id)}</code> ${esc(s.authors)} (${s.year}). ${esc(s.title)}</li>`).join('')}</ul></details>
     <div class="row"><button class="btn">Save</button><button type="button" class="btn secondary" data-action="kb-cancel">Cancel</button>
       ${l.row ? `<button type="button" class="btn danger" data-action="kb-reset" data-id="${esc(l.id)}">${l.builtIn ? 'Back to the original' : 'Delete lesson'}</button>` : ''}</div>
-  </form>`
+  </form>${previewFrame('lesson')}</div>`
 }
 
 const isVideo = (u) => /\.(mp4|webm|mov)(\?|#|$)/i.test(u)
@@ -1222,6 +1619,39 @@ const fileToBase64 = (file) =>
 /** Buttons of the Lessons & tips page. */
 async function knowledgeAction(action, btn) {
   const kb = state.kb
+  if (action === 'kb-suggest') {
+    const topic = document.getElementById('kb-topic').value.trim()
+    if (!topic) return toast('Write a topic first')
+    state.kbTopic = topic
+    toast('Writing a draft… (about 20 seconds)')
+    state.kbIdea = { ...(await api('/api/kb/suggest', { method: 'POST', body: { topic } })), added: [] }
+    return render()
+  }
+  if (action === 'kb-idea-close') {
+    state.kbIdea = null
+    return render()
+  }
+  if (action === 'kb-idea-use') {
+    const x = state.kbIdea.lesson
+    const id = x.title.en.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || 'new_lesson'
+    state.kbEdit = { ...x, id: kbLessons().flat().some((l) => l.id === id) ? `${id}_2`.slice(0, 40) : id, isNew: true, track: 'course' }
+    return render()
+  }
+  if (action === 'tip-idea-add') {
+    const i = Number(btn.dataset.i)
+    const tip = state.kbIdea.tips[i]
+    const n = Math.max(0, ...[...kb.builtIn.tips, ...kb.tips].map((t) => Number(/^tip(\d+)$/.exec(t.id)?.[1] ?? 0))) + 1
+    await api(`/api/kb/tips/tip${n}`, { method: 'PUT', body: { text_en: tip.en, text_it: tip.it, topic: '', hidden: false } })
+    state.kbIdea.added.push(i)
+    state.kb = await api('/api/kb')
+    toast('Tip added: it is now among the tips of the day')
+    return render()
+  }
+  if (action === 'tip-preview') {
+    state.tipPreview = state.tipPreview === btn.dataset.id ? null : btn.dataset.id
+    render()
+    return sendPreviews()
+  }
   const [course, expert] = kbLessons()
   const lesson = [...course, ...expert].find((l) => l.id === btn.dataset.id)
   const save = (l, patch) => api(`/api/kb/lessons/${encodeURIComponent(l.id)}`, { method: 'PUT', body: { track: l.track, position: l.row?.position ?? null, hidden: l.hidden, content: l.row?.content ?? {}, ...patch } })
@@ -1309,6 +1739,20 @@ app.addEventListener('change', async (e) => {
     }
     return render()
   }
+  if (e.target.id === 'dash-exercise') {
+    state.dash.exercise = e.target.value
+    return render()
+  }
+  if (e.target.dataset?.move !== undefined && e.target.value) {
+    const { move: template_id, from: from_day } = e.target.dataset
+    try {
+      await api(`/api/users/${state.selected}/moves`, { method: 'POST', body: { template_id, from_day, to_day: e.target.value } })
+      toast('Moved: their phone shows it on the new day')
+    } catch (err) {
+      toast(`Error: ${err.message}`)
+    }
+    return selectUser(state.selected)
+  }
   if (e.target.dataset?.wcsv !== undefined) {
     state.weightsCsv.map[e.target.dataset.wcsv] = e.target.value
     return
@@ -1337,6 +1781,12 @@ app.addEventListener('input', (e) => {
     box.setSelectionRange(box.value.length, box.value.length)
     return
   }
+  if (el.id === 'kb-topic') {
+    state.kbTopic = el.value
+    return
+  }
+  // The previews follow what is typed in a lesson or a tip.
+  if (el.closest('form[data-form="kb-lesson"]') || (state.tipPreview && el.closest(`[data-tip="${CSS.escape(state.tipPreview)}"]`))) schedulePreview()
   // What is typed in the exercise editor survives the redraw after an upload.
   if (el.name && el.closest('form[data-form="exercise"]')) {
     state.exEdit[el.name] = el.value
@@ -1347,6 +1797,26 @@ app.addEventListener('input', (e) => {
     return
   }
   if (el.dataset.mealItem !== undefined) return mealItemInput(el)
+  // The workout editor: its fields, and each set.
+  if (el.dataset.sesField) {
+    state.sesEdit[el.dataset.sesField] = el.value
+    // A new workout taken from the plan: its exercises, with the sets of last time.
+    const t = el.dataset.sesField === 'template_id' && !state.sesEdit.id ? state.data.templates.find((x) => x.id === el.value) : null
+    if (t) {
+      Object.assign(state.sesEdit, { name: t.name, exercises: setsFromTemplate(state.data, t) })
+      render()
+    }
+    return
+  }
+  if (el.dataset.sesEx !== undefined) {
+    const ex = state.sesEdit.exercises[Number(el.dataset.sesEx)]
+    if (el.dataset.field === 'exercise_id') {
+      ex.exercise_id = el.value
+      return render()
+    }
+    ex.sets[Number(el.dataset.sesSet)][el.dataset.field] = el.value === '' ? null : Number(el.value)
+    return
+  }
   if (el.dataset.ai !== undefined) {
     state.ai.order[Number(el.dataset.ai)][el.dataset.field] = el.value
     return
@@ -1539,6 +2009,11 @@ app.addEventListener('click', async (e) => {
     }
     if (action.startsWith('kb-') || action.startsWith('tip-')) return knowledgeAction(action, btn)
     if (action.startsWith('meal-')) return mealAction(action, btn)
+    if (action.startsWith('ses-')) return sessionAction(action, btn)
+    if (action === 'dash-metric' || action === 'dash-range') {
+      state.dash = { ...state.dash, ...(action === 'dash-metric' ? { metric: btn.dataset.k } : { range: Number(btn.dataset.r) }) }
+      return render()
+    }
     if (action === 'wcsv-cancel') {
       state.weightsCsv = null
       return render()
@@ -1612,28 +2087,11 @@ app.addEventListener('submit', async (e) => {
     }
     if (form.dataset.form === 'kb-lesson') {
       const l = state.kbEdit
-      const lines = String(data.sources ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
-      const known = new Set(state.kb.builtIn.sources.map((x) => x.id))
-      const sources = lines.map((line) => {
-        if (known.has(line)) return line
-        const url = line.match(/https?:\/\/\S+/)?.[0]
-        return { title: line.replace(url ?? '', '').trim().replace(/[.\s]+$/, ''), ...(url ? { url } : {}) }
-      })
-      let blocks, quiz
+      let content
       try {
-        blocks = JSON.parse(data.blocks || '[]')
-        quiz = JSON.parse(data.quiz || '[]')
+        content = lessonFromForm(form)
       } catch (err) {
         return toast(`The content or the quiz is not valid JSON: ${err.message}`)
-      }
-      const content = {
-        emoji: data.emoji,
-        tone: data.tone,
-        title: { en: data.title_en, it: data.title_it },
-        subtitle: { en: data.subtitle_en ?? '', it: data.subtitle_it ?? '' },
-        blocks,
-        sources,
-        ...(quiz.length ? { quiz } : {}),
       }
       // A built-in lesson keeps only what was changed, so the rest still gets the app's own updates.
       const original = state.kb.builtIn.lessons.find((x) => x.id === data.id)
@@ -1732,3 +2190,15 @@ async function loadPhotos() {
     app.innerHTML = `<p class="pad">Could not reach the database: ${esc(err.message)}</p>`
   }
 })()
+
+// Reading the interactive charts: the nearest day or week to the pointer or finger.
+app.addEventListener('mousemove', readChart)
+app.addEventListener('touchstart', readChart, { passive: true })
+app.addEventListener('touchmove', readChart, { passive: true })
+app.addEventListener('mouseout', (e) => {
+  const box = e.target.closest?.('.ichart')
+  if (!box || box.contains(e.relatedTarget)) return
+  box.querySelector('.tip').hidden = true
+  for (const el of box.querySelectorAll('.cross, .hot')) el.setAttribute('visibility', 'hidden')
+})
+

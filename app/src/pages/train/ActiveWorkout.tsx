@@ -93,6 +93,8 @@ export function ActiveWorkout() {
   const [howTo, setHowTo] = useState<Exercise | null>(null)
   const [picking, setPicking] = useState(false)
   const [finishing, setFinishing] = useState(false)
+  // Opened by itself when the last set is ticked: "All done! Save it?"
+  const [complete, setComplete] = useState(false)
   const now = useNow()
   useWakeLock()
 
@@ -131,6 +133,12 @@ export function ActiveWorkout() {
     const timed = kind === 'time' || kind === 'cardio'
     if (s.done) return updateSet(ei, si, { done: false, doneAt: null })
     const target = s.warmup ? (s.reps ?? ex.rep_min) : (ex.suggestion?.reps ?? ex.rep_min)
+    // The last set of the workout: no rest timer, and the app offers to save.
+    const last = w.exercises.every((e, i) => e.sets.every((x, j) => x.done || (i === ei && j === si)))
+    if (last) {
+      setComplete(true)
+      window.setTimeout(() => setFinishing(true), 400)
+    }
     // Supersets: no rest until every exercise of the round has done this set.
     let restS = s.warmup ? Math.min(60, ex.rest_s) : ex.rest_s
     if (!s.warmup && ex.superset != null) {
@@ -141,7 +149,7 @@ export function ActiveWorkout() {
     }
     setW((x) => ({
       ...x,
-      rest: restS > 0 ? { endsAt: Date.now() + restS * 1000, total: restS } : null,
+      rest: restS > 0 && !last ? { endsAt: Date.now() + restS * 1000, total: restS } : null,
       exercises: x.exercises.map((e, i) =>
         i === ei
           ? {
@@ -303,7 +311,11 @@ export function ActiveWorkout() {
       <ExercisePicker open={picking} onClose={() => setPicking(false)} onPick={addExercise} />
       <FinishSheet
         open={finishing}
-        onClose={() => setFinishing(false)}
+        onClose={() => {
+          setFinishing(false)
+          setComplete(false)
+        }}
+        complete={complete}
         workout={w}
         elapsed={elapsed}
         onDiscard={() => {
@@ -535,6 +547,7 @@ function ExerciseBlock({
 function FinishSheet({
   open,
   onClose,
+  complete,
   workout,
   elapsed,
   onDiscard,
@@ -543,6 +556,7 @@ function FinishSheet({
 }: {
   open: boolean
   onClose: () => void
+  complete: boolean
   workout: Workout
   elapsed: number
   onDiscard: () => void
@@ -564,8 +578,9 @@ function FinishSheet({
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={t('finish.title')}>
+    <Sheet open={open} onClose={onClose} title={complete ? t('finish.completeTitle') : t('finish.title')}>
       <div className="grid gap-4">
+        {complete ? <p className="text-lg font-semibold">{t('finish.completeText')}</p> : null}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-2xl bg-card-2 p-3">
             <div className="text-sm text-ink-2">{t('finish.time')}</div>

@@ -12,7 +12,7 @@ import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
 import { copySuggestion } from '../lib/copyMeal'
-import { getActivities, getFood, getLessonProgress, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { getActivities, getFood, getLessonProgress, getMoves, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
@@ -29,13 +29,13 @@ export function Dashboard() {
   const [logOpen, setLogOpen] = useState(false)
   const knowledge = useKnowledge()
   const { data, loading, reload } = useAsync(
-    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress(), getQuizAnswers()]),
+    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress(), getQuizAnswers(), getMoves()]),
     [],
   )
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food, templates, activities, lessons, quizAnswers] = data
+    const [weights, sessions, steps, food, templates, activities, lessons, quizAnswers, moves] = data
     const readLessons = new Set(lessons.map((r) => r.lesson_id))
     const energy = computeEnergy(profile, weights, steps, sessions, food)
     const trend = weightTrend(dailyWeights(weights))
@@ -61,7 +61,7 @@ export function Dashboard() {
     const daysSinceLast = lastSession ? Math.floor((Date.now() - new Date(lastSession.started_at).getTime()) / 86_400_000) : null
     const trainedToday = lastSession && localDay(new Date(lastSession.started_at)) === today
     const stepsToday = steps.find((s) => s.day === today)?.steps ?? null
-    const next = nextTemplate(templates, sessions)
+    const next = nextTemplate(templates, sessions, new Date(), moves)
     const weighedToday = weights.some((w) => localDay(new Date(w.measured_at)) === today)
     // Weigh-ins arriving from a scale or a health app: no need to ask for them.
     const scaleSynced = weights.some((w) => (w.source === 'health_connect' || w.source === 'apple_health') && new Date(w.measured_at) >= daysAgo(30))

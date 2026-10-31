@@ -178,10 +178,11 @@ export function buildExercise(te: TemplateExercise, ex: Exercise | undefined, la
     last: last.map((l) => ({ weight: l.weight_kg, reps: l.reps, duration: l.duration_s })),
     sets: [
       ...warm,
+      // Proposed from last time (double progression): the weight and the reps to aim for, ready to tick.
       ...Array.from({ length: Math.max(1, te.sets) }, (_, i) => ({
         weight: s.weight ?? last[i]?.weight_kg ?? null,
-        reps: null,
-        duration: isTime ? (last[i]?.duration_s ?? null) : null,
+        reps: isTime ? null : s.reps,
+        duration: isTime ? (last[i]?.duration_s ?? (s.kind === 'first' ? null : s.reps)) : null,
         rir: null,
         done: false,
         doneAt: null,

@@ -22,6 +22,7 @@ import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
 import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
+import { deleteSession, moveWorkout, saveSession } from './lib/sessions.mjs'
 import { importWeights, previewWeights } from './lib/weights.mjs'
 import { Device, downloadAdb, findAdb } from './lib/adb.mjs'
 import { autoSyncSettings, autoSyncTick, saveAutoSync } from './lib/auto-sync.mjs'
@@ -140,6 +141,20 @@ async function listUsers() {
   }))
 }
 
+/** Calories and protein per day, in this computer's time zone. */
+function dailyFood(rows) {
+  const days = new Map()
+  for (const f of rows) {
+    const d = new Date(f.eaten_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const x = days.get(key) ?? { day: key, kcal: 0, protein_g: 0 }
+    x.kcal += Number(f.kcal) || 0
+    x.protein_g += Number(f.protein_g) || 0
+    days.set(key, x)
+  }
+  return [...days.values()]
+}
+
 function energyOf(profile, weights, steps, sessions, food) {
   try {
     return computeEnergy(profile, weights, steps, sessions, food)
@@ -152,14 +167,13 @@ function energyOf(profile, weights, steps, sessions, food) {
 async function userData(id) {
   const db = need()
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
-  const quarter = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10)
   const month = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons, quiz] = await Promise.all([
+  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons, quiz, moves, foodDays] = await Promise.all([
     db.from('profiles').select('*').eq('id', id).maybeSingle(),
     fetchAll((from, to) => db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at').order('id').range(from, to)),
     db.from('workout_sessions').select('*').eq('user_id', id).gte('started_at', year).order('started_at', { ascending: false }),
     fetchAll((from, to) => db.from('set_logs').select('*').eq('user_id', id).gte('performed_at', year).order('performed_at').order('id').range(from, to)),
-    db.from('daily_steps').select('*').eq('user_id', id).gte('day', quarter).order('day'),
+    db.from('daily_steps').select('*').eq('user_id', id).gte('day', year.slice(0, 10)).order('day'),
     db.from('food_logs').select('*').eq('user_id', id).gte('eaten_at', month).order('eaten_at', { ascending: false }),
     db.from('checkins').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(30),
     db.from('workout_templates').select('*').eq('user_id', id).eq('archived', false).order('position'),
@@ -168,6 +182,9 @@ async function userData(id) {
     db.from('progress_photos').select('*').eq('user_id', id).order('taken_at', { ascending: false }),
     db.from('lesson_progress').select('*').eq('user_id', id),
     db.from('quiz_answers').select('day, correct').eq('user_id', id).gte('day', month.slice(0, 10)),
+    db.from('workout_moves').select('id, template_id, from_day, to_day').eq('user_id', id).gte('to_day', new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10)),
+    // A year of calories and protein, for the progress charts.
+    fetchAll((from, to) => db.from('food_logs').select('eaten_at, kcal, protein_g').eq('user_id', id).gte('eaten_at', year).order('eaten_at').range(from, to)),
   ])
   return {
     profile: check(profile),
@@ -184,8 +201,10 @@ async function userData(id) {
     lessons: check(lessons),
     // The daily targets, worked out exactly as on their phone (the app's own code, shared/energy.mjs).
     energy: profile.data ? energyOf(profile.data, weights.data ?? [], steps.data ?? [], sessions.data ?? [], food.data ?? []) : null,
-    // A server not updated yet has no daily quiz.
+    // A server not updated yet has no daily quiz (or moves).
     quiz: quiz.data ?? [],
+    moves: moves.data ?? [],
+    foodDays: dailyFood(foodDays.data ?? []),
     homeSections: HOME_SECTIONS,
     homeOrder: homeOrder(profile.data?.home_order),
   }
@@ -449,6 +468,51 @@ async function saveAiOrder(body) {
   return aiOverview()
 }
 
+/** Where the app lives, for the preview frame. */
+function appOrigin() {
+  try {
+    return new URL(ctx?.appUrl ?? DEFAULT_APP_URL).origin
+  } catch {
+    return "'none'"
+  }
+}
+
+/**
+ * A draft lesson and tips of the day on a topic, written by the food AI (Gemini first) for the coach to check and
+ * change: the lesson in the blocks the app draws, its quiz, and references only from the app's verified list.
+ */
+async function suggestLesson(body) {
+  need()
+  const topic = String(body.topic ?? '').trim().slice(0, 120)
+  if (!topic) throw Object.assign(new Error('Write a topic, for example "sleep habits"'), { status: 400 })
+  const builtIn = JSON.parse(await readFile(join(here, '../shared/knowledge.json'), 'utf8'))
+  const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.key}`, apikey: ctx.key },
+    body: JSON.stringify({ mode: 'lesson', topic, sources: builtIn.sources.map((x) => ({ id: x.id, title: `${x.authors ?? ''} ${x.year ?? ''} ${x.title}`.trim() })) }),
+  })
+  const a = await res.json().catch(() => ({}))
+  if (!res.ok) throw Object.assign(new Error(a.error === 'not_configured' ? 'The food AI is not set up (Setup → Food photo AI)' : (a.detail ?? a.error ?? `HTTP ${res.status}`)), { status: 502 })
+  const text = (v) => ({ en: String(v?.en ?? '').trim(), it: String(v?.it ?? v?.en ?? '').trim() })
+  const blocks = [
+    { type: 'intro', text: text(a.intro) },
+    { type: 'cards', cols: 2, items: (a.cards ?? []).slice(0, 4).map((c) => ({ emoji: String(c.emoji || '•'), title: text(c.title), text: text(c.text) })) },
+    { type: 'steps', title: text(a.steps_title), items: (a.steps ?? []).slice(0, 6).map((x) => ({ title: text(x.title), text: text(x.text) })) },
+    { type: 'dodont', dos: (a.dos ?? []).slice(0, 4).map(text), donts: (a.donts ?? []).slice(0, 4).map(text) },
+    { type: 'callout', emoji: '💡', text: text(a.callout) },
+  ].filter((b) => (b.items ?? b.dos ?? [b]).length)
+  const quiz = (a.quiz ?? [])
+    .map((q) => ({ q: text(q.q), options: (q.options ?? []).slice(0, 4).map(text), answer: Number(q.answer), why: text(q.why) }))
+    .filter((q) => q.options.length >= 2 && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length)
+    .slice(0, 3)
+  const tones = ['orange', 'green', 'blue', 'yellow', 'pink', 'purple']
+  return {
+    lesson: { emoji: String(a.emoji || '📘'), tone: tones.includes(a.tone) ? a.tone : 'blue', title: text(a.title), subtitle: text(a.subtitle), blocks, sources: a.sources ?? [], quiz },
+    tips: (a.tips ?? []).slice(0, 5).map(text),
+    model: a.model ?? null,
+  }
+}
+
 async function testFoodAi(body) {
   need()
   const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
@@ -547,6 +611,11 @@ const routes = [
     },
   ],
   ['POST', /^\/api\/weights-csv\/import$/, (_m, body) => importWeights(need(), body.text, body.map)],
+  // Workouts on any day, and planned workouts moved to another day.
+  ['POST', /^\/api\/users\/([\w-]+)\/sessions$/, (m, body) => saveSession(need(), m[1], body)],
+  ['PUT', /^\/api\/sessions\/([\w-]+)$/, (m, body) => saveSession(need(), null, body, m[1])],
+  ['DELETE', /^\/api\/sessions\/([\w-]+)$/, (m) => deleteSession(need(), m[1])],
+  ['POST', /^\/api\/users\/([\w-]+)\/moves$/, (m, body) => moveWorkout(need(), m[1], body)],
   ['POST', /^\/api\/users\/([\w-]+)\/import$/, (m, body) => importHistory(need(), m[1], body, { byCoach: true })],
   ['GET', /^\/api\/bws\/devices$/, () => bwsDevices()],
   ['GET', /^\/api\/users\/([\w-]+)\/auto-sync$/, (m) => autoSyncView(m[1])],
@@ -574,6 +643,7 @@ const routes = [
   ['PUT', /^\/api\/kb\/lessons\/([\w-]+)$/, (m, body) => saveLesson(m[1], body)],
   // A changed built-in lesson goes back to the original; a new lesson is deleted.
   ['DELETE', /^\/api\/kb\/lessons\/([\w-]+)$/, async (m) => check(await need().from('kb_lessons').delete().eq('id', m[1]).select())],
+  ['POST', /^\/api\/kb\/suggest$/, (_m, body) => suggestLesson(body)],
   ['PUT', /^\/api\/kb\/tips\/([\w-]+)$/, (m, body) => saveTip(m[1], body)],
   ['DELETE', /^\/api\/kb\/tips\/([\w-]+)$/, async (m) => check(await need().from('kb_tips').delete().eq('id', m[1]).select())],
   [
@@ -672,7 +742,8 @@ const server = createServer(async (req, res) => {
     res
       .writeHead(200, {
         'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
-        'content-security-policy': "default-src 'self'; img-src 'self' data: blob: https: http://127.0.0.1:54321; media-src 'self' blob: https: http://127.0.0.1:54321; connect-src 'self'; style-src 'self' 'unsafe-inline'",
+        // The app is framed for the lesson and tip previews.
+        'content-security-policy': `default-src 'self'; img-src 'self' data: blob: https: http://127.0.0.1:54321; media-src 'self' blob: https: http://127.0.0.1:54321; connect-src 'self'; style-src 'self' 'unsafe-inline'; frame-src ${appOrigin()}`,
       })
       .end(content)
   } catch (e) {

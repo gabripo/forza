@@ -16,6 +16,8 @@ import { HomeOrder } from './pages/HomeOrder'
 import { Install } from './pages/Install'
 import { Infographic } from './pages/learn/Infographic'
 import { LearnHome } from './pages/learn/LearnHome'
+import { LessonPreview } from './pages/learn/LessonPreview'
+import { ProgressDashboard } from './pages/ProgressDashboard'
 import { PointsQuiz } from './pages/learn/PointsQuiz'
 import { PrintLessons } from './pages/learn/PrintLessons'
 import { Login } from './pages/Login'
@@ -26,6 +28,7 @@ import { ActiveWorkout } from './pages/train/ActiveWorkout'
 import { ExerciseDetail } from './pages/train/ExerciseDetail'
 import { History } from './pages/train/History'
 import { SessionDetail } from './pages/train/SessionDetail'
+import { SessionEditor } from './pages/train/SessionEditor'
 import { TrainHome } from './pages/train/TrainHome'
 import { WorkoutEditor } from './pages/train/WorkoutEditor'
 import { Weights } from './pages/Weights'
@@ -44,6 +47,8 @@ function Gate() {
       </Routes>
     )
   }
+  // Forza! Coach's preview of a lesson or tip it is writing.
+  if (location.pathname === '/learn/preview') return <LessonPreview />
   if (!isConfigured) return <Login />
   if (loading) return <Loading />
   if (!session) return <Login />
@@ -56,10 +61,13 @@ function Gate() {
         <Route path="train/new" element={<WorkoutEditor />} />
         <Route path="train/edit/:id" element={<WorkoutEditor />} />
         <Route path="train/history" element={<History />} />
+        <Route path="train/log" element={<SessionEditor />} />
+        <Route path="train/session/:id/edit" element={<SessionEditor />} />
         <Route path="train/session/:id" element={<SessionDetail />} />
         <Route path="exercise/:id" element={<ExerciseDetail />} />
         <Route path="check" element={<Check />} />
         <Route path="check/photos" element={<Photos />} />
+        <Route path="check/dashboard" element={<ProgressDashboard />} />
         <Route path="food" element={<FoodHome />} />
         <Route path="food/snap" element={<FoodSnap />} />
         <Route path="food/voice" element={<FoodVoice />} />

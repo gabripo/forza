@@ -1,4 +1,4 @@
-import { BookOpen, Check, ChevronRight, Footprints, History as HistoryIcon, Pencil, Play, Plus, ShieldCheck } from 'lucide-react'
+import { ArrowRightLeft, BookOpen, Check, ChevronRight, Footprints, History as HistoryIcon, Pencil, Play, Plus, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { TrainingFacts } from '../../components/Cite'
@@ -6,9 +6,10 @@ import { ExerciseMedia } from '../../components/ExerciseMedia'
 import { ExercisePicker } from '../../components/ExercisePicker'
 import { Button, Card, Empty, Field, Loading, NumberInput, PageHeader, Sheet, cx } from '../../components/ui'
 import { useApp } from '../../lib/auth'
-import { addActivity, getActivities, getLastSets, getSessions, getTemplates, useAsync } from '../../lib/data'
+import { addActivity, getActivities, getLastSets, getMoves, getSessions, getTemplates, moveWorkout, useAsync } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
-import { activityMinutes, nextTemplate, weekPlan } from '../../lib/plan'
+import { localDay } from '../../lib/calc'
+import { activityMinutes, nextTemplate, weekPlan, type Planned } from '../../lib/plan'
 import type { WorkoutTemplate } from '../../lib/types'
 import { loadActive, saveActive, startFromTemplate } from '../../lib/workout'
 
@@ -22,7 +23,9 @@ export function TrainHome() {
   const [starting, setStarting] = useState<string | null>(null)
   const [browse, setBrowse] = useState(false)
   const [adding, setAdding] = useState(false)
-  const { data, loading, reload } = useAsync(() => Promise.all([getTemplates(), getSessions(120), getActivities(10)]), [])
+  // A planned workout being moved to another day ("Wednesday's workout on Thursday").
+  const [moving, setMoving] = useState<{ planned: Planned; day: Date } | null>(null)
+  const { data, loading, reload } = useAsync(() => Promise.all([getTemplates(), getSessions(120), getActivities(10), getMoves()]), [])
 
   async function start(tpl: WorkoutTemplate | null) {
     if (loadActive() && !window.confirm(t('train.replaceActive'))) return
@@ -47,9 +50,18 @@ export function TrainHome() {
   }, [startId, data])
 
   if (loading && !data) return <Loading />
-  const [templates, sessions, activities] = data ?? [[], [], []]
-  const next = nextTemplate(templates, sessions)
-  const week = weekPlan(templates, sessions, activities)
+  const [templates, sessions, activities, moves] = data ?? [[], [], [], []]
+  const next = nextTemplate(templates, sessions, new Date(), moves)
+  const week = weekPlan(templates, sessions, activities, new Date(), moves)
+  const today = localDay(new Date())
+
+  async function move(toDay: string) {
+    if (!moving) return
+    const { planned } = moving
+    await moveWorkout(planned.template.id, planned.movedFrom ?? localDay(moving.day), toDay)
+    setMoving(null)
+    await reload()
+  }
   const hasSchedule = templates.some((x) => x.weekday !== null)
   const lastDone = (id: string) => sessions.find((s) => s.template_id === id)?.started_at
 
@@ -93,10 +105,28 @@ export function TrainHome() {
                 <li key={d.weekday} className={cx('flex items-center gap-3 rounded-2xl p-2', d.isToday && 'bg-brand-soft')}>
                   <span className={cx('w-10 text-sm font-bold uppercase', d.isToday ? 'text-brand-ink' : 'text-ink-3')}>{date(d.date, { weekday: 'short' })}</span>
                   <span className="min-w-0 flex-1">
-                    {d.templates.length || d.sessions.length ? (
-                      <span className="block truncate font-semibold">
-                        {(d.sessions.length ? d.sessions.map((s) => s.name) : d.templates.map((x) => x.name)).join(' + ')}
-                      </span>
+                    {d.sessions.length ? (
+                      <span className="block truncate font-semibold">{d.sessions.map((s) => s.name).join(' + ')}</span>
+                    ) : d.planned.length ? (
+                      d.planned.map((p) => (
+                        <span key={p.template.id} className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold">{p.template.name}</span>
+                            {p.movedFrom ? <span className="block text-xs text-ink-3">{t('train.movedFrom', { day: date(`${p.movedFrom}T12:00:00`, { weekday: 'long' }) })}</span> : null}
+                          </span>
+                          {/* Not done yet, today or later: it can move to another day; missed earlier: log it afterwards. */}
+                          {localDay(d.date) < today ? (
+                            <Link to={`/train/log?template=${p.template.id}&day=${localDay(d.date)}`} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl bg-card-2 px-2 text-sm font-semibold">
+                              <Plus className="size-4" aria-hidden /> {t('train.logIt')}
+                            </Link>
+                          ) : null}
+                          {localDay(d.date) >= today ? (
+                            <button onClick={() => setMoving({ planned: p, day: d.date })} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl bg-card-2 px-2 text-sm font-semibold" aria-label={t('train.move', { name: p.template.name })}>
+                              <ArrowRightLeft className="size-4" aria-hidden /> {t('train.moveShort')}
+                            </button>
+                          ) : null}
+                        </span>
+                      ))
                     ) : (
                       <span className="block text-ink-3">{t('train.rest')}</span>
                     )}
@@ -194,6 +224,7 @@ export function TrainHome() {
           navigate(`/exercise/${id}`)
         }}
       />
+      <MoveSheet moving={moving} onClose={() => setMoving(null)} onMove={(d) => void move(d)} />
       <AddActivitySheet
         open={adding}
         onClose={() => setAdding(false)}
@@ -204,6 +235,35 @@ export function TrainHome() {
       />
     </div>
   )
+}
+
+/** Today and the next days (a week after the planned day): a workout can move earlier or later. */
+function MoveSheet({ moving, onClose, onMove }: { moving: { planned: Planned; day: Date } | null; onClose: () => void; onMove: (day: string) => void }) {
+  const { t, date } = useI18n()
+  if (!moving) return <Sheet open={false} onClose={onClose} title="">{null}</Sheet>
+  const own = moving.planned.movedFrom ?? localDay(moving.day)
+  const current = localDay(moving.day)
+  const days = Array.from({ length: 10 }, (_, i) => daysFromNow(i)).filter((d) => localDay(d) !== current && localDay(d) <= addDays(own, 7))
+  return (
+    <Sheet open onClose={onClose} title={t('train.moveTitle', { name: moving.planned.template.name })}>
+      <div className="grid gap-2">
+        <p className="text-ink-2">{t('train.moveText', { day: date(moving.day, { weekday: 'long', day: 'numeric', month: 'short' }) })}</p>
+        {days.map((d) => (
+          <Button key={localDay(d)} variant={localDay(d) === own ? 'primary' : 'secondary'} block onClick={() => onMove(localDay(d))}>
+            {date(d, { weekday: 'long', day: 'numeric', month: 'short' })}
+            {localDay(d) === own ? ` · ${t('train.moveBack')}` : ''}
+          </Button>
+        ))}
+        <p className="text-sm text-ink-3">{t('train.moveHint')}</p>
+      </div>
+    </Sheet>
+  )
+}
+
+const addDays = (day: string, n: number) => {
+  const d = new Date(`${day}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  return localDay(d)
 }
 
 function daysFromNow(n: number): Date {

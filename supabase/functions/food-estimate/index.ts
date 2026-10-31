@@ -62,7 +62,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 // A model that does not answer in time counts as busy: the next one in the order gets the photo.
 const STEP_TIMEOUT_MS = Number(Deno.env.get('FOOD_AI_STEP_TIMEOUT_MS') ?? 30_000)
 
-type Mode = 'plate' | 'label' | 'text' | 'transcribe' | 'tidy'
+type Mode = 'plate' | 'label' | 'text' | 'transcribe' | 'tidy' | 'lesson'
 type Schema = Record<string, unknown>
 
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g'] as const
@@ -94,7 +94,34 @@ const plateSchema: Schema = {
 
 const wordsSchema: Schema = { type: 'OBJECT', properties: { text: { type: 'STRING' } }, required: ['text'] }
 
+const both: Schema = { type: 'OBJECT', properties: { en: { type: 'STRING' }, it: { type: 'STRING' } }, required: ['en', 'it'] }
+const list = (items: Schema): Schema => ({ type: 'ARRAY', items })
+const titled: Schema = { type: 'OBJECT', properties: { emoji: { type: 'STRING' }, title: both, text: both }, required: ['emoji', 'title', 'text'] }
+
+/** A draft lesson for the family coach (Forza! Coach only), in the shapes the app draws. */
+const lessonSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    emoji: { type: 'STRING' },
+    tone: { type: 'STRING', enum: ['orange', 'green', 'blue', 'yellow', 'pink', 'purple'] },
+    title: both,
+    subtitle: both,
+    intro: both,
+    cards: list(titled),
+    steps_title: both,
+    steps: list({ type: 'OBJECT', properties: { title: both, text: both }, required: ['title', 'text'] }),
+    dos: list(both),
+    donts: list(both),
+    callout: both,
+    quiz: list({ type: 'OBJECT', properties: { q: both, options: list(both), answer: { type: 'INTEGER' }, why: both }, required: ['q', 'options', 'answer', 'why'] }),
+    sources: list({ type: 'STRING' }),
+    tips: list(both),
+  },
+  required: ['emoji', 'tone', 'title', 'subtitle', 'intro', 'cards', 'steps_title', 'steps', 'dos', 'donts', 'callout', 'quiz', 'sources', 'tips'],
+}
+
 const SCHEMAS: Record<Mode, Schema> = {
+  lesson: lessonSchema,
   transcribe: wordsSchema,
   tidy: wordsSchema,
   text: plateSchema,
@@ -172,6 +199,23 @@ function tidyPrompt(language: string, text: string): string {
     `Rewrite them in ${language} as a clean list in "text": one food or drink per line, each with the amount they said`,
     '(grams, pieces, spoons, a plate), digits for numbers, everyday food names, and fix obvious recognition mistakes.',
     'Do not add foods or amounts they did not say, and do not add calories or comments. Same language as their words.',
+  ].join('\n')
+}
+
+/** A short lesson on a topic, for beginners over 50, in English and Italian; references only from the known list. */
+function lessonPrompt(topic: string, sources: { id: string; title: string }[]): string {
+  return [
+    'You write short, friendly, evidence-based lessons for Forza!, a fitness and nutrition app for beginners, many over 50.',
+    `Topic chosen by the family coach: "${topic}".`,
+    'Write one lesson that a beginner reads in two minutes, in English AND Italian (natural Italian, not a word-for-word translation).',
+    'Italian must be gender-neutral when addressing the reader: avoid gendered adjectives and participles about "you" (write "Hai fatto bene" style only when neutral; prefer "conviene", "è utile", infinitives, imperatives).',
+    'Give: an emoji and a tone; title (max 6 words); subtitle (max 10 words); intro (2 sentences); 3 or 4 cards (emoji, title of 1–3 words, one sentence);',
+    'steps_title and 3–5 practical steps (short title, one sentence); 3 dos and 3 don\'ts (short); one callout sentence to remember;',
+    'a quiz of exactly 2 questions with 2 or 3 options each, "answer" the index of the right option (0 = first), and "why" explaining it in one sentence;',
+    'and 3 tips of the day on the same topic (one sentence each, concrete).',
+    'Stay with what guidelines and good studies support; no medical advice, no supplements unless well established, no numbers you are not sure of.',
+    'For "sources", choose up to 4 ids from this list that really support the lesson, or none; never invent one:',
+    ...sources.map((x) => `- ${x.id}: ${x.title}`),
   ].join('\n')
 }
 
@@ -337,19 +381,23 @@ Deno.serve(async (req) => {
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number }
+  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number; topic?: string; sources?: { id: string; title: string }[] }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
-  const mode: Mode = (['label', 'text', 'transcribe', 'tidy'] as const).find((m) => m === body.mode) ?? 'plate'
-  const words = mode === 'text' || mode === 'tidy'
+  const mode: Mode = (['label', 'text', 'transcribe', 'tidy', 'lesson'] as const).find((m) => m === body.mode) ?? 'plate'
+  // Lessons are drafted for the family coach only (Forza! Coach, with the project's secret key).
+  if (mode === 'lesson' && !coachTest) return json({ error: 'unauthorized' }, 401)
+  const topic = (body.topic ?? '').trim().slice(0, 120)
+  if (mode === 'lesson' && !topic) return json({ error: 'bad_request' }, 400)
+  const words = mode === 'text' || mode === 'tidy' || mode === 'lesson'
   const text = (body.text ?? '').trim().slice(0, mode === 'tidy' ? 1000 : 500)
   const image = words ? '' : mode === 'transcribe' ? (body.audio ?? '') : (body.image ?? '')
   // "audio/webm;codecs=opus" → "audio/webm"
   const mime = (body.mime ?? 'image/jpeg').split(';')[0].trim()
-  if (words ? !text : !image || image.length * 0.75 > MAX_IMAGE_BYTES) return json({ error: words ? 'bad_request' : 'bad_image' }, 400)
+  if (words ? !text && mode !== 'lesson' : !image || image.length * 0.75 > MAX_IMAGE_BYTES) return json({ error: words ? 'bad_request' : 'bad_image' }, 400)
   if (mode === 'transcribe' ? !/^audio\/(webm|ogg|mp4|mpeg|wav|aac|flac|x-m4a)$/.test(mime) : !words && !/^image\/(jpeg|png|webp)$/.test(mime)) {
     return json({ error: 'bad_image' }, 400)
   }
@@ -366,7 +414,10 @@ Deno.serve(async (req) => {
   }
 
   const language = body.locale === 'it' ? 'Italian' : 'English'
-  const prompt = mode === 'label'
+  const known = (Array.isArray(body.sources) ? body.sources : []).slice(0, 80).map((x) => ({ id: String(x.id).slice(0, 40), title: String(x.title).slice(0, 160) }))
+  const prompt = mode === 'lesson'
+    ? lessonPrompt(topic, known)
+    : mode === 'label'
     ? labelPrompt(language)
     : mode === 'transcribe'
       ? transcribePrompt(language)
@@ -381,7 +432,9 @@ Deno.serve(async (req) => {
   try {
     const { answer, model, tried } = await ask({ prompt, schema: SCHEMAS[mode], image, mime }, use)
     const a = answer as Record<string, unknown>
-    const result = mode === 'label' ? cleanLabel(a) : mode === 'transcribe' || mode === 'tidy' ? { text: str(a.text, 1000) } : cleanPlate(a)
+    const result = mode === 'lesson'
+      ? { ...a, sources: (Array.isArray(a.sources) ? a.sources : []).filter((id) => known.some((k) => k.id === id)) }
+      : mode === 'label' ? cleanLabel(a) : mode === 'transcribe' || mode === 'tidy' ? { text: str(a.text, 1000) } : cleanPlate(a)
     return json(coachTest ? { ...result, model, ms: Date.now() - started, tried } : result)
   } catch (e) {
     const tried = (e as { tried?: string[] }).tried ?? []

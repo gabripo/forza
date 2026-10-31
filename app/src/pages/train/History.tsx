@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, Empty, Loading, PageHeader } from '../../components/ui'
 import { getSessions, useAsync } from '../../lib/data'
@@ -20,7 +20,16 @@ export function History() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t('train.history')} subtitle={t('history.total', { n: sessions.length })} back="/train" />
+      <PageHeader
+        title={t('train.history')}
+        subtitle={t('history.total', { n: sessions.length })}
+        back="/train"
+        action={
+          <Link to="/train/log" className="inline-flex h-11 items-center gap-1 rounded-2xl bg-card-2 px-3 font-semibold">
+            <Plus className="size-5" aria-hidden /> {t('history.log')}
+          </Link>
+        }
+      />
       {sessions.length === 0 ? <Empty icon="📅" title={t('history.empty')} /> : null}
       {[...groups].map(([month, list]) => (
         <Card key={month} title={month[0].toUpperCase() + month.slice(1)}>

@@ -1,4 +1,4 @@
-import { CloudOff, Trash2, Trophy } from 'lucide-react'
+import { CloudOff, Pencil, Trash2, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, Loading, PageHeader } from '../../components/ui'
@@ -117,6 +117,9 @@ export function SessionDetail() {
         )
       })}
       {session.notes ? <Card title={t('finish.notes')}>{session.notes}</Card> : null}
+      <Button variant="secondary" onClick={() => navigate(`/train/session/${id}/edit`)}>
+        <Pencil className="size-5" aria-hidden /> {t('session.edit')}
+      </Button>
       <Button variant="danger" onClick={remove}>
         <Trash2 className="size-5" aria-hidden /> {t('session.delete')}
       </Button>
