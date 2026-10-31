@@ -324,6 +324,13 @@ export async function getLastSets(exerciseIds: string[]): Promise<Map<string, Se
 // Food
 // ---------------------------------------------------------------------------
 
+/** Only when and how much, for charts: light enough for years of meals (paged, so none are cut off). */
+export async function getFoodTotals(sinceDays: number): Promise<Pick<FoodLog, 'eaten_at' | 'kcal' | 'protein_g'>[]> {
+  return fetchAll<Pick<FoodLog, 'eaten_at' | 'kcal' | 'protein_g'>>((from, to) =>
+    supabase.from('food_logs').select('eaten_at, kcal, protein_g').gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at').order('id').range(from, to),
+  )
+}
+
 export async function getFood(sinceDays = 0): Promise<FoodLog[]> {
   return check(
     await supabase.from('food_logs').select('*').gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at'),

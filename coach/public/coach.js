@@ -337,16 +337,51 @@ const DASH_METRICS = [
   ['protein', 'Protein'],
 ]
 
-/** Their progress over time, one measure at a time, with the range and (for strength) the exercise to show. */
+/**
+ * Their progress over time, one measure at a time, with the period (a ready-made one, or any two days) and (for
+ * strength) the exercise to show.
+ */
 function dashboardCard(d) {
-  const dash = (state.dash ??= { metric: 'weight', range: 90, exercise: null })
-  const since = Date.now() - dash.range * 86_400_000
+  const dash = (state.dash ??= { metric: 'weight', range: 90, exercise: null, from: null, to: null })
+  const today = dayKey(new Date())
+  const from = dash.range ? dayKey(new Date(Date.now() - dash.range * 86_400_000)) : dash.from
+  const to = dash.range ? today : dash.to
+  const since = new Date(`${from}T00:00:00`).getTime()
+  const until = new Date(`${to}T00:00:00`).getTime() + 86_400_000
+  const inPeriod = (when) => {
+    const t = new Date(when).getTime()
+    return t >= since && t < until
+  }
+  // The overview has their last year; a period that starts earlier is loaded for the chart.
+  let src = d
+  let waiting = ''
+  if (since < Date.now() - 364 * 86_400_000) {
+    const key = `${state.selected}:${from}:${to}`
+    if (state.dashData?.key === key) {
+      src = state.dashData
+      if (src.error) waiting = `<p class="muted">${esc(src.error)}</p>`
+    } else {
+      waiting = '<p class="muted">Loading…</p>'
+      if (state.dashLoading !== key) {
+        state.dashLoading = key
+        api(`/api/users/${state.selected}/progress?from=${from}&to=${to}`)
+          .then((x) => (state.dashData = { ...x, key }))
+          .catch((e) => (state.dashData = { key, error: e.message }))
+          .finally(() => {
+            state.dashLoading = null
+            render()
+          })
+      }
+    }
+  }
   const short = (t) => fmtDate(t, { day: 'numeric', month: 'short' })
   const pr = p(d)
   let chart = ''
   let headline = ''
-  if (dash.metric === 'weight') {
-    const raw = d.weights.filter((w) => new Date(w.measured_at).getTime() >= since).map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.weight_kg), label: short(w.measured_at) }))
+  if (waiting) {
+    chart = waiting
+  } else if (dash.metric === 'weight') {
+    const raw = src.weights.filter((w) => inPeriod(w.measured_at)).map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.weight_kg), label: short(w.measured_at) }))
     const trend = raw.map((q, i) => ({ ...q, v: raw.slice(Math.max(0, i - 6), i + 1).reduce((a, x) => a + x.v, 0) / Math.min(i + 1, 7) }))
     chart = ichart(trend, { dots: raw, goal: pr.target_weight_kg ? { v: Number(pr.target_weight_kg), label: 'target' } : null, fmt: (v) => `${fmtNum(v, 1)} kg` })
     headline = raw.length >= 2 ? `${fmtKg(raw.at(-1).v)} kg · ${raw.at(-1).v - raw[0].v >= 0 ? '+' : ''}${fmtKg(raw.at(-1).v - raw[0].v)} kg in this time` : ''
@@ -356,30 +391,30 @@ function dashboardCard(d) {
     const start = new Date(since)
     start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
     start.setHours(0, 0, 0, 0)
-    for (let w = new Date(start); w <= new Date(); w.setDate(w.getDate() + 7)) {
+    for (let w = new Date(start); w.getTime() < Math.min(until, Date.now()); w.setDate(w.getDate() + 7)) {
       const end = new Date(w)
       end.setDate(end.getDate() + 7)
-      const inWeek = d.sessions.filter((s) => new Date(s.started_at) >= w && new Date(s.started_at) < end)
+      const inWeek = src.sessions.filter((s) => inPeriod(s.started_at) && new Date(s.started_at) >= w && new Date(s.started_at) < end)
       out.push({ t: w.getTime(), v: fn(inWeek), label: `week of ${short(w)}` })
     }
     return out
   }
-  if (dash.metric === 'workouts') {
+  if (!waiting && dash.metric === 'workouts') {
     const bars = weekly((xs) => xs.length)
     chart = ichart(bars, { bars: true, goal: { v: pr.workouts_per_week ?? 3, label: 'goal' }, fmt: (v) => fmtNum(v, 1) })
     headline = `${fmtNum(bars.reduce((a, b) => a + b.v, 0) / Math.max(1, bars.length), 1)} a week on average`
   }
-  if (dash.metric === 'volume') {
+  if (!waiting && dash.metric === 'volume') {
     const bars = weekly((xs) =>
-      Math.round(d.sets.filter((x) => xs.some((s) => s.id === x.session_id) && !x.is_warmup).reduce((v, x) => v + Number(x.weight_kg ?? 0) * Number(x.reps ?? 0), 0)),
+      Math.round(src.sets.filter((x) => xs.some((s) => s.id === x.session_id) && !x.is_warmup).reduce((v, x) => v + Number(x.weight_kg ?? 0) * Number(x.reps ?? 0), 0)),
     )
     chart = ichart(bars, { bars: true, fmt: (v) => `${fmtNum(v)} kg` })
     headline = `${fmtNum(bars.reduce((a, b) => a + b.v, 0) / Math.max(1, bars.length))} kg a week on average`
   }
   let exercises = []
-  if (dash.metric === 'strength') {
+  if (!waiting && dash.metric === 'strength') {
     const byEx = new Map()
-    for (const x of d.sets.filter((y) => !y.is_warmup && y.weight_kg && y.reps && new Date(y.performed_at).getTime() >= since)) {
+    for (const x of src.sets.filter((y) => !y.is_warmup && y.weight_kg && y.reps && inPeriod(y.performed_at))) {
       const day = dayKey(new Date(x.performed_at))
       const e1rm = Number(x.weight_kg) * (1 + Math.min(x.reps, 15) / 30)
       const m = byEx.get(x.exercise_id) ?? new Map()
@@ -394,15 +429,15 @@ function dashboardCard(d) {
       headline = `${esc(exerciseName(ex))}: estimated max ${fmtNum(pts.at(-1).v, 1)} kg · ${pts.at(-1).v >= pts[0].v ? '+' : ''}${fmtNum(((pts.at(-1).v - pts[0].v) / pts[0].v) * 100)}%`
     } else chart = '<p class="muted">Not enough workouts in this time.</p>'
   }
-  const daily = (rows, key, value) => rows.filter((r) => new Date(`${r[key]}T12:00:00`).getTime() >= since).sort((a, b) => a[key].localeCompare(b[key])).map((r) => ({ t: new Date(`${r[key]}T12:00:00`).getTime(), v: Math.round(value(r)), label: short(`${r[key]}T12:00:00`) }))
+  const daily = (rows, key, value) => rows.filter((r) => inPeriod(`${r[key]}T12:00:00`)).sort((a, b) => a[key].localeCompare(b[key])).map((r) => ({ t: new Date(`${r[key]}T12:00:00`).getTime(), v: Math.round(value(r)), label: short(`${r[key]}T12:00:00`) }))
   const average = (pts, unit = '') => (pts.length ? `${fmtNum(pts.reduce((a, b) => a + b.v, 0) / pts.length)}${unit} a day on average` : '')
-  if (dash.metric === 'steps') {
-    const pts = daily(d.steps.filter((x) => x.steps > 0), 'day', (x) => x.steps)
+  if (!waiting && dash.metric === 'steps') {
+    const pts = daily(src.steps.filter((x) => x.steps > 0), 'day', (x) => x.steps)
     chart = ichart(pts, { goal: { v: pr.steps_goal ?? 7000, label: 'goal' } })
     headline = average(pts)
   }
-  if (dash.metric === 'kcal' || dash.metric === 'protein') {
-    const pts = daily(d.foodDays ?? [], 'day', (x) => (dash.metric === 'kcal' ? x.kcal : x.protein_g))
+  if (!waiting && (dash.metric === 'kcal' || dash.metric === 'protein')) {
+    const pts = daily(src.foodDays ?? [], 'day', (x) => (dash.metric === 'kcal' ? x.kcal : x.protein_g))
     const target = d.energy?.targets?.[dash.metric === 'kcal' ? 'kcal' : 'protein_g']
     chart = ichart(pts, { goal: target ? { v: target, label: 'target' } : null, fmt: (v) => `${fmtNum(v)}${dash.metric === 'kcal' ? ' kcal' : ' g'}` })
     headline = average(pts, dash.metric === 'kcal' ? ' kcal' : ' g')
@@ -410,6 +445,8 @@ function dashboardCard(d) {
   return `<div class="card"><h2>Progress</h2>
     <div class="row" style="margin-bottom:8px">${DASH_METRICS.map(([k, label]) => `<button class="btn small ${dash.metric === k ? '' : 'secondary'}" data-action="dash-metric" data-k="${k}">${label}</button>`).join('')}</div>
     <div class="row" style="margin-bottom:8px">${[[30, '1 month'], [90, '3 months'], [180, '6 months'], [365, '1 year']].map(([r, label]) => `<button class="btn small ${dash.range === r ? '' : 'secondary'}" data-action="dash-range" data-r="${r}">${label}</button>`).join('')}
+      <label class="small">From <input type="date" id="dash-from" value="${from}" max="${to}"></label>
+      <label class="small">to <input type="date" id="dash-to" value="${to}" min="${from}" max="${today}"></label>
       ${dash.metric === 'strength' && exercises.length ? `<select id="dash-exercise">${exercises.map((id) => `<option value="${esc(id)}" ${id === (exercises.includes(dash.exercise) ? dash.exercise : exercises[0]) ? 'selected' : ''}>${esc(exerciseName(id))}</option>`).join('')}</select>` : ''}</div>
     ${headline ? `<p><b>${headline}</b></p>` : ''}
     <div class="chart">${chart}</div>
@@ -1746,6 +1783,14 @@ app.addEventListener('change', async (e) => {
   }
   if (e.target.id === 'dash-exercise') {
     state.dash.exercise = e.target.value
+    return render()
+  }
+  // Any two days: changing one makes the period the coach's own.
+  if (e.target.id === 'dash-from' || e.target.id === 'dash-to') {
+    const a = document.getElementById('dash-from').value
+    const b = document.getElementById('dash-to').value
+    if (!a || !b) return
+    state.dash = { ...state.dash, range: null, from: a <= b ? a : b, to: a <= b ? b : a }
     return render()
   }
   if (e.target.dataset?.move !== undefined && e.target.value) {

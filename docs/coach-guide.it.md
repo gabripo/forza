@@ -226,7 +226,8 @@ Apri Forza! Coach quando vuoi:
   dall'app.
 - **Check-ins**: quello che ha registrato.
 - **Overview → Progress**: peso, forza per esercizio, allenamenti e volume a settimana, passi, calorie e proteine
-  da 1 mese a 1 anno; punta il grafico per leggere un giorno o una settimana. Nell'app: **Progressi → Cruscotto
+  da 1 mese a 1 anno, o tra due giorni qualsiasi (**From** … **to**); punta il grafico per leggere un giorno o una
+  settimana. Nell'app: **Progressi → Cruscotto
   dei progressi**.
 - **Profile → Pace towards the goal**: quanto in fretta perdere grasso (lento, normale o veloce: 250, 500 o
   750 kcal al giorno sotto quello che il corpo consuma) o mettere muscolo (150, 250 o 400 kcal sopra).

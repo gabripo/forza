@@ -382,6 +382,8 @@ export const it: Dict = {
     subtitle: 'Tutto nel tempo: tocca un grafico per leggere un giorno',
     teaser: 'Peso, forza, allenamenti, passi e cibo nel tempo',
     r1m: '1 m', r3m: '3 m', r6m: '6 m', r1y: '1 a', rAll: 'Tutto',
+    from: 'Dal',
+    to: 'Al',
     change: '{v} in questo periodo',
     bodyFat: 'Grasso corporeo',
     workouts: 'Allenamenti a settimana',
