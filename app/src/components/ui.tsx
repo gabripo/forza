@@ -69,7 +69,8 @@ export function Card({
   )
 }
 
-export function PageHeader({ title, subtitle, back, action }: { title: string; subtitle?: string; back?: boolean | string; action?: ReactNode }) {
+/** The page title, kept at the top while scrolling; `children` (e.g. the button that saves the page) stays with it. */
+export function PageHeader({ title, subtitle, back, action, children }: { title: string; subtitle?: string; back?: boolean | string; action?: ReactNode; children?: ReactNode }) {
   const navigate = useNavigate()
   return (
     <header className="pt-safe sticky top-0 z-20 -mx-4 mb-3 bg-bg/90 px-4 backdrop-blur">
@@ -89,6 +90,7 @@ export function PageHeader({ title, subtitle, back, action }: { title: string; s
         </div>
         {action}
       </div>
+      {children ? <div className="pb-3">{children}</div> : null}
     </header>
   )
 }
