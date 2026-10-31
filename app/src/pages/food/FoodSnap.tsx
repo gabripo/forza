@@ -1,4 +1,4 @@
-import { Camera, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
+import { Camera, Check, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlateAdvice } from '../../components/PlateAdvice'
@@ -118,7 +118,14 @@ export function FoodSnap() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t('snap.title')} back="/food" />
+      <PageHeader title={t('snap.title')} back="/food">
+        {/* Saving is the next step once the AI has answered: at the top, where it is seen at once. */}
+        {result && energy ? (
+          <Button variant="leaf" block onClick={save} loading={saving} disabled={!items.length}>
+            <Check className="size-5" aria-hidden /> {t('snap.save')}
+          </Button>
+        ) : null}
+      </PageHeader>
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
 
@@ -227,9 +234,6 @@ export function FoodSnap() {
               </div>
             ) : null}
           </Card>
-          <Button size="lg" variant="leaf" block onClick={save} loading={saving} disabled={!items.length}>
-            {t('snap.save')}
-          </Button>
         </>
       ) : null}
     </div>

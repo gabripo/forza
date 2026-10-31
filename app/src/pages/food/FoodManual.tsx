@@ -1,4 +1,4 @@
-import { Barcode, Camera, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
+import { Barcode, Camera, Check, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
@@ -164,7 +164,14 @@ export function FoodManual() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t('manual.title')} back="/food" />
+      <PageHeader title={t('manual.title')} back="/food">
+        {/* At the top as soon as the plate has a food (scanned, searched or typed), not below the search. */}
+        {items.length ? (
+          <Button variant="leaf" block onClick={save} loading={busy}>
+            <Check className="size-5" aria-hidden /> {t('snap.save')}
+          </Button>
+        ) : null}
+      </PageHeader>
       <Segmented<Meal>
         value={meal}
         onChange={setMeal}
@@ -257,14 +264,9 @@ export function FoodManual() {
       </Card>
 
       {items.length ? (
-        <>
-          <Card>
-            <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={new Date()} />
-          </Card>
-          <Button size="lg" variant="leaf" block onClick={save} loading={busy}>
-            {t('snap.save')}
-          </Button>
-        </>
+        <Card>
+          <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={new Date()} />
+        </Card>
       ) : null}
 
       <Sheet open={Boolean(picked)} onClose={() => setPicked(null)} title={picked ? l(picked.name) : ''}>

@@ -1,4 +1,4 @@
-import { Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
+import { Check, Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlateAdvice } from '../../components/PlateAdvice'
@@ -261,7 +261,14 @@ export function FoodVoice() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t('voice.title')} back="/food" />
+      <PageHeader title={t('voice.title')} back="/food">
+        {/* Saving is the next step once the foods are found: at the top, where it is seen at once. */}
+        {items?.length && energy ? (
+          <Button variant="leaf" block onClick={save} loading={saving}>
+            <Check className="size-5" aria-hidden /> {t('snap.save')}
+          </Button>
+        ) : null}
+      </PageHeader>
 
       <Segmented<Meal>
         value={meal}
@@ -399,9 +406,6 @@ export function FoodVoice() {
                 </Button>
               </div>
             </Card>
-            <Button size="lg" variant="leaf" block onClick={save} loading={saving}>
-              {t('snap.save')}
-            </Button>
           </>
         ) : (
           <Card tone="sun">
