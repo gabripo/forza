@@ -418,6 +418,53 @@ details summary {
   align-items: center;
   gap: 8px;
 }
+.ichart {
+  position: relative;
+}
+.ichart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.ichart .tip {
+  position: absolute;
+  top: 0;
+  min-width: 140px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.kb-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .kb-edit {
+    grid-template-columns: 1fr;
+  }
+}
+.preview-pane {
+  position: sticky;
+  top: 70px;
+}
+.kb-frame {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+.kb-frame[data-kind='tip'] {
+  max-width: 420px;
+  height: 300px;
+}
 @media print {
   .top,
   .no-print,

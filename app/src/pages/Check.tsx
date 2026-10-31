@@ -172,6 +172,16 @@ export function Check() {
   return (
     <div className="grid gap-4">
       <PageHeader title={t('check.title')} subtitle={t('check.subtitle')} />
+      <Link to="/check/dashboard" className="flex items-center gap-3 rounded-3xl bg-sky-soft p-4">
+        <span className="text-3xl" aria-hidden>
+          📈
+        </span>
+        <span className="flex-1">
+          <span className="block font-bold">{t('dashboard.title')}</span>
+          <span className="block text-sm text-ink-2">{t('dashboard.teaser')}</span>
+        </span>
+        <ChevronRight className="size-5 text-ink-3" aria-hidden />
+      </Link>
       <Link to="/challenge" className="flex items-center gap-3 rounded-3xl bg-sun-soft p-4">
         <span className="text-3xl" aria-hidden>
           🏆

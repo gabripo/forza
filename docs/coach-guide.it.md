@@ -218,7 +218,16 @@ Apri Forza! Coach quando vuoi:
   sposta in un altro momento della giornata, e **Salt** è facoltativo (vuoto vuol dire non noto). L'app
   ricalcola il punteggio del pasto cambiato. I pasti registrati in un'altra app (tramite Connessione Salute, o
   Build With Science) si cambiano in quell'app.
-- **Workouts**, **Check-ins**: quello che ha registrato.
+- **Workouts**: quello che ha registrato. **Log a workout** aggiunge un allenamento fatto senza telefono (si
+  sceglie dalla sua scheda: le serie dell'ultima volta sono già compilate), **Change** corregge qualsiasi
+  allenamento (giorno, ora, serie, fatica, note), **Delete** lo elimina. In **Workout plan**, **This week** mostra
+  la sua settimana come sul telefono: **Move to…** sposta un allenamento previsto a un altro giorno solo questa
+  volta (quello del mercoledì al giovedì), e uno saltato si può registrare dopo. Si può fare tutto questo anche
+  dall'app.
+- **Check-ins**: quello che ha registrato.
+- **Overview → Progress**: peso, forza per esercizio, allenamenti e volume a settimana, passi, calorie e proteine
+  da 1 mese a 1 anno; punta il grafico per leggere un giorno o una settimana. Nell'app: **Progressi → Cruscotto
+  dei progressi**.
 - **Profile → Pace towards the goal**: quanto in fretta perdere grasso (lento, normale o veloce: 250, 500 o
   750 kcal al giorno sotto quello che il corpo consuma) o mettere muscolo (150, 250 o 400 kcal sopra).
   **Calorie adjustment** aggiunge o toglie una quantità fissa ogni giorno, e **Calorie target from** può seguire
@@ -227,7 +236,11 @@ Apri Forza! Coach quando vuoi:
   sodium** mostra il sale nel diario alimentare (limite 5 g al giorno). Si può cambiare anche dall'app: **Cibo →
   Modifica** e **Impostazioni**.
 - **Lessons & tips** (in alto): cambia testo, schede, riferimenti e quiz di qualsiasi lezione, nascondi o
-  riordina le lezioni, scrivine di nuove e cambia i consigli del giorno. Le domande dei quiz tornano anche in
+  riordina le lezioni, scrivine di nuove e cambia i consigli del giorno. **Ideas from a topic**: scrivi un
+  argomento ("abitudini del sonno") e l'AI del cibo prepara una lezione con il suo quiz e tre consigli del
+  giorno, in inglese e italiano; controllali, poi **Use this lesson** (si apre nell'editor) o **Add** per un
+  consiglio. Ogni lezione e consiglio ha un'anteprima disegnata dall'app stessa, come sul telefono, che segue
+  quello che scrivi. Le domande dei quiz tornano anche in
   **Guadagna punti famiglia**, il quiz del giorno che fa guadagnare punti anche dopo aver letto tutte le lezioni
   (2 domande al giorno dalle lezioni lette, 5 punti per ogni risposta giusta; l'Overview mostra come va). Tutti vedono la modifica alla prossima apertura di
   Impara; **Back to the original** riporta una lezione alla versione originale, che continua a ricevere gli
