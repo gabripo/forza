@@ -213,7 +213,8 @@ Open Forza! Coach whenever you like:
   logged afterwards. They can do all of this in the app too.
 - **Check-ins**: what they logged.
 - **Overview → Progress**: their weight, strength per exercise, workouts and volume a week, steps, calories and
-  protein over 1 month to 1 year; point at the chart to read a day or a week. In the app: **Progress → Progress
+  protein over 1 month to 1 year, or between any two days (**From** … **to**); point at the chart to read a day
+  or a week. In the app: **Progress → Progress
   dashboard**.
 - **Profile → Pace towards the goal**: how fast to lose fat (slow, normal or fast: 250, 500 or 750 kcal a day
   below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or

@@ -154,7 +154,8 @@ their default place.
 
 ### Progress
 
-**Progress dashboard** (Progress → Progress dashboard): one range for everything (1 month to all) and a card
+**Progress dashboard** (Progress → Progress dashboard): one period for everything (1 month to all, or any two
+days: the ready-made periods fill in From and To, and changing either makes the period one's own) and a card
 per measure: weight with its trend, body fat when measured, estimated strength per exercise, workouts and
 volume a week, steps, calories and protein a day against their goals. Every chart answers a touch or a hover
 with the value of that day or week, and has a table behind it for screen readers.
@@ -485,7 +486,9 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
 - **Workouts**: log one afterwards (from the plan, with the sets of last time), change or delete any workout;
   "This week" in Workout plan shows the week as on their phone and moves a planned workout to another day.
 - **Progress**: an interactive chart in Overview (weight, strength per exercise, workouts and volume a week,
-  steps, calories, protein; 1 month to 1 year), reading the nearest day or week under the pointer.
+  steps, calories, protein; 1 month to 1 year, or any two days), reading the nearest day or week under the
+  pointer. Overview loads their last year; a period that starts earlier is loaded for the chart alone
+  (`GET /api/users/:id/progress?from=&to=`).
 - **Lesson and tip ideas**: a topic ("sleep habits") gets a draft lesson (the app's blocks, a two-question
   quiz, references only from the verified list) and three tips of the day in English and Italian, written by
   the food AI in a mode only Coach can call; the coach checks and edits before saving.

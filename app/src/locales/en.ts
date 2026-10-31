@@ -380,6 +380,8 @@ export const en = {
     subtitle: 'Everything over time: touch a chart to read a day',
     teaser: 'Weight, strength, workouts, steps and food over time',
     r1m: '1 m', r3m: '3 m', r6m: '6 m', r1y: '1 y', rAll: 'All',
+    from: 'From',
+    to: 'To',
     change: '{v} in this time',
     bodyFat: 'Body fat',
     workouts: 'Workouts a week',

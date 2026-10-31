@@ -1,17 +1,19 @@
 import { type ReactNode, useMemo, useState } from 'react'
 import { BarChart, LineChart } from '../components/charts'
 import { StrengthChart } from '../components/StrengthChart'
-import { Card, Loading, PageHeader, Segmented } from '../components/ui'
+import { Card, Field, Input, Loading, PageHeader, Segmented } from '../components/ui'
 import { WeightChart } from '../components/WeightChart'
 import { useApp } from '../lib/auth'
 import { daysAgo, localDay, weekStart } from '../lib/calc'
-import { getFood, getSessions, getSteps, getWeights, useAsync } from '../lib/data'
+import { getFood, getFoodTotals, getSessions, getSteps, getWeights, useAsync } from '../lib/data'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 
 type Range = 30 | 90 | 180 | 365 | 3650
 
+const DAY = 86_400_000
 const noon = (day: string) => new Date(`${day}T12:00:00`).getTime()
+const midnight = (day: string) => new Date(`${day}T00:00:00`)
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null)
 
 /** One measure: its headline numbers, then the chart (touch or hover a point to read it). */
@@ -25,27 +27,46 @@ function Panel({ title, value, change, children }: { title: string; value?: Reac
 
 /**
  * Everything over time, on one page: weight and body fat, strength, workouts and volume a week, steps, calories and
- * protein. One range for all; every chart answers a touch with the value of that day or week.
+ * protein. One period for all (a ready-made one, or any two days); every chart answers a touch with the value of that
+ * day or week.
  */
 export function ProgressDashboard() {
   const { t, num, kg, date } = useI18n()
   const { profile } = useApp()
-  const [range, setRange] = useState<Range>(90)
-  const { data, loading } = useAsync(() => Promise.all([getWeights(3650), getSessions(3650), getSteps(3650), getFood(400)]), [])
+  const [range, setRange] = useState<Range | null>(90)
+  // Two days chosen by hand (both included), used when no ready-made period is.
+  const [custom, setCustom] = useState<{ from: string; to: string } | null>(null)
+  const today = localDay(new Date())
+  const { data, loading } = useAsync(() => Promise.all([getWeights(3650), getSessions(3650), getSteps(3650), getFood(28)]), [])
+  // Food goes back as far as the period does, a year at a time so that moving a day does not load it again.
+  const foodDays = range === 3650 ? 3650 : !range && custom ? Math.max(400, Math.ceil((Date.now() - midnight(custom.from).getTime()) / DAY / 365) * 365) : 400
+  const meals = useAsync(() => getFoodTotals(foodDays), [foodDays])
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food] = data
-    const since = daysAgo(range)
-    const sinceDay = localDay(since)
-    const inRange = (iso: string) => new Date(iso) >= since
-    const energy = computeEnergy(profile, weights, steps, sessions, food)
+    const [weights, sessions, steps, recentFood] = data
+    const food = meals.data ?? []
+    const energy = computeEnergy(profile, weights, steps, sessions, recentFood)
 
-    // Weeks, Monday first, from the start of the range (or the first workout, for "all").
+    // The period: a ready-made one ends today ("all" starts at the first thing recorded), or the two chosen days.
     const firstSession = sessions.at(-1)
+    const firstDay = [weights[0]?.measured_at, firstSession?.started_at, steps[0]?.day && `${steps[0].day}T12:00:00`, food[0]?.eaten_at]
+      .filter((x): x is string => Boolean(x))
+      .map((x) => localDay(new Date(x)))
+      .sort()[0]
+    const period = range === 3650 ? { from: firstDay ?? today, to: today } : range ? { from: localDay(daysAgo(range)), to: today } : (custom ?? { from: today, to: today })
+    const since = midnight(period.from)
+    const until = new Date(midnight(period.to).getTime() + DAY)
+    const inRange = (iso: string) => {
+      const d = new Date(iso)
+      return d >= since && d < until
+    }
+
+    // Weeks, Monday first, from the start of the period (or the first workout, for "all").
     const from = weekStart(range === 3650 && firstSession ? new Date(firstSession.started_at) : since)
+    const end = Math.min(until.getTime(), Date.now())
     const weeks: { start: Date; key: string }[] = []
-    for (let d = new Date(from); d <= new Date(); d.setDate(d.getDate() + 7)) weeks.push({ start: new Date(d), key: localDay(d) })
+    for (let d = new Date(from); d.getTime() < end; d.setDate(d.getDate() + 7)) weeks.push({ start: new Date(d), key: localDay(d) })
     const weekOf = (iso: string) => localDay(weekStart(new Date(iso)))
     const recent = sessions.filter((s) => inRange(s.started_at))
     const perWeek = weeks.map((w) => ({ key: w.key, label: date(w.start, { day: 'numeric', month: 'numeric' }), value: recent.filter((s) => weekOf(s.started_at) === w.key).length }))
@@ -57,7 +78,7 @@ export function ProgressDashboard() {
       ),
     }))
 
-    const stepDays = steps.filter((s) => s.day >= sinceDay && s.steps > 0)
+    const stepDays = steps.filter((s) => s.day >= period.from && s.day <= period.to && s.steps > 0)
     const foodDays = new Map<string, { kcal: number; protein: number }>()
     for (const f of food.filter((x) => inRange(x.eaten_at))) {
       const d = localDay(new Date(f.eaten_at))
@@ -70,6 +91,8 @@ export function ProgressDashboard() {
     const kgs = weights.filter((w) => inRange(w.measured_at))
     const fat = kgs.filter((w) => w.body_fat_pct != null).map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.body_fat_pct) }))
     return {
+      period,
+      days: Math.round((until.getTime() - since.getTime()) / DAY),
       weights: kgs,
       fat,
       sets: recent.flatMap((s) => s.sets),
@@ -81,11 +104,16 @@ export function ProgressDashboard() {
       targets: energy.targets,
       workouts: recent.length,
     }
-  }, [data, profile, range, date])
+  }, [data, meals.data, profile, range, custom, today, date])
 
-  if ((loading && !data) || !profile) return <Loading />
+  if ((loading && !data) || (meals.loading && !meals.data) || !profile) return <Loading />
   if (!view) return null
-  const dense = range > 90
+  const choose = (a: string, b: string) => {
+    if (!a || !b) return // a date being typed or cleared
+    setRange(null)
+    setCustom(a <= b ? { from: a, to: b } : { from: b, to: a })
+  }
+  const dense = view.days > 90
   const fmtDay = (ms: number) => date(new Date(ms), { day: 'numeric', month: 'short' })
   const first = view.weights[0]
   const lastW = view.weights.at(-1)
@@ -105,6 +133,15 @@ export function ProgressDashboard() {
           { value: 3650, label: t('dashboard.rAll') },
         ]}
       />
+      {/* Any two days: the ready-made periods fill these in, and changing one makes the period your own. */}
+      <div className="-mt-1 grid grid-cols-2 gap-3">
+        <Field label={t('dashboard.from')}>
+          <Input type="date" value={view.period.from} max={view.period.to} onChange={(e) => choose(e.target.value, view.period.to)} />
+        </Field>
+        <Field label={t('dashboard.to')}>
+          <Input type="date" value={view.period.to} min={view.period.from} max={today} onChange={(e) => choose(view.period.from, e.target.value)} />
+        </Field>
+      </div>
 
       <Panel
         title={t('check.weight')}

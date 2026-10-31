@@ -155,6 +155,27 @@ function dailyFood(rows) {
   return [...days.values()]
 }
 
+/**
+ * Their measures between two days (both included), for the Progress chart when the period starts before the year that
+ * the overview loads: only what the chart reads, so years stay light.
+ */
+async function progressData(id, query) {
+  const db = need()
+  const from = query.get('from') ?? ''
+  const to = query.get('to') ?? ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw badRequest('Choose the first and the last day')
+  const start = new Date(`${from}T00:00:00`).toISOString()
+  const end = new Date(new Date(`${to}T00:00:00`).getTime() + 86_400_000).toISOString()
+  const [weights, sessions, sets, steps, food] = await Promise.all([
+    fetchAll((a, b) => db.from('body_weights').select('id, measured_at, weight_kg').eq('user_id', id).gte('measured_at', start).lt('measured_at', end).order('measured_at').order('id').range(a, b)),
+    fetchAll((a, b) => db.from('workout_sessions').select('id, started_at').eq('user_id', id).gte('started_at', start).lt('started_at', end).order('started_at').order('id').range(a, b)),
+    fetchAll((a, b) => db.from('set_logs').select('session_id, exercise_id, weight_kg, reps, is_warmup, performed_at').eq('user_id', id).gte('performed_at', start).lt('performed_at', end).order('performed_at').order('id').range(a, b)),
+    fetchAll((a, b) => db.from('daily_steps').select('day, steps').eq('user_id', id).gte('day', from).lte('day', to).order('day').range(a, b)),
+    fetchAll((a, b) => db.from('food_logs').select('eaten_at, kcal, protein_g').eq('user_id', id).gte('eaten_at', start).lt('eaten_at', end).order('eaten_at').order('id').range(a, b)),
+  ])
+  return { weights: check(weights), sessions: check(sessions), sets: check(sets), steps: check(steps), foodDays: dailyFood(check(food)) }
+}
+
 function energyOf(profile, weights, steps, sessions, food) {
   try {
     return computeEnergy(profile, weights, steps, sessions, food)
@@ -569,6 +590,7 @@ const routes = [
   ['GET', /^\/api\/users$/, () => listUsers()],
   ['POST', /^\/api\/users$/, (_m, body) => createUser(body)],
   ['GET', /^\/api\/users\/([\w-]+)$/, (m) => userData(m[1])],
+  ['GET', /^\/api\/users\/([\w-]+)\/progress$/, (m, _body, query) => progressData(m[1], query)],
   ['PUT', /^\/api\/users\/([\w-]+)\/profile$/, (m, body) => saveProfile(m[1], body)],
   ['POST', /^\/api\/users\/([\w-]+)\/signin-code$/, (m) => signInCode(m[1])],
   [
