@@ -40,7 +40,7 @@ export function FoodHome() {
     for (const f of unscored) {
       scored.current.add(f.id)
       const s = scorePlate({ kcal: Number(f.kcal), protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g), fiber_g: Number(f.fiber_g), sugar_g: Number(f.sugar_g) }, f.meal, energy.targets.kcal, false, new Date(f.eaten_at))
-      void updateFood(f.id, { score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain }).catch(() => {})
+      void updateFood(f.id, { score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain }).catch(() => { })
     }
   }, [food, energy])
   const [explain, setExplain] = useState(false)
@@ -279,7 +279,7 @@ export function FoodHome() {
                       <button onClick={() => (synced ? undefined : setMoving(e))} disabled={synced} className="min-w-0 flex-1 rounded-xl text-left active:bg-card-2 disabled:active:bg-transparent">
                         <p className="truncate font-semibold">{e.title}</p>
                         <p className="text-sm text-ink-2">
-                          {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g
+                          {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g · {t('macro.carbs')} {num(Number(e.carbs_g))} g · {t('macro.fat')} {num(Number(e.fat_g))} g · {t('macro.satfat')} {num(Number(e.satfat_g))} g · {t('macro.fiber')} {num(Number(e.fiber_g))} g
                           {profile.track_salt && e.salt_g != null ? ` · ${t('macro.salt')} ${num(Number(e.salt_g), 1)} g` : ''}
                         </p>
                         {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
