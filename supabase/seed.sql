@@ -38,12 +38,12 @@ begin
     onboarded_at = now() - interval '70 days'
   where id = uid;
 
-  -- Weigh-ins: about every other day, trending from ~74 kg to ~71 kg with daily noise.
+  -- Weigh-ins: about every other day (every day in the last two weeks), trending from ~74 kg to ~71 kg with daily noise.
   insert into public.body_weights (user_id, measured_at, weight_kg, source)
   select uid, (current_date - d) + time '07:30',
          round((71.1 + d * 0.042 + (random() - 0.5) * 0.9)::numeric, 1), 'manual'
   from generate_series(0, 69) as d
-  where d % 2 = 0 or d < 6;
+  where d % 2 = 0 or d < 14;
 
   -- Steps: slowly increasing habit.
   insert into public.daily_steps (user_id, day, steps, source)
@@ -117,6 +117,27 @@ begin
   (uid, current_date - 1 + time '08:00', 'breakfast', 'Caffellatte e fette biscottate', 290, 12, 44, 7, 3, 18, 48, 45, 'manual'),
   (uid, current_date - 1 + time '13:00', 'lunch', 'Riso, pollo e verdure', 610, 42, 70, 14, 6, 5, 84, 88, 'ai'),
   (uid, current_date - 1 + time '20:00', 'dinner', 'Frittata di verdure e pane', 520, 26, 40, 27, 6, 6, 66, 62, 'ai');
+
+  -- Two more weeks of meals, a little different every day: enough for "What happened last week".
+  insert into public.food_logs (user_id, eaten_at, meal, title, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, score_fat_loss, score_muscle_gain, source)
+  select uid, current_date - d + m.at, m.meal, m.title, m.kcal + (d % 3) * 20, m.protein + d % 4, m.carbs, m.fat, m.fiber, m.sugar, m.s1, m.s2, 'manual'
+  from generate_series(2, 15) as d,
+       (values
+         (time '08:00', 'breakfast', 'Yogurt greco, frutti di bosco, noci e avena', 380, 26, 38, 13, 7, 14, 82, 74),
+         (time '13:00', 'lunch', 'Riso, pollo e verdure', 610, 42, 70, 14, 6, 5, 84, 88),
+         (time '20:00', 'dinner', 'Pasta e ceci con insalata', 560, 24, 78, 15, 14, 6, 71, 78)
+       ) as m(at, meal, title, kcal, protein, carbs, fat, fiber, sugar, s1, s2)
+  where d % 5 <> 0 or m.meal <> 'breakfast';
+
+  -- A family recipe, also a food of the family database (values per 100 g of the dish).
+  insert into public.foods (id, name, name_key, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, portion_g, source, created_by)
+  values ('f0f0f0f0-0000-4000-8000-000000000001', 'Pasta e ceci della nonna', 'pasta e ceci della nonna', 122, 4.9, 19.4, 2.5, 3.9, 1.4, 425, 'recipe', uid);
+  insert into public.recipes (food_id, name, servings, total_g, items, source, created_by)
+  values ('f0f0f0f0-0000-4000-8000-000000000001', 'Pasta e ceci della nonna', 4, 1700,
+    '[{"name":"Pasta integrale (secca)","grams":320,"kcal":1114,"protein_g":43,"carbs_g":205,"fat_g":8,"fiber_g":24,"sugar_g":10},
+      {"name":"Ceci (cotti)","grams":400,"kcal":656,"protein_g":36,"carbs_g":108,"fat_g":10,"fiber_g":30,"sugar_g":6},
+      {"name":"Olio extravergine d''oliva","grams":30,"kcal":265,"protein_g":0,"carbs_g":0,"fat_g":30,"fiber_g":0,"sugar_g":0},
+      {"name":"Pomodori","grams":200,"kcal":36,"protein_g":2,"carbs_g":8,"fat_g":0,"fiber_g":2,"sugar_g":5}]', 'manual', uid);
 
   insert into public.checkins (user_id, created_at, energy, sleep, mood, waist_cm)
   select uid, now() - make_interval(days => d * 7), least(5, 2 + (9 - d) / 3), least(5, 2 + (9 - d) / 4), least(5, 3 + (9 - d) / 4), 92 - (9 - d) * 0.5

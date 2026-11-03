@@ -419,6 +419,21 @@ export async function importRecipe(url: string): Promise<{ name: string; serving
   return data
 }
 
+/** A Thermomix (Bimby) recipe found by a search: in Italian from the Bimby recipe community. */
+export interface FoundRecipe {
+  title: string
+  url: string
+  image: string | null
+  rating: number | null
+}
+
+/** Searches Thermomix recipes in the person's language; also gives the address of Cookidoo's own search. */
+export async function searchBimby(q: string, locale: string): Promise<{ results: FoundRecipe[]; cookidooUrl: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('food-search', { body: { mode: 'recipe_search', q, locale } })
+  if (error) throw new Error('search_failed')
+  return data
+}
+
 // ---------------------------------------------------------------------------
 // Each day's food, checked; the targets over time
 // ---------------------------------------------------------------------------

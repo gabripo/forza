@@ -24,6 +24,36 @@ and adjust their plan from your own computer.
 
 *Screenshots of the demo family member, retaken automatically after every change to the app.*
 
+## Killer features
+
+<p align="center">
+  <img src="docs/screenshots/week.jpg" width="150" alt="What happened last week">
+  <img src="docs/screenshots/day.jpg" width="150" alt="The whole day at a glance">
+  <img src="docs/screenshots/menu.jpg" width="150" alt="What should I order?">
+  <img src="docs/screenshots/recipes.jpg" width="150" alt="Family recipes and Thermomix">
+  <img src="docs/screenshots/progress-dashboard.jpg" width="150" alt="Progress for any period">
+  <img src="docs/screenshots/consistency.jpg" width="150" alt="Consistency beats perfection">
+</p>
+
+- 🍽️ **"What should I order?"** Photograph a restaurant menu, or say the dishes: a quick AI reads it, a stronger
+  one picks the best dish for *your* day so far and says why in everyday words, with one small tweak to ask for.
+- 📷 **Snap, say or scan a meal**, and see first what to do ("add some protein"), judged together with the rest
+  of that meal and of the day.
+- 📖 **Family recipes, Thermomix included.** Write a dish once, then anyone logs a portion in one tap. Got a
+  Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you.
+- 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own portion; the family's
+  food database grows with every meal anyone logs.
+- 🧭 **The day and the week at a glance.** A kind score for the whole day, each meal's breakdown, one sentence of
+  encouragement on Home, and every week "What happened last week".
+- 🔥 **A target that learns from you.** The energy your body uses is measured more and more from your own food
+  and scale; days not all logged are left out (you are asked, and can change it later), intermittent fasting
+  is recognised, the formulas are shown and the history is kept.
+- 💪 **Workouts that progress by themselves**, and any exercise found from a description ("I raise a knee and
+  touch it with the opposite elbow"), with its photos.
+- 📈 **Progress for any period**, every chart read with a touch, and the targets over time told as a path.
+- 🧘 **Serene, not obsessed.** "Why one day's numbers matter little": consistency and a helpful home beat
+  perfect days.
+
 ## For the person training
 
 | | |

@@ -14,7 +14,8 @@ import { Button, Card, Empty, Loading, PageHeader, Segmented, Sheet } from '../.
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate, sodiumMg } from '../../lib/calc'
 import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
-import { deleteFood, updateFood } from '../../lib/data'
+import { deleteFood, setFoodDay, updateFood } from '../../lib/data'
+import { INCOMPLETE_SHARE } from '../../lib/energy'
 import { stillSkipped, totalsOf } from '../../lib/dayCheck'
 import { useI18n } from '../../lib/i18n'
 import type { FoodLog, Meal } from '../../lib/types'
@@ -247,7 +248,22 @@ export function FoodHome() {
         <p className="mt-3 text-sm text-ink-2">
           {sum.kcal < tg.kcal ? t('food.left', { kcal: num(tg.kcal - sum.kcal) }) : t('food.over', { kcal: num(sum.kcal - tg.kcal) })}
         </p>
-        {notes.some((n) => n.day === day && n.status === 'incomplete') ? <p className="mt-1 text-xs text-ink-3">{t('food.leftOut')}</p> : null}
+        {/* A past day can be marked as not all logged (left out of every average), or as all logged, at any time. */}
+        {offset > 0 && entries.length
+          ? (() => {
+              const note = notes.find((n) => n.day === day)
+              const said = note?.status === 'incomplete'
+              const leftOut = said || (sum.kcal < tg.kcal * INCOMPLETE_SHARE && note?.status !== 'complete')
+              return (
+                <div className="mt-3 grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
+                  <span>{t(leftOut ? (said ? 'food.leftOut' : 'food.leftOutAuto') : 'food.countedIn')}</span>
+                  <Button size="sm" variant="secondary" className="justify-self-start bg-card" onClick={() => void setFoodDay(day, { status: leftOut ? 'complete' : 'incomplete' }).then(() => reload())}>
+                    {t(leftOut ? 'food.markComplete' : 'food.markIncomplete')}
+                  </Button>
+                </div>
+              )
+            })()
+          : null}
         <ConsistencyLink className="-ml-3 mt-1" />
         {sum.satfat > tg.satfat_g ? (
           <p className="mt-2 rounded-2xl bg-danger-soft p-3 text-sm" role="alert">
@@ -259,7 +275,7 @@ export function FoodHome() {
       {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}
 
       {/* Balanced days: the reward for eating by the guidelines (small, reachable, visible). */}
-      <div className="flex items-center gap-3 rounded-3xl border border-line bg-card p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-line bg-card p-3">
         <ul className="flex gap-1" aria-label={t('food.balancedWeek')}>
           {last7.map((d) => (
             <li key={d} title={date(d, { weekday: 'short', day: 'numeric' })} className={`grid size-7 place-items-center rounded-full text-xs ${balanced.get(d) ? 'bg-leaf text-white dark:text-black' : 'bg-card-2 text-ink-3'}`}>
@@ -267,7 +283,7 @@ export function FoodHome() {
             </li>
           ))}
         </ul>
-        <p className="flex-1 text-sm">
+        <p className="min-w-48 flex-1 text-sm">
           <b>{t('food.balancedCount', { n: last7.filter((d) => balanced.get(d)).length })}</b>
           <span className="block text-ink-2">{balanced.get(day) ? t('food.balancedToday') : t('food.balancedHow')}</span>
         </p>

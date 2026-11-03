@@ -282,7 +282,14 @@ other meals logged gets "Did you skip it?" (yes: noted; no, I ate but did not lo
 The same meal skipped 3 days in a row gets "Is it your way of eating, as with intermittent fasting?": yes
 puts it in `profiles.skip_meals`, so it is never asked about nor suggested, until it is logged on 2 of 5 days
 (Settings has it too). Answers are kept in `food_days` (status, skipped meals); one question at a time, the
-newest day first, at most 3 days back.
+newest day first, at most 3 days back. Any past day can be changed later on the Food page: "Not all logged:
+leave it out", or "It was all I ate" (also for a day under 70% that really was all).
+
+**What happened last week.** On Home, from Monday until "Got it", for a week with at least 4 days with a
+weigh-in and 4 complete days of food: days logged and the average calories and protein against the target,
+the weight trend against the chosen pace, workouts and steps, and how the energy estimate and the target moved
+since the start of the week (worked out again as of that Monday). When the weekly calorie check-in is due, its
+proposal is answered right there (apply or keep), so the Food page does not ask again.
 
 **Recipes.** Food → Recipes: a dish written once (name, portions, ingredients one per line, weight when ready),
 then anyone in the family logs a portion in one tap. Ingredients are read like a dictated meal (built-in foods,
@@ -294,7 +301,12 @@ link**: Cookidoo (the Thermomix/Bimby site) puts a schema.org Recipe in its publ
 ingredients, nutrition per portion); the Bimby community site (ricettario-bimby.it) marks each ingredient with
 `itemprop="recipeIngredient"`; most recipe sites do one of the two. `food-search` (mode `recipe`) reads the page
 on the server (public addresses by name only, redirects checked one by one) and the editor opens filled in,
-with the page's own figure per portion to compare.
+with the page's own figure per portion to compare. **"Hai un Bimby? Cerca la ricetta!"** searches by name, in
+the person's language (`food-search` mode `recipe_search`): in Italian, the results of the official Bimby recipe
+community's own search page (ricettario-bimby.it), each read on a tap; Cookidoo's search loads its results
+through a private search service the app does not use, so "Search on Cookidoo" opens it in the browser and the
+link of the recipe chosen is pasted back. In English there is Cookidoo's English search only: the English
+recipe community does not answer requests from servers.
 
 **A meal for more people.** One person cooked, more ate: right after saving ("Did someone eat the same?"), or
 from a meal's Details or a food's menu, the meal goes into the food logs of the people chosen, same time and
