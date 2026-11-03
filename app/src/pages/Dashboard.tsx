@@ -5,6 +5,7 @@ import { BarChart, MacroBar, Ring } from '../components/charts'
 import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
+import { WeekSummaryCard } from '../components/WeekSummary'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { PointsQuizCard } from '../components/PointsQuizCard'
 import { StrengthChart } from '../components/StrengthChart'
@@ -25,6 +26,7 @@ import { quizToday } from '../lib/pointsQuiz'
 import { homeOrder } from '../../../shared/home-sections.mjs'
 import { nextMeal } from '../lib/nextMeal'
 import { useKeepTargets } from '../lib/useEnergy'
+import { lastWeekSummary } from '../lib/weekSummary'
 
 export function Dashboard() {
   const { t, l, num, kg, date, locale } = useI18n()
@@ -106,6 +108,7 @@ export function Dashboard() {
       // After the first meal of the day: an idea for the next one.
       nextMeal: todayFood.length ? nextMeal(food, energy.targets, locale, new Date(), 0, profile.skip_meals ?? []) : null,
       cheer: motivation(food, energy.targets),
+      week: lastWeekSummary(profile, weights, steps, sessions, food, notes, energy),
       food,
       notes,
       activeMinutes,
@@ -428,6 +431,9 @@ export function Dashboard() {
           <SettingsIcon className="size-6" />
         </Link>
       </header>
+
+      {/* Once a week, for a week logged well enough: what happened, and how the target moved. */}
+      {view.week ? <WeekSummaryCard summary={view.week} onChanged={() => void reload()} /> : null}
 
       {homeOrder(profile.home_order).map((id) => (
         <Fragment key={id}>{sections[id]}</Fragment>

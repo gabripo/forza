@@ -1,11 +1,11 @@
-import { BookOpen, Link2, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { BookOpen, ChefHat, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
 import { Button, Card, Empty, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { sumItems } from '../../lib/calc'
-import { deleteRecipe, estimateText, getRecipes, importRecipe, saveRecipe, useAsync } from '../../lib/data'
+import { deleteRecipe, estimateText, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
 import { loadFoodDb, plainItem, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
 import type { FoodItem, Recipe } from '../../lib/types'
@@ -77,26 +77,42 @@ function recipeItem(r: Recipe, grams: number): LoggedItem {
  * one tap by anyone in the family. Each recipe is also a food of the family database, found by the search.
  */
 export function Recipes() {
-  const { t, num } = useI18n()
+  const { t, num, locale } = useI18n()
   const { session } = useApp()
   const navigate = useNavigate()
   const { data, loading } = useAsync(getRecipes, [])
   const [url, setUrl] = useState('')
-  const [reading, setReading] = useState(false)
+  const [reading, setReading] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
   const [logging, setLogging] = useState<Recipe | null>(null)
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [found, setFound] = useState<{ results: FoundRecipe[]; cookidooUrl: string; error?: string } | null>(null)
 
-  async function read() {
-    setReading(true)
+  /** Reads a recipe page (a link pasted, or a recipe found) and opens it in the editor. */
+  async function read(link: string) {
+    setReading(link)
     setImportError(null)
     try {
-      const r = await importRecipe(url.trim())
-      navigate('/food/recipes/new', { state: { draft: { name: r.name, servings: r.servings, text: r.ingredients.join('\n'), source: 'link', source_url: url.trim(), nutrition: r.nutrition } } })
+      const r = await importRecipe(link)
+      navigate('/food/recipes/new', { state: { draft: { name: r.name, servings: r.servings, text: r.ingredients.join('\n'), source: 'link', source_url: link, nutrition: r.nutrition } } })
     } catch (e) {
       const code = (e as Error).message
       setImportError(t(code === 'no_recipe' ? 'recipes.noRecipe' : code === 'bad_url' ? 'recipes.badUrl' : 'recipes.importFailed'))
     } finally {
-      setReading(false)
+      setReading(null)
+    }
+  }
+
+  async function search() {
+    setSearching(true)
+    setImportError(null)
+    try {
+      setFound(await searchBimby(query.trim(), locale))
+    } catch {
+      setFound({ results: [], cookidooUrl: '', error: 'search_failed' })
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -116,16 +132,69 @@ export function Recipes() {
         }
       />
 
-      <Card title={t('recipes.importTitle')}>
-        <p className="mb-3 text-sm text-ink-2">{t('recipes.importText')}</p>
+      {/* Thermomix (Bimby) recipes: found by name in the person's language, or pasted as a link. */}
+      <section className="grid gap-3 rounded-3xl bg-leaf-soft p-4">
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">
+          <ChefHat className="size-6 text-leaf" aria-hidden /> {t('recipes.bimbyTitle')}
+        </h2>
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (query.trim().length >= 2) void search()
+          }}
+        >
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
+            <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('recipes.bimbyPlaceholder')} className="pl-10" />
+          </div>
+          <Button type="submit" loading={searching} disabled={query.trim().length < 2}>
+            {t('recipes.bimbySearch')}
+          </Button>
+        </form>
+        {found ? (
+          <>
+            {found.results.length ? (
+              <>
+                <p className="text-sm text-ink-2">{t('recipes.bimbyFrom')}</p>
+                <ul className="grid gap-2">
+                  {found.results.map((r) => (
+                    <li key={r.url}>
+                      <button onClick={() => void read(r.url)} disabled={Boolean(reading)} className="flex w-full items-center gap-3 rounded-2xl bg-card p-2 text-left shadow-sm active:bg-card-2 disabled:opacity-60">
+                        {r.image ? <img src={r.image} alt="" className="size-14 shrink-0 rounded-xl object-cover" loading="lazy" /> : null}
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold leading-tight">{r.title}</span>
+                          {r.rating ? (
+                            <span className="text-sm text-ink-2">
+                              <Star className="mr-0.5 inline size-3.5 fill-sun text-sun" aria-hidden /> {num(r.rating, 1)}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="text-sm font-semibold text-brand-ink">{reading === r.url ? '…' : t('recipes.bimbyUse')}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-sm">{t(found.error ? 'recipes.bimbyFailed' : locale === 'it' ? 'recipes.bimbyNone' : 'recipes.bimbyEnglish')}</p>
+            )}
+            {found.cookidooUrl ? (
+              <a href={found.cookidooUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 self-start rounded-2xl bg-card px-3 py-2 font-semibold text-brand-ink shadow-sm">
+                <ExternalLink className="size-4" aria-hidden /> {t('recipes.cookidooSearch')}
+              </a>
+            ) : null}
+          </>
+        ) : null}
+        <p className="text-sm text-ink-2">{t('recipes.importText')}</p>
         <div className="flex gap-2">
           <Input type="url" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://cookidoo.it/recipes/recipe/it-IT/r…" />
-          <Button onClick={() => void read()} loading={reading} disabled={!/^https?:\/\/\S+\.\S+/.test(url.trim())}>
+          <Button variant="secondary" onClick={() => void read(url.trim())} loading={reading === url.trim()} disabled={!/^https?:\/\/\S+\.\S+/.test(url.trim())}>
             <Link2 className="size-5" aria-hidden /> {t('recipes.importButton')}
           </Button>
         </div>
-        {importError ? <p className="mt-2 rounded-2xl bg-sun-soft p-3 text-sm">{importError}</p> : null}
-      </Card>
+        {importError ? <p className="rounded-2xl bg-sun-soft p-3 text-sm">{importError}</p> : null}
+      </section>
 
       {recipes.length === 0 ? (
         <Card>

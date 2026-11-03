@@ -13,3 +13,5 @@ update public.workout_templates set name = replace(replace(name, 'Allenamento', 
 where user_id = 'd0d0d0d0-0000-4000-8000-000000000001';
 update public.workout_sessions set name = replace(replace(name, 'Allenamento', 'Workout'), 'Total body', 'Full body')
 where user_id = 'd0d0d0d0-0000-4000-8000-000000000001';
+update public.recipes set name = 'Grandma''s pasta with chickpeas' where name = 'Pasta e ceci della nonna';
+update public.foods set name = 'Grandma''s pasta with chickpeas', name_key = 'grandma s pasta with chickpeas' where source = 'recipe' and name = 'Pasta e ceci della nonna';

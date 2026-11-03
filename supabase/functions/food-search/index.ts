@@ -148,6 +148,43 @@ async function readRecipe(raw: string) {
   return json({ name: name.slice(0, 120), servings: servings && servings >= 1 && servings <= 50 ? Math.round(servings) : null, ingredients, nutrition, image: image && /^https:\/\//.test(image) ? image : null })
 }
 
+// ---------------------------------------------------------------------------
+// Searching Thermomix (Bimby) recipes
+// ---------------------------------------------------------------------------
+
+/**
+ * Italian: the official Bimby recipe community (ricettario-bimby.it, Vorwerk), whose search page lists the
+ * recipes found. Cookidoo's own search loads its results through a private search service, so the app only
+ * opens it (cookidooUrl) and the person pastes the link of the recipe chosen. In English there is Cookidoo's
+ * search only: the English recipe community does not answer requests from servers.
+ */
+async function searchRecipes(q: string, locale: string) {
+  const cookidooUrl = locale === 'it'
+    ? `https://cookidoo.it/search/it-IT?query=${encodeURIComponent(q)}`
+    : `https://cookidoo.international/search/en?query=${encodeURIComponent(q)}`
+  if (locale !== 'it') return json({ results: [], cookidooUrl })
+  try {
+    const res = await fetch(`https://www.ricettario-bimby.it/cerca?search=${encodeURIComponent(q)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Forza! family fitness app; github.com/gabripo/forza)', 'Accept-Language': 'it' },
+      signal: AbortSignal.timeout(12_000),
+    })
+    if (!res.ok) return json({ results: [], cookidooUrl, error: 'search_failed' })
+    const html = (await res.text()).slice(0, 3_000_000)
+    const seen = new Set<string>()
+    const results = []
+    // Each result: <div … data-id="…"> … <a href="/…-ricette/…" title="…" class="recipe-link"><img src="…"> … data-average="4.56"
+    for (const m of html.matchAll(/data-id="([\w-]+)"[^>]*>[\s\S]{0,400}?<a href="(\/[^"]+)" title="([^"]*)" class="recipe-link">\s*<img src="([^"]*)"[\s\S]{0,1200}?data-average="([\d.]*)"/g)) {
+      if (seen.has(m[2])) continue
+      seen.add(m[2])
+      results.push({ title: plainText(m[3]).slice(0, 120), url: `https://www.ricettario-bimby.it${m[2]}`, image: /^https:\/\//.test(m[4]) ? m[4] : null, rating: Number(m[5]) || null })
+      if (results.length >= 20) break
+    }
+    return json({ results, cookidooUrl })
+  } catch {
+    return json({ results: [], cookidooUrl, error: 'search_failed' })
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
@@ -159,6 +196,11 @@ Deno.serve(async (req) => {
     return json({ error: 'bad_request' }, 400)
   }
   if (body.mode === 'recipe') return readRecipe(String(body.url ?? '').trim().slice(0, 500))
+  if (body.mode === 'recipe_search') {
+    const q = String(body.q ?? '').trim().slice(0, 80)
+    if (q.length < 2) return json({ results: [] })
+    return searchRecipes(q, body.locale === 'it' ? 'it' : 'en')
+  }
   const q = String(body.q ?? '').trim().slice(0, 80)
   if (q.length < 2) return json({ products: [] })
   const lang = body.locale === 'it' ? 'it' : 'en'

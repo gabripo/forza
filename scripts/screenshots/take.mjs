@@ -189,6 +189,64 @@ await shot('sources', async () => {
   await close()
 })
 
+await shot('week', async () => {
+  const { page, close } = await phone(px(1169))
+  await open(page, '/')
+  // "What happened last week", at the top of Home on the days after a well-logged week.
+  await page.getByText('What happened last week').first().evaluate((el) => {
+    el.scrollIntoView({ block: 'start' })
+    window.scrollBy(0, -60)
+  })
+  await page.waitForTimeout(300)
+  await save(page, 'week')
+  await close()
+})
+
+await shot('day', async () => {
+  const { page, close } = await phone(px(1005))
+  await open(page, '/food')
+  // The whole day at a glance, then each meal with its own totals.
+  await page.getByText('The day so far').first().evaluate((el) => {
+    el.scrollIntoView({ block: 'start' })
+    window.scrollBy(0, -120)
+  })
+  await page.waitForTimeout(300)
+  await save(page, 'day')
+  await close()
+})
+
+await shot('consistency', async () => {
+  const { page, close } = await phone(px(1005))
+  await open(page, '/food')
+  await page.getByRole('button', { name: "Why one day's numbers matter little" }).first().click()
+  await page.waitForTimeout(600)
+  await save(page, 'consistency')
+  await close()
+})
+
+await shot('recipes', async () => {
+  const { page, close } = await phone(px(1005))
+  await open(page, '/food/recipes')
+  await save(page, 'recipes')
+  await close()
+})
+
+await shot('menu', async () => {
+  const { page, close } = await phone(px(1005))
+  await open(page, '/food/menu')
+  await page.locator('textarea').fill('Grilled sea bass with vegetables, spaghetti carbonara, Caesar salad, beef tagliata with rocket, margherita pizza')
+  await page.waitForTimeout(300)
+  await save(page, 'menu')
+  await close()
+})
+
+await shot('progress-dashboard', async () => {
+  const { page, close } = await phone(px(1169))
+  await open(page, '/check/dashboard')
+  await save(page, 'progress-dashboard')
+  await close()
+})
+
 // ----------------------------------------------------------------------------------------- Forza! Coach
 
 if (process.env.COACH_URL) {

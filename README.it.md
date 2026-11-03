@@ -25,6 +25,39 @@ e aggiorni la scheda dal tuo computer.
 *Schermate della persona di prova, rifatte in automatico dopo ogni modifica all'app. L'app è anche in
 italiano: la lingua si cambia in qualsiasi momento.*
 
+## Le funzioni che fanno la differenza
+
+<p align="center">
+  <img src="docs/screenshots/week.jpg" width="150" alt="Cosa è successo la scorsa settimana">
+  <img src="docs/screenshots/day.jpg" width="150" alt="La giornata intera a colpo d'occhio">
+  <img src="docs/screenshots/menu.jpg" width="150" alt="Cosa prendo dal menu?">
+  <img src="docs/screenshots/recipes.jpg" width="150" alt="Ricette di famiglia e Bimby">
+  <img src="docs/screenshots/progress-dashboard.jpg" width="150" alt="Progressi per qualsiasi periodo">
+  <img src="docs/screenshots/consistency.jpg" width="150" alt="La costanza batte la perfezione">
+</p>
+
+- 🍽️ **"Cosa prendo dal menu?"** Fotografa il menu del ristorante, o detta i piatti: un'AI veloce lo legge,
+  una più potente sceglie il piatto migliore per la *tua* giornata finora e spiega perché in parole semplici,
+  con un piccolo accorgimento da chiedere.
+- 📷 **Fotografa, detta o scansiona un pasto**, e vedi prima cosa fare ("aggiungi un po' di proteine"),
+  valutato insieme al resto di quel pasto e della giornata.
+- 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta, poi chiunque ne registra una porzione
+  con un tocco. Hai un Bimby? Cerca la ricetta nell'app o incolla un link di Cookidoo: gli ingredienti
+  vengono letti per te.
+- 👨‍👩‍👧 **Cucini una volta, registri per tutti.** Condividi un pasto con chi l'ha mangiato, ognuno con la sua
+  porzione; l'archivio degli alimenti di famiglia cresce con ogni pasto registrato.
+- 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, il dettaglio di
+  ogni pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
+- 🔥 **Un obiettivo che impara da te.** L'energia che il corpo consuma è misurata sempre di più dai tuoi pasti e
+  dalla tua bilancia; le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),
+  il digiuno intermittente è riconosciuto, le formule sono spiegate e lo storico è conservato.
+- 💪 **Allenamenti che progrediscono da soli**, e qualsiasi esercizio trovato da una descrizione ("alzo un
+  ginocchio e lo tocco con il gomito opposto"), con le sue foto.
+- 📈 **Progressi per qualsiasi periodo**, ogni grafico si legge con un tocco, e gli obiettivi nel tempo
+  raccontati come un percorso.
+- 🧘 **Sereni, non ossessionati.** "Perché i numeri di un giorno contano poco": la costanza e una casa che aiuta
+  battono le giornate perfette.
+
 ## Per chi si allena
 
 | | |
