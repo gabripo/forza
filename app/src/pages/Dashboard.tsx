@@ -2,7 +2,9 @@ import { ArrowUpDown, Barcode, BookOpen, Camera, Check, ChevronRight, Footprints
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
+import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
+import { DayQuestionCard } from '../components/DayCards'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { PointsQuizCard } from '../components/PointsQuizCard'
 import { StrengthChart } from '../components/StrengthChart'
@@ -12,7 +14,8 @@ import { tipOfTheDay } from '../data/tips'
 import { useApp } from '../lib/auth'
 import { dailyWeights, daysAgo, localDay, weekStart, weightTrend } from '../lib/calc'
 import { copySuggestion } from '../lib/copyMeal'
-import { getActivities, getFood, getLessonProgress, getMoves, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { getActivities, getFood, getFoodDays, getLessonProgress, getMoves, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
+import { motivation } from '../lib/dayCheck'
 import { computeEnergy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
@@ -21,6 +24,7 @@ import { quizOf, useKnowledge } from '../lib/knowledge'
 import { quizToday } from '../lib/pointsQuiz'
 import { homeOrder } from '../../../shared/home-sections.mjs'
 import { nextMeal } from '../lib/nextMeal'
+import { useKeepTargets } from '../lib/useEnergy'
 
 export function Dashboard() {
   const { t, l, num, kg, date, locale } = useI18n()
@@ -29,15 +33,15 @@ export function Dashboard() {
   const [logOpen, setLogOpen] = useState(false)
   const knowledge = useKnowledge()
   const { data, loading, reload } = useAsync(
-    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress(), getQuizAnswers(), getMoves()]),
+    () => Promise.all([getWeights(180), getSessions(120), getSteps(60), getFood(28), getTemplates(), getActivities(3), getLessonProgress(), getQuizAnswers(), getMoves(), getFoodDays(60).catch(() => [])]),
     [],
   )
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, food, templates, activities, lessons, quizAnswers, moves] = data
+    const [weights, sessions, steps, food, templates, activities, lessons, quizAnswers, moves, notes] = data
     const readLessons = new Set(lessons.map((r) => r.lesson_id))
-    const energy = computeEnergy(profile, weights, steps, sessions, food)
+    const energy = computeEnergy(profile, weights, steps, sessions, food, notes)
     const trend = weightTrend(dailyWeights(weights))
     const today = localDay(new Date())
     const todayFood = food.filter((f) => localDay(new Date(f.eaten_at)) === today)
@@ -100,7 +104,10 @@ export function Dashboard() {
       points: weekPoints(rewardInput),
       todayFoodCount: todayFood.length,
       // After the first meal of the day: an idea for the next one.
-      nextMeal: todayFood.length ? nextMeal(food, energy.targets, locale) : null,
+      nextMeal: todayFood.length ? nextMeal(food, energy.targets, locale, new Date(), 0, profile.skip_meals ?? []) : null,
+      cheer: motivation(food, energy.targets),
+      food,
+      notes,
       activeMinutes,
       nextLesson,
       quiz,
@@ -112,6 +119,7 @@ export function Dashboard() {
       allSets: sessions.flatMap((s) => s.sets),
     }
   }, [data, profile, date, locale, knowledge])
+  useKeepTargets(view?.energy ?? null)
 
   if (loading && !data) return <Loading />
   if (!view || !profile) return null
@@ -297,6 +305,8 @@ export function Dashboard() {
     ),
     food: (
       <>
+        {/* Once a day is over: was everything logged, was a meal skipped? */}
+        <DayQuestionCard food={view.food} notes={view.notes} targets={view.energy.targets} onAnswered={() => void reload()} />
         {/* Food today */}
         <Card
           title={t('dash.foodToday')}
@@ -306,6 +316,11 @@ export function Dashboard() {
             </Link>
           }
         >
+          {/* One sentence from what was logged today: the best thing, then the one thing to add. */}
+          <p className="mb-3 text-lg leading-snug font-bold">
+            {t(`motivation.praise.${view.cheer.praise}`)}
+            {view.cheer.nudge ? <span className="block text-base font-normal text-ink-2">{t(`motivation.nudge.${view.cheer.nudge}`)}</span> : null}
+          </p>
           <div className="flex items-center gap-4">
             <Ring value={view.eaten.kcal} max={view.energy.targets.kcal} size={112}>
               <div>
@@ -318,6 +333,7 @@ export function Dashboard() {
               <p className="mt-2 text-sm text-ink-3">{t('dash.proteinWhy')}</p>
             </div>
           </div>
+          <ConsistencyLink className="-ml-3 mt-1" />
           {view.eaten.satfat > view.energy.targets.satfat_g ? (
             <Link to="/food" className="mt-3 block rounded-2xl bg-danger-soft px-3 py-2 text-sm font-semibold" role="alert">
               ⚠️ {t('food.satfatOver', { g: num(view.eaten.satfat, 1), max: num(view.energy.targets.satfat_g) })}

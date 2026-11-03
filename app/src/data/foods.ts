@@ -245,6 +245,12 @@ const ROWS: Row[] = [
   ['pistachios', 'Pistachios', 'Pistacchi', 'fats', 560, 20, 28, 45, 10.6, 7.7, 25, 'a handful', 'una manciata'],
   ['peanuts', 'Peanuts', 'Arachidi', 'fats', 567, 26, 16, 49, 8.5, 4, 25, 'a handful', 'una manciata'],
   ['seeds', 'Seeds (pumpkin, sunflower, chia)', 'Semi (zucca, girasole, chia)', 'fats', 570, 25, 15, 47, 7, 1.5, 15, '1 tbsp', '1 cucchiaio'],
+  // Cooking and baking (recipes)
+  ['flour_00', 'White flour (type 00)', 'Farina tipo 00', 'carbs', 340, 11, 72, 1, 2.2, 1.7, 100],
+  ['flour_wholemeal', 'Wholemeal flour', 'Farina integrale', 'carbs', 320, 12, 62, 2, 9, 2, 100],
+  ['yeast_fresh', "Fresh brewer's yeast", 'Lievito di birra fresco', 'carbs', 105, 8.4, 18, 1.9, 8, 0, 10],
+  ['yeast_dry', "Dried brewer's yeast", 'Lievito di birra disidratato', 'carbs', 325, 40, 41, 7.6, 27, 0, 7],
+  ['lemon_juice', 'Lemon juice', 'Succo di limone', 'fruit', 22, 0.4, 7, 0.2, 0.3, 2.5, 15, '1 tbsp', '1 cucchiaio'],
   // Sweets and snacks
   ['ketchup', 'Ketchup', 'Ketchup', 'treats', 100, 1.2, 25, 0.1, 0.3, 22, 15, '1 tbsp', '1 cucchiaio'],
   ['hazelnut_spread', 'Hazelnut cocoa spread', 'Crema alla nocciola (Nutella)', 'treats', 540, 6.3, 57.5, 31, 3.5, 56, 15, '1 tbsp', '1 cucchiaio'],

@@ -1,11 +1,12 @@
 import { Barcode, Camera, Check, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { MealSoFar } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
-import { dbProduct, frequentFoods, plainItem, rememberItems, searchAll, searchOnline, useFoodDb, type LoggedItem, type Pick } from '../../lib/foodDb'
+import { dbProduct, familyFavourites, frequentFoods, plainItem, rememberItems, searchAll, searchOnline, useFoodDb, type LoggedItem, type Pick } from '../../lib/foodDb'
 import { useApp } from '../../lib/auth'
 import { scorePlate, sumItems } from '../../lib/calc'
 import { addFood, readLabel } from '../../lib/data'
@@ -20,7 +21,7 @@ import { useEnergy } from '../../lib/useEnergy'
 export function FoodManual() {
   const { t, l, locale } = useI18n()
   const { profile } = useApp()
-  const { energy } = useEnergy()
+  const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   // Coming from a photo ("adjust by hand"): start from what the AI saw.
@@ -45,6 +46,7 @@ export function FoodManual() {
 
   // The person's usual foods first, then the family's, then the app's own table; everyday names count too.
   const frequent = useMemo(() => frequentFoods(db, 8), [db])
+  const favourites = useMemo(() => familyFavourites(db, 6), [db])
   const results = useMemo((): Pick[] => (q.trim() ? searchAll(q, db) : FOODS.slice(0, 12).map((food) => ({ kind: 'builtin', food, uses: 0 }))), [q, db])
 
   async function findOnline() {
@@ -143,7 +145,7 @@ export function FoodManual() {
     try {
       const now = new Date()
       const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
-      await addFood({
+      const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
         title: items.map((i) => i.name).join(', ').slice(0, 120),
@@ -156,7 +158,7 @@ export function FoodManual() {
         ai_notes: null,
       })
       rememberItems(items, 'manual')
-      navigate('/food', { state: { logged: true } })
+      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
     } finally {
       setBusy(false)
     }
@@ -207,6 +209,17 @@ export function FoodManual() {
             <ul className="mb-3 grid gap-1">
               {frequent.map((p) => (
                 <PickRow key={`${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {/* What the rest of the family logs most: the family's database, shared by everyone. */}
+        {!q.trim() && favourites.length ? (
+          <>
+            <p className="mb-1 text-sm font-semibold text-ink-2">{t('manual.familyFavourites')}</p>
+            <ul className="mb-3 grid gap-1">
+              {favourites.map((p) => (
+                <PickRow key={`fav:${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
               ))}
             </ul>
           </>
@@ -263,6 +276,7 @@ export function FoodManual() {
         </Button>
       </Card>
 
+      {items.length ? <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} /> : null}
       {items.length ? (
         <Card>
           <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={new Date()} />
@@ -351,7 +365,7 @@ function PickRow({ pick, onPick }: { pick: Pick; onPick: (p: Pick) => void }) {
           <span className="block text-sm text-ink-2">
             {pick.kind === 'db' && pick.food.brand ? `${pick.food.brand} · ` : ''}
             {t('manual.per100', per100)}
-            {pick.kind === 'db' ? ` · ${t('manual.family')}` : ''}
+            {pick.kind === 'db' ? ` · ${t(pick.food.source === 'recipe' ? 'manual.recipe' : 'manual.family')}` : ''}
           </span>
         </span>
         <Plus className="size-5 text-brand" aria-hidden />

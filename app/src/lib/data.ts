@@ -13,8 +13,13 @@ import type {
   DailySteps,
   Exercise,
   ExerciseKind,
+  FoodDay,
+  FoodItem,
   FoodLog,
+  Meal,
   Profile,
+  Recipe,
+  TargetDay,
   ProgressPhoto,
   SetLog,
   WorkoutSession,
@@ -145,21 +150,29 @@ export async function loadExercises(): Promise<Map<string, Exercise>> {
 
 export async function createCustomExercise(input: {
   name: string
+  /** Its Italian name, when it differs (an exercise from the library). */
+  name_it?: string
   muscles: string[]
   equipment: string
   kind: ExerciseKind
   video_url?: string
+  steps_en?: string[]
+  steps_it?: string[]
+  image_urls?: string[]
 }): Promise<string> {
   const row = check(
     await supabase
       .from('custom_exercises')
       .insert({
         name_en: input.name,
-        name_it: input.name,
+        name_it: input.name_it || input.name,
         muscles: input.muscles,
         equipment: input.equipment,
         kind: input.kind,
         video_url: input.video_url || null,
+        steps_en: input.steps_en ?? [],
+        steps_it: input.steps_it ?? [],
+        image_urls: input.image_urls ?? [],
       })
       .select('id')
       .single(),
@@ -337,8 +350,9 @@ export async function getFood(sinceDays = 0): Promise<FoodLog[]> {
   )
 }
 
-export async function addFood(log: Omit<FoodLog, 'id'>): Promise<void> {
-  check(await supabase.from('food_logs').insert(log))
+/** Logs a meal; returns its id (to share it with whoever ate the same). */
+export async function addFood(log: Omit<FoodLog, 'id'>): Promise<string> {
+  return (check(await supabase.from('food_logs').insert(log).select('id').single()) as { id: string }).id
 }
 
 /**
@@ -368,6 +382,62 @@ export async function deleteFoods(ids: string[]): Promise<void> {
 
 export async function deleteFood(id: string): Promise<void> {
   check(await supabase.from('food_logs').delete().eq('id', id))
+}
+
+// ---------------------------------------------------------------------------
+// The family's food: people, shared meals, recipes
+// ---------------------------------------------------------------------------
+
+/** Everyone in the family but this person, by name. */
+export async function getFamilyPeople(myId: string): Promise<{ id: string; display_name: string }[]> {
+  const rows = check(await supabase.rpc('family_people')) as { id: string; display_name: string }[]
+  return rows.filter((p) => p.id !== myId)
+}
+
+/** Copies these meals into the food logs of the people who ate the same (each portion × factor). */
+export async function shareMeals(ids: string[], people: string[], factor = 1): Promise<number> {
+  return check(await supabase.rpc('share_meal', { p_ids: ids, p_users: people, p_factor: factor })) as number
+}
+
+export async function getRecipes(): Promise<Recipe[]> {
+  return check(await supabase.from('recipes').select('*').order('updated_at', { ascending: false })) as Recipe[]
+}
+
+/** Saves a recipe (and its food in the family database, per 100 g of the dish); returns its id. */
+export async function saveRecipe(r: { id?: string; name: string; servings: number; total_g: number | null; items: FoodItem[]; source?: Recipe['source']; source_url?: string | null }): Promise<string> {
+  return check(await supabase.rpc('save_recipe', { p_recipe: r })) as string
+}
+
+export async function deleteRecipe(id: string): Promise<void> {
+  check(await supabase.from('recipes').delete().eq('id', id))
+}
+
+/** Reads a recipe page (Cookidoo, the Bimby recipe site, any page with a recipe in it) on the server. */
+export async function importRecipe(url: string): Promise<{ name: string; servings: number | null; ingredients: string[]; nutrition: { kcal?: number; protein_g?: number; carbs_g?: number; fat_g?: number } | null; image: string | null }> {
+  const { data, error } = await supabase.functions.invoke('food-search', { body: { mode: 'recipe', url } })
+  if (error) throw new Error(((await (error as { context?: Response }).context?.json?.().catch(() => null)) as { error?: string } | null)?.error ?? 'recipe_failed')
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Each day's food, checked; the targets over time
+// ---------------------------------------------------------------------------
+
+export async function getFoodDays(sinceDays = 60): Promise<FoodDay[]> {
+  return check(await supabase.from('food_days').select('day, status, skipped').gte('day', localDay(daysAgo(sinceDays))).order('day')) as FoodDay[]
+}
+
+export async function setFoodDay(day: string, patch: { status?: FoodDay['status']; skipped?: Meal[] }): Promise<void> {
+  check(await supabase.from('food_days').upsert({ day, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id,day' }))
+}
+
+export async function getTargetHistory(sinceDays = 3650): Promise<TargetDay[]> {
+  return check(await supabase.from('target_history').select('day, kcal, protein_g, carbs_g, fat_g, tdee, method, weight_kg').gte('day', localDay(daysAgo(sinceDays))).order('day')) as TargetDay[]
+}
+
+/** Today's targets, kept once a day (a later change the same day replaces them). */
+export async function saveTargetDay(t: TargetDay): Promise<void> {
+  check(await supabase.from('target_history').upsert(t, { onConflict: 'user_id,day' }))
 }
 
 export async function uploadFoodPhoto(userId: string, blob: Blob): Promise<string> {
@@ -417,6 +487,57 @@ export function estimateText(input: { text: string; locale: string; goal: string
 /** A recorded voice note turned into words, for browsers without speech recognition (Firefox). */
 export function transcribeAudio(input: { audio: string; mime: string; locale: string }): Promise<{ text: string }> {
   return invokeFoodAi<{ text: string }>({ ...input, mode: 'transcribe' })
+}
+
+/** A dish of a restaurant menu with rough values for one portion. */
+export interface MenuDish {
+  name: string
+  description: string
+  portion_g: number
+  kcal: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  fiber_g: number
+  sugar_g: number
+  satfat_g: number
+}
+
+/** The menu read, the dish chosen for today (by its place in the list) and why, in everyday words. */
+export interface MenuPick {
+  dishes: MenuDish[]
+  choice: number
+  why: string
+  tweak: string
+  also: { dish: number; why: string }[]
+  rather_not: { dish: number; why: string }[]
+}
+
+/** "What should I order?": a menu (photo or words) and the person's day so far; read by a quick AI, chosen by a stronger one. */
+export function pickFromMenu(input: { image?: string; text?: string; locale: string; goal: string; meal: string; hour: number; eaten: string[]; day: Record<string, number>; targets: Record<string, number> }): Promise<MenuPick> {
+  return invokeFoodAi<MenuPick>({ ...input, mode: 'menu' })
+}
+
+/** An exercise of the free exercise database that may be the one described. */
+export interface LibraryMatch {
+  id: string
+  name_en: string
+  name_it: string
+  why: string
+  equipment: string
+  muscles: string[]
+  images: string[]
+  instructions: string[]
+}
+
+/** Exercises found from a description in everyday words ("I raise a knee and touch it with the opposite elbow"). */
+export async function findExercises(query: string, locale: string): Promise<LibraryMatch[]> {
+  return (await invokeFoodAi<{ matches: LibraryMatch[] }>({ mode: 'exercise', query, locale })).matches
+}
+
+/** One exercise of the database, ready to add: short steps in both languages, its kind, its photos in the project's storage. */
+export function exerciseFromLibrary(id: string): Promise<{ source_id: string; name_en: string; name_it: string; kind: ExerciseKind; equipment: string; muscles: string[]; steps_en: string[]; steps_it: string[]; image_urls: string[] }> {
+  return invokeFoodAi({ mode: 'exercise_add', id })
 }
 
 /** Dictated words rewritten as a clean list of foods with their amounts, one per line. */

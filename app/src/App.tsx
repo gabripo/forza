@@ -9,6 +9,8 @@ import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
 import { FoodHome } from './pages/food/FoodHome'
 import { FoodManual } from './pages/food/FoodManual'
+import { MenuPick } from './pages/food/MenuPick'
+import { RecipeEditor, Recipes } from './pages/food/Recipes'
 import { FoodSnap } from './pages/food/FoodSnap'
 import { FoodVoice } from './pages/food/FoodVoice'
 import { HealthSync } from './pages/HealthSync'
@@ -72,6 +74,10 @@ function Gate() {
         <Route path="food/snap" element={<FoodSnap />} />
         <Route path="food/voice" element={<FoodVoice />} />
         <Route path="food/add" element={<FoodManual />} />
+        <Route path="food/recipes" element={<Recipes />} />
+        <Route path="food/recipes/new" element={<RecipeEditor />} />
+        <Route path="food/recipes/:id" element={<RecipeEditor />} />
+        <Route path="food/menu" element={<MenuPick />} />
         <Route path="learn" element={<LearnHome />} />
         <Route path="learn/points-quiz" element={<PointsQuiz />} />
         <Route path="learn/:id" element={<Infographic />} />

@@ -89,16 +89,28 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
       <Step n={3} title={t('food.explain.s3')}>
         {tdee.adaptive ? (
           <>
-            <p className="text-ink-2">{t('food.explain.s3done', { days: energy.loggedFoodDays })}</p>
+            <p className="text-ink-2">{t('food.explain.s3done', { days: energy.loggedFoodDays, weighIns: energy.weighIns })}</p>
             <ul className="grid gap-2 rounded-2xl bg-card-2 p-3 text-sm">
               <Row label={t('food.explain.formula')} value={kcal(tdee.formula)} />
               <Row label={t('food.explain.adaptive', { days: energy.loggedFoodDays })} value={kcal(tdee.adaptive)} />
-              <Row label={t('food.explain.average')} value={kcal(tdee.tdee)} strong />
+              <Row label={t('food.explain.share', { p: Math.round(tdee.adaptiveWeight * 100) })} value="" />
+              <Row label={t('food.explain.blend')} value={kcal(tdee.tdee)} strong />
             </ul>
           </>
         ) : (
-          <p className="text-ink-2">{t('food.explain.s3todo', { days: energy.loggedFoodDays })}</p>
+          <p className="text-ink-2">{t('food.explain.s3todo', { days: energy.loggedFoodDays, weighIns: energy.weighIns })}</p>
         )}
+        {/* The formulas, for whoever wants them. */}
+        <details className="rounded-2xl bg-card-2 p-3 text-sm">
+          <summary className="cursor-pointer font-semibold">{t('food.explain.formulas')}</summary>
+          <div className="mt-2 grid gap-2 font-mono text-xs leading-relaxed">
+            <p>{t('food.explain.fMeasured')}</p>
+            <p>{t('food.explain.fWeight')}</p>
+            <p>{t('food.explain.fBlend')}</p>
+          </div>
+          <p className="mt-2 text-ink-2">{t('food.explain.fWhy')}</p>
+        </details>
+        {energy.leftOutDays ? <p className="text-sm text-ink-3">{t('food.explain.leftOut', { n: energy.leftOutDays })}</p> : null}
         <p className="text-sm text-ink-3">{t('food.explain.s3note')}</p>
       </Step>
 

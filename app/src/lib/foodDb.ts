@@ -24,7 +24,7 @@ export interface DbFood {
   salt_g: number | null
   satfat_g: number | null
   portion_g: number | null
-  source: 'barcode' | 'label' | 'manual' | 'ai' | 'web'
+  source: 'barcode' | 'label' | 'manual' | 'ai' | 'web' | 'recipe'
 }
 
 interface Memory {
@@ -50,11 +50,19 @@ export type Pick = { kind: 'builtin'; food: Food; uses: number } | { kind: 'db';
 
 const CACHE = 'forza.foodDb'
 // Values someone checked (label, barcode, typed in, a product found online): they can stand for a food said or seen.
-const TRUSTED = new Set<DbFood['source']>(['barcode', 'label', 'manual', 'web'])
+const TRUSTED = new Set<DbFood['source']>(['barcode', 'label', 'manual', 'web', 'recipe'])
+
+/** How often the whole family logged a food, and by how many people (counts only, never who). */
+interface FamilyUse {
+  food_key: string
+  uses: number
+  people: number
+}
 
 export interface FoodDbState {
   foods: DbFood[]
   memory: Memory[]
+  family?: FamilyUse[]
 }
 
 let state: FoodDbState = readCache()
@@ -72,10 +80,14 @@ function readCache(): FoodDbState {
 /** Reads the family's foods and this person's memory (the last copy stays on the phone for offline use). */
 export function loadFoodDb(force = false): Promise<void> {
   if (loading && !force) return loading
-  loading = Promise.all([supabase.from('foods').select('*').order('updated_at', { ascending: false }).limit(5000), supabase.from('food_memory').select('*')])
-    .then(([foods, memory]) => {
+  loading = Promise.all([
+    supabase.from('foods').select('*').order('updated_at', { ascending: false }).limit(5000),
+    supabase.from('food_memory').select('*'),
+    supabase.rpc('family_food_uses'),
+  ])
+    .then(([foods, memory, family]) => {
       if (foods.error || memory.error) return
-      state = { foods: (foods.data ?? []) as DbFood[], memory: (memory.data ?? []) as Memory[] }
+      state = { foods: (foods.data ?? []) as DbFood[], memory: (memory.data ?? []) as Memory[], family: family.error ? (state.family ?? []) : ((family.data ?? []) as FamilyUse[]) }
       try {
         localStorage.setItem(CACHE, JSON.stringify(state))
       } catch {
@@ -186,7 +198,25 @@ export function frequentFoods(st: FoodDbState = state, limit = 10): Pick[] {
   return out
 }
 
-/** The search box: this person's foods first, then the family's, then the app's own table. */
+/** The foods the family logs most (logged by at least two people, or often), that this person has not had yet. */
+export function familyFavourites(st: FoodDbState = state, limit = 8): Pick[] {
+  const mine = new Set(st.memory.map((m) => m.food_key))
+  const out: Pick[] = []
+  for (const f of st.family ?? []) {
+    if (mine.has(f.food_key) || (f.people < 2 && f.uses < 3)) continue
+    if (f.food_key.startsWith('b:')) {
+      const food = FOODS.find((x) => x.id === f.food_key.slice(2))
+      if (food) out.push({ kind: 'builtin', food, uses: 0 })
+    } else {
+      const food = st.foods.find((x) => x.id === f.food_key)
+      if (food) out.push({ kind: 'db', food, uses: 0 })
+    }
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+/** The search box: this person's foods first, then the family's (the most logged first), then the app's own table. */
 export function searchAll(query: string, st: FoodDbState = state, limit = 40): Pick[] {
   const q = nameStems(query)
   if (!q.length) return []
@@ -195,7 +225,14 @@ export function searchAll(query: string, st: FoodDbState = state, limit = 40): P
     .map((food): Pick => ({ kind: 'db', food, uses: uses(food.id, st)?.uses ?? 0 }))
   const builtIn = searchFoods(query, limit).map((food): Pick => ({ kind: 'builtin', food, uses: uses(`b:${food.id}`, st)?.uses ?? 0 }))
   const mine = [...db, ...builtIn].filter((p) => p.uses > 0).sort((a, b) => b.uses - a.uses)
-  const family = db.filter((p) => !p.uses).sort((a, b) => Number(TRUSTED.has((b.food as DbFood).source)) - Number(TRUSTED.has((a.food as DbFood).source)))
+  const familyUses = new Map((st.family ?? []).map((f) => [f.food_key, f.uses]))
+  const family = db
+    .filter((p) => !p.uses)
+    .sort(
+      (a, b) =>
+        Number(TRUSTED.has((b.food as DbFood).source)) - Number(TRUSTED.has((a.food as DbFood).source)) ||
+        (familyUses.get((b.food as DbFood).id) ?? 0) - (familyUses.get((a.food as DbFood).id) ?? 0),
+    )
   return [...mine, ...family, ...builtIn.filter((p) => !p.uses)].slice(0, limit)
 }
 

@@ -34,6 +34,8 @@ export interface TdeeEstimate {
   adaptive: number | null
   /** The number we use. */
   tdee: number
+  /** How much the measured value counts in it (0 = the formula only, at most 0.8). */
+  adaptiveWeight: number
   method: 'activity_level' | 'steps_and_workouts' | 'blended'
   stepsKcal: number
   trainingKcal: number
@@ -46,6 +48,8 @@ export function estimateTdee(args: {
   workoutsPerWeek: number
   avgWorkoutMinutes: number
   adaptive?: number | null
+  /** How much the measured value should count (0–0.8), from how much was logged. Default 0.5. */
+  adaptiveWeight?: number
 }): TdeeEstimate {
   const { profile, weightKg, avgSteps, workoutsPerWeek, avgWorkoutMinutes } = args
   const base = bmr(profile, weightKg)
@@ -65,12 +69,16 @@ export function estimateTdee(args: {
   }
   const adaptive = args.adaptive ?? null
   const plausible = adaptive !== null && adaptive > base && adaptive < base * 2.6
+  // The more food and weight logged, the more the measured value counts: a formula knows people in general,
+  // the scale knows this person. Never all of it: one odd month should not move the target too far.
+  const w = plausible ? Math.min(0.8, Math.max(0, args.adaptiveWeight ?? 0.5)) : 0
   return {
     bmr: base,
     formula,
     adaptive: plausible ? Math.round(adaptive) : null,
-    tdee: plausible ? Math.round((formula + adaptive) / 2) : formula,
-    method: plausible ? 'blended' : method,
+    tdee: w > 0 ? Math.round(formula * (1 - w) + adaptive! * w) : formula,
+    adaptiveWeight: Math.round(w * 100) / 100,
+    method: w > 0 ? 'blended' : method,
     stepsKcal,
     trainingKcal,
   }

@@ -1,12 +1,13 @@
 import { type ReactNode, useMemo, useState } from 'react'
 import { BarChart, LineChart } from '../components/charts'
 import { StrengthChart } from '../components/StrengthChart'
+import { TargetHistory } from '../components/TargetHistory'
 import { Card, Field, Input, Loading, PageHeader, Segmented } from '../components/ui'
 import { WeightChart } from '../components/WeightChart'
 import { useApp } from '../lib/auth'
 import { daysAgo, localDay, weekStart } from '../lib/calc'
-import { getFood, getFoodTotals, getSessions, getSteps, getWeights, useAsync } from '../lib/data'
-import { computeEnergy } from '../lib/energy'
+import { getFood, getFoodDays, getFoodTotals, getSessions, getSteps, getWeights, useAsync } from '../lib/data'
+import { computeEnergy, incompleteDays } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 
 type Range = 30 | 90 | 180 | 365 | 3650
@@ -37,16 +38,18 @@ export function ProgressDashboard() {
   // Two days chosen by hand (both included), used when no ready-made period is.
   const [custom, setCustom] = useState<{ from: string; to: string } | null>(null)
   const today = localDay(new Date())
-  const { data, loading } = useAsync(() => Promise.all([getWeights(3650), getSessions(3650), getSteps(3650), getFood(28)]), [])
+  const { data, loading } = useAsync(() => Promise.all([getWeights(3650), getSessions(3650), getSteps(3650), getFood(28), getFoodDays(3650).catch(() => [])]), [])
   // Food goes back as far as the period does, a year at a time so that moving a day does not load it again.
   const foodDays = range === 3650 ? 3650 : !range && custom ? Math.max(400, Math.ceil((Date.now() - midnight(custom.from).getTime()) / DAY / 365) * 365) : 400
   const meals = useAsync(() => getFoodTotals(foodDays), [foodDays])
 
   const view = useMemo(() => {
     if (!data || !profile) return null
-    const [weights, sessions, steps, recentFood] = data
+    const [weights, sessions, steps, recentFood, notes] = data
     const food = meals.data ?? []
-    const energy = computeEnergy(profile, weights, steps, sessions, recentFood)
+    const energy = computeEnergy(profile, weights, steps, sessions, recentFood, notes)
+    // Days not all logged (said so, or under 70% of the calories and not confirmed) stay out of the food charts.
+    const partial = incompleteDays(food, energy.targets.kcal, notes)
 
     // The period: a ready-made one ends today ("all" starts at the first thing recorded), or the two chosen days.
     const firstSession = sessions.at(-1)
@@ -87,7 +90,7 @@ export function ProgressDashboard() {
       x.protein += Number(f.protein_g)
       foodDays.set(d, x)
     }
-    const eaten = [...foodDays].sort((a, b) => a[0].localeCompare(b[0]))
+    const eaten = [...foodDays].filter(([d]) => !partial.has(d)).sort((a, b) => a[0].localeCompare(b[0]))
     const kgs = weights.filter((w) => inRange(w.measured_at))
     const fat = kgs.filter((w) => w.body_fat_pct != null).map((w) => ({ t: new Date(w.measured_at).getTime(), v: Number(w.body_fat_pct) }))
     return {
@@ -114,6 +117,8 @@ export function ProgressDashboard() {
     setCustom(a <= b ? { from: a, to: b } : { from: b, to: a })
   }
   const dense = view.days > 90
+  // Averages leave today out: it is not over yet.
+  const before = (pts: { t: number; v: number }[]) => pts.filter((p) => p.t !== noon(today))
   const fmtDay = (ms: number) => date(new Date(ms), { day: 'numeric', month: 'short' })
   const first = view.weights[0]
   const lastW = view.weights.at(-1)
@@ -179,7 +184,7 @@ export function ProgressDashboard() {
         />
       </Panel>
 
-      <Panel title={t('dashboard.calories')} value={view.kcal.length ? `${num(avg(view.kcal.map((s) => s.v)) ?? 0)} kcal` : undefined} change={view.kcal.length ? t('dashboard.dayAverage') : undefined}>
+      <Panel title={t('dashboard.calories')} value={before(view.kcal).length ? `${num(avg(before(view.kcal).map((s) => s.v)) ?? 0)} kcal` : undefined} change={view.kcal.length ? t('dashboard.dayAverage') : undefined}>
         <LineChart
           series={[{ id: 'kcal', label: t('dashboard.calories'), color: 'var(--series-1)', style: dense ? 'line' : 'both', points: view.kcal }]}
           goal={{ v: view.targets.kcal, label: t('dashboard.target') }}
@@ -190,7 +195,7 @@ export function ProgressDashboard() {
         />
       </Panel>
 
-      <Panel title={t('macro.protein')} value={view.protein.length ? `${num(avg(view.protein.map((s) => s.v)) ?? 0)} g` : undefined} change={view.protein.length ? t('dashboard.dayAverage') : undefined}>
+      <Panel title={t('macro.protein')} value={before(view.protein).length ? `${num(avg(before(view.protein).map((s) => s.v)) ?? 0)} g` : undefined} change={view.protein.length ? t('dashboard.dayAverage') : undefined}>
         <LineChart
           series={[{ id: 'protein', label: t('macro.protein'), color: 'var(--series-1)', style: dense ? 'line' : 'both', points: view.protein }]}
           goal={{ v: view.targets.protein_g, label: t('dashboard.target') }}
@@ -199,6 +204,10 @@ export function ProgressDashboard() {
           formatX={fmtDay}
           emptyText={t('dashboard.none')}
         />
+      </Panel>
+
+      <Panel title={t('targetHistory.title')}>
+        <TargetHistory />
       </Panel>
     </div>
   )
