@@ -130,6 +130,9 @@ export function FoodManual() {
     const barcode = /^\d{6,14}$/.test(p.code) ? p.code : undefined
     setItems((xs) => [...xs, { ...productAt(p, grams), processed: p.ultraProcessed, barcode, brand: p.brand, origin, dbId: p.dbId }])
     setProduct(null)
+    // Back to the plate: the search is done.
+    setQ('')
+    setOnline(null)
   }
 
   function addPicked() {
@@ -174,6 +177,58 @@ export function FoodManual() {
           </Button>
         ) : null}
       </PageHeader>
+      {/* The search first: the quickest way to a food. While typing, the results come right under it. */}
+      <div className="relative">
+        <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
+        <Input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setOnline(null)
+          }}
+          placeholder={t('manual.search')}
+          className="pl-10"
+        />
+      </div>
+      {q.trim() && (results.length || q.trim().length >= 3) ? (
+        <Card>
+          <ul className="grid gap-1">
+            {results.map((p) => (
+              <PickRow key={`${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
+            ))}
+          </ul>
+          {/* Open Food Facts: millions of products, many Italian, found by name. */}
+          {q.trim().length >= 3 ? (
+            online ? (
+              <>
+                <p className="mt-3 mb-1 text-sm font-semibold text-ink-2">{online.length ? t('manual.online') : t('manual.onlineNone')}</p>
+                <ul className="grid gap-1">
+                  {online.map((p) => (
+                    <li key={p.code}>
+                      <button onClick={() => setProduct(p)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
+                        {p.image ? <img src={p.image} alt="" className="size-10 shrink-0 rounded-lg bg-white object-contain" /> : null}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">{p.name}</span>
+                          <span className="block text-sm text-ink-2">
+                            {p.brand ? `${p.brand} · ` : ''}
+                            {t('manual.per100', { kcal: p.per100.kcal, p: p.per100.protein_g })}
+                          </span>
+                        </span>
+                        <Plus className="size-5 text-brand" aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <Button variant="secondary" block className="mt-2" onClick={() => void findOnline()} loading={onlineBusy}>
+                <Globe className="size-5" aria-hidden /> {t('manual.searchOnline')}
+              </Button>
+            )
+          ) : null}
+          {onlineError ? <p className="mt-2 rounded-2xl bg-sun-soft p-3 text-sm">{t('manual.onlineFailed')}</p> : null}
+        </Card>
+      ) : null}
       <Segmented<Meal>
         value={meal}
         onChange={setMeal}
@@ -224,53 +279,6 @@ export function FoodManual() {
             </ul>
           </>
         ) : null}
-        <div className="relative mb-3">
-          <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
-          <Input
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value)
-              setOnline(null)
-            }}
-            placeholder={t('manual.search')}
-            className="pl-10"
-          />
-        </div>
-        <ul className="grid gap-1">
-          {results.map((p) => (
-            <PickRow key={`${p.kind}:${p.food.id}`} pick={p} onPick={pick} />
-          ))}
-        </ul>
-        {/* Open Food Facts: millions of products, many Italian, found by name. */}
-        {q.trim().length >= 3 ? (
-          online ? (
-            <>
-              <p className="mt-3 mb-1 text-sm font-semibold text-ink-2">{online.length ? t('manual.online') : t('manual.onlineNone')}</p>
-              <ul className="grid gap-1">
-                {online.map((p) => (
-                  <li key={p.code}>
-                    <button onClick={() => setProduct(p)} className="flex w-full items-center gap-2 rounded-2xl p-2 text-left active:bg-card-2">
-                      {p.image ? <img src={p.image} alt="" className="size-10 shrink-0 rounded-lg bg-white object-contain" /> : null}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{p.name}</span>
-                        <span className="block text-sm text-ink-2">
-                          {p.brand ? `${p.brand} · ` : ''}
-                          {t('manual.per100', { kcal: p.per100.kcal, p: p.per100.protein_g })}
-                        </span>
-                      </span>
-                      <Plus className="size-5 text-brand" aria-hidden />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <Button variant="secondary" block className="mt-2" onClick={() => void findOnline()} loading={onlineBusy}>
-              <Globe className="size-5" aria-hidden /> {t('manual.searchOnline')}
-            </Button>
-          )
-        ) : null}
-        {onlineError ? <p className="mt-2 rounded-2xl bg-sun-soft p-3 text-sm">{t('manual.onlineFailed')}</p> : null}
         <Button variant="ghost" block onClick={() => setCustom(true)}>
           {t('manual.custom')}
         </Button>

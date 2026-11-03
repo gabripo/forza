@@ -829,7 +829,7 @@ export const it: Dict = {
   manual: {
     title: 'Aggiungi un pasto',
     yourPlate: 'Il tuo piatto',
-    emptyPlate: 'Aggiungi qui sotto i cibi che hai mangiato.',
+    emptyPlate: 'Cerca qui sopra i cibi che hai mangiato, o aggiungili qui sotto.',
     addFood: 'Aggiungi cibo',
     search: 'Cerca un cibo…',
     yourFoods: 'I tuoi alimenti di sempre',

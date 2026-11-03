@@ -827,7 +827,7 @@ export const en = {
   manual: {
     title: 'Add a meal',
     yourPlate: 'Your plate',
-    emptyPlate: 'Add the foods you ate below.',
+    emptyPlate: 'Search for the foods you ate above, or add them below.',
     addFood: 'Add food',
     search: 'Search food…',
     yourFoods: 'Your usual foods',
