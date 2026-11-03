@@ -304,7 +304,8 @@ only the caller's own meals; the others can change or delete their copy.
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order
 first) reads the menu into dishes with rough values per portion; a stronger model (`FOOD_AI_REASONING_ORDER`,
-by default a Gemini Pro model, then the usual order) gets those dishes with what was eaten today and the
+or `GEMINI_REASONING_MODEL`, e.g. a Pro model, when set; then the full models of the usual order before the
+lite ones, a busy one tried twice) gets those dishes with what was eaten today and the
 targets, picks the one that fits the rest of the day best, and says why in two or three everyday sentences (no
 jargon, linked to the day), with one small tweak, up to two other good dishes and up to two to keep for another
 time. It counts as one use of the daily AI limit; the chosen dish opens pre-filled to log.

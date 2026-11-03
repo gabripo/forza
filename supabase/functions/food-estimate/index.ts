@@ -312,10 +312,11 @@ async function askOpenAiCompatible(step: Step, { prompt, schema, image, mime }: 
 }
 
 /**
- * Tries the model use order top to bottom. A busy model gets one more try before moving on; any other
- * failure (wrong model name, unreadable answer) moves on at once.
+ * Tries the model use order top to bottom. A busy model gets one more try before moving on (always with
+ * `patient`, otherwise only when nothing else is left); any other failure (wrong model name, unreadable answer)
+ * moves on at once.
  */
-async function ask(ask: Ask, steps: Step[]): Promise<{ answer: unknown; model: string; tried: string[] }> {
+async function ask(ask: Ask, steps: Step[], patient = false): Promise<{ answer: unknown; model: string; tried: string[] }> {
   const tried: string[] = []
   for (const [i, step] of steps.entries()) {
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -327,7 +328,7 @@ async function ask(ask: Ask, steps: Step[]): Promise<{ answer: unknown; model: s
         tried.push(`${step.provider}:${step.model} → ${e.message.slice(0, 160)}`)
         console.error('food ai step failed', e.message)
         // Retry a busy model once, only when nothing else is left to try soon.
-        if (!(e instanceof Busy) || attempt === 1 || i < steps.length - 1) break
+        if (!(e instanceof Busy) || attempt === 1 || (i < steps.length - 1 && !patient)) break
         await new Promise((r) => setTimeout(r, 1500))
       }
     }
@@ -389,7 +390,10 @@ function quickChain(): Step[] {
   return [...c.filter((s) => LIGHT.test(s.model)), ...c.filter((s) => !LIGHT.test(s.model))]
 }
 
-/** The stronger models for choosing and explaining (FOOD_AI_REASONING_ORDER, like FOOD_AI_ORDER), then the usual order. */
+/**
+ * The stronger models for choosing and explaining: FOOD_AI_REASONING_ORDER (like FOOD_AI_ORDER) or
+ * GEMINI_REASONING_MODEL when set (e.g. a Pro model), then the usual order with its full models before the lite ones.
+ */
 function reasoningChain(): Step[] {
   let first: Step[] = []
   try {
@@ -400,7 +404,8 @@ function reasoningChain(): Step[] {
   } catch {
     first = []
   }
-  if (!first.length) first = [{ provider: 'gemini', model: Deno.env.get('GEMINI_REASONING_MODEL') ?? 'gemini-3.6-pro' }]
+  const named = Deno.env.get('GEMINI_REASONING_MODEL')
+  if (!first.length && named) first = [{ provider: 'gemini', model: named }]
   const strong = available(first)
   const usual = chain().filter((s) => !LIGHT.test(s.model))
   return [...strong, ...usual.filter((s) => !strong.some((f) => f.provider === s.provider && f.model === s.model)), ...chain().filter((s) => LIGHT.test(s.model))]
@@ -497,7 +502,8 @@ async function menuPick(b: MenuBody & { image?: string; mime?: string; text?: st
     })).filter((x) => x.name)
     if (r.is_menu === false || !dishes.length) return json({ error: 'not_a_menu' }, 422)
     // 2. Choose and explain: the stronger model, with the person's day.
-    const pick = await ask({ prompt: menuPickPrompt(language, b, dishes), schema: menuPickSchema, image: '', mime: 'text/plain' }, reasoningChain())
+    // A busy stronger model is worth a second try before a lighter one chooses.
+    const pick = await ask({ prompt: menuPickPrompt(language, b, dishes), schema: menuPickSchema, image: '', mime: 'text/plain' }, reasoningChain(), true)
     const a = pick.answer as Record<string, unknown>
     const at = (i: unknown) => (Number.isInteger(Number(i)) && Number(i) >= 0 && Number(i) < dishes.length ? Number(i) : -1)
     const choice = at(a.choice) >= 0 ? at(a.choice) : 0
