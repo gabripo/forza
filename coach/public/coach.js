@@ -228,6 +228,7 @@ function overview(d) {
     ${targetsView(d)}
     ${syncReportView(d)}
     ${dashboardCard(d)}
+    ${targetHistoryCard(d)}
     ${d.photos.length ? `<div class="card"><h2>Progress photos (${d.photos.length})</h2><p class="muted small">Private photos: open them only if the person is happy to share them with you.</p><button class="btn secondary" data-action="show-photos">Show photos</button><div id="photo-grid" class="row" style="margin-top:10px"></div></div>` : ''}
     <div class="card"><h2>Strength by exercise</h2>
       <table><thead><tr><th>Exercise</th><th class="num">Sessions</th><th class="num">First est. max</th><th class="num">Latest</th><th class="num">Change</th></tr></thead>
@@ -271,7 +272,8 @@ function ichart(series, { bars = false, goal = null, fmt = (v) => fmtNum(v), dot
   if (!series.length || (!bars && series.length < 2)) return '<p class="muted">Not enough data in this time.</p>'
   const W = 720
   const H = 240
-  const pad = { l: 52, r: 14, t: 14, b: 26 }
+  // Room on the left for labels like "1,880 kcal".
+  const pad = { l: 68, r: 14, t: 14, b: 26 }
   const values = [...series.map((p) => p.v), ...(dots ?? []).map((p) => p.v), ...(goal ? [goal.v] : [])]
   let lo = bars ? 0 : Math.min(...values)
   let hi = Math.max(...values)
@@ -364,7 +366,7 @@ function dashboardCard(d) {
       waiting = '<p class="muted">Loading…</p>'
       if (state.dashLoading !== key) {
         state.dashLoading = key
-        api(`/api/users/${state.selected}/progress?from=${from}&to=${to}`)
+        api(`/api/users/${state.selected}/progress?from=${from}&to=${to}&kcal=${d.energy?.targets?.kcal ?? 0}`)
           .then((x) => (state.dashData = { ...x, key }))
           .catch((e) => (state.dashData = { key, error: e.message }))
           .finally(() => {
@@ -451,6 +453,31 @@ function dashboardCard(d) {
     ${headline ? `<p><b>${headline}</b></p>` : ''}
     <div class="chart">${chart}</div>
     <p class="muted small">Point at the chart (or touch it) to read a day or a week.</p>
+  </div>`
+}
+
+/**
+ * Their daily targets over time (kept day by day; the weeks before worked out again from their logs): the calories
+ * to eat as a line, the energy their body uses as dots. Told as a path, never as a judgement.
+ */
+function targetHistoryCard(d) {
+  const h = d.targetHistory ?? []
+  if (h.length < 2) return ''
+  const short = (day) => fmtDate(`${day}T12:00:00`, { day: 'numeric', month: 'short' })
+  const at = (day) => new Date(`${day}T12:00:00`).getTime()
+  const first = h[0]
+  const last = h.at(-1)
+  const weeks = Math.max(1, Math.round((at(last.day) - at(first.day)) / (7 * 86_400_000)))
+  const up = first.tdee && last.tdee ? last.tdee - first.tdee : 0
+  const estimated = h.filter((p) => p.estimated).at(-1)
+  return `<div class="card"><h2>Daily targets over time</h2>
+    <p><b>${weeks} weeks on this path, since ${short(first.day)}.</b> Now: ${fmtNum(last.kcal)} kcal · protein ${fmtNum(last.protein_g)} g · carbs ${fmtNum(last.carbs_g)} g · fat ${fmtNum(last.fat_g)} g.</p>
+    <div class="chart">${ichart(
+      h.map((p) => ({ t: at(p.day), v: p.kcal, label: short(p.day) })),
+      { dots: h.filter((p) => p.tdee).map((p) => ({ t: at(p.day), v: p.tdee })), fmt: (v) => `${fmtNum(v)} kcal` },
+    )}</div>
+    <p class="small muted">Line: the calories to eat. Dots: the energy their body uses (TDEE). ${up >= 50 ? `Their body now uses about ${fmtNum(up)} kcal a day more than at the start: moving more counts.` : 'The targets follow their body as it changes.'}${estimated ? ` Weeks up to ${short(estimated.day)} are worked out again from their logs, with today's settings.` : ''}</p>
+    <p class="good-note"><b>They are great being on this path to health. Forza!</b></p>
   </div>`
 }
 
@@ -1129,7 +1156,26 @@ function exercisesView() {
   const q = (state.exQuery ?? '').trim().toLowerCase()
   const list = exerciseList().filter((e) => !q || `${e.name_en} ${e.name_it}`.toLowerCase().includes(q))
   const kinds = { reps: 'weight × reps', bodyweight: 'bodyweight', time: 'time', cardio: 'cardio' }
+  const lib = state.lib ?? {}
+  const muscles = (m) => m.map((x) => x.replace('_', ' ')).join(' · ')
   return `<div class="pad">
+    <div class="card"><h2>Add from the exercise library</h2>
+      <p class="muted">Describe the movement in everyday words, in any language: "I raise a knee and touch it with the opposite elbow". The closest exercises of a free database (870+, with photos) appear: check the photos, then add the right one for the whole family, with steps in English and Italian.</p>
+      <div class="row"><input id="lib-query" placeholder="What does the exercise look like?" value="${esc(lib.query ?? '')}" style="flex:1;min-width:240px"><button class="btn" data-action="lib-search" ${lib.busy ? 'disabled' : ''}>${lib.busy ? 'Looking…' : 'Find it'}</button></div>
+      ${
+        lib.matches
+          ? lib.matches.length
+            ? `<table style="margin-top:10px"><tbody>${lib.matches
+                .map(
+                  (m) => `<tr><td style="width:110px">${mediaPreview(m.images, 'small')}</td>
+                  <td><b>${esc(m.name_en)}</b> <span class="small muted">${esc(m.name_it)}</span><div class="small">${esc(m.why)}</div><div class="small muted">${esc(muscles(m.muscles))} · ${esc(m.equipment)}</div></td>
+                  <td><button class="btn small" data-action="lib-add" data-id="${esc(m.id)}" ${lib.adding ? 'disabled' : ''}>${lib.adding === m.id ? 'Adding…' : 'Add for the family'}</button></td></tr>`,
+                )
+                .join('')}</tbody></table>`
+            : '<p class="muted">Nothing close: try other words.</p>'
+          : ''
+      }
+    </div>
     <div class="card"><h2>Exercises, photos and videos</h2>
       <p class="muted">What everyone sees in Forza!: change the photos, add a GIF or a short video, a video link and your own tip. The family's own exercises are at the top.</p>
       <div class="row" style="margin-bottom:10px"><input id="ex-search" placeholder="Search" value="${esc(state.exQuery ?? '')}" style="flex:1;min-width:200px"><button class="btn" data-action="exm-new">+ New exercise</button></div>
@@ -1193,6 +1239,34 @@ const readAsBase64 = (file) =>
   })
 
 async function exerciseAction(action, btn) {
+  if (action === 'lib-search') {
+    const query = document.getElementById('lib-query').value.trim()
+    if (query.length < 3) return toast('Describe the exercise first')
+    state.lib = { query, busy: true }
+    render()
+    try {
+      state.lib = { query, matches: (await api('/api/exercise-library/search', { method: 'POST', body: { query } })).matches ?? [] }
+    } catch (err) {
+      state.lib = { query }
+      throw err
+    } finally {
+      render()
+    }
+    return
+  }
+  if (action === 'lib-add') {
+    state.lib = { ...state.lib, adding: btn.dataset.id }
+    render()
+    try {
+      const row = await api('/api/exercise-library/add', { method: 'POST', body: { id: btn.dataset.id } })
+      state.catalogue = await api('/api/catalogue')
+      toast(`Added: ${row.name_en}. Everyone can now pick it in their workouts.`)
+    } finally {
+      state.lib = { ...state.lib, adding: null }
+      render()
+    }
+    return
+  }
   const e = state.exEdit
   if (action === 'exm-new') state.exEdit = { isNew: true, custom: true, id: `new-${Date.now()}`, name_en: '', name_it: '', kind: 'reps', muscles: [], steps_en: [], steps_it: [], media: [], own: [], video_url: '' }
   if (action === 'exm-edit') {
@@ -2077,7 +2151,7 @@ app.addEventListener('click', async (e) => {
       await loadUsers()
       return selectUser(state.selected)
     }
-    if (action.startsWith('exm-') || action.startsWith('media-')) return exerciseAction(action, btn)
+    if (action.startsWith('exm-') || action.startsWith('media-') || action.startsWith('lib-')) return exerciseAction(action, btn)
     if (action === 'tpl-copy') {
       const t = state.data.templates[Number(btn.dataset.plan)]
       const select = document.getElementById(`copy-to-${btn.dataset.plan}`)

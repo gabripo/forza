@@ -1,6 +1,7 @@
 import { CheckCircle2, RefreshCw, Utensils } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useApp } from '../lib/auth'
 import type { Targets } from '../lib/calc'
 import { useI18n } from '../lib/i18n'
 import { nextMeal } from '../lib/nextMeal'
@@ -14,8 +15,9 @@ import { Button } from './ui'
 export function NextMealCard({ food, targets, justLogged = false }: { food: FoodLog[]; targets: Targets; justLogged?: boolean }) {
   const { t, l, locale, num } = useI18n()
   const navigate = useNavigate()
+  const { profile } = useApp()
   const [pick, setPick] = useState(0)
-  const next = nextMeal(food, targets, locale, new Date(), pick)
+  const next = nextMeal(food, targets, locale, new Date(), pick, profile?.skip_meals ?? [])
   if (!next) return null
 
   return (

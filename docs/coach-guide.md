@@ -214,7 +214,10 @@ Open Forza! Coach whenever you like:
 - **Check-ins**: what they logged.
 - **Overview → Progress**: their weight, strength per exercise, workouts and volume a week, steps, calories and
   protein over 1 month to 1 year, or between any two days (**From** … **to**); point at the chart to read a day
-  or a week. In the app: **Progress → Progress
+  or a week. Days they said were not all logged stay out of the food charts.
+- **Overview → Daily targets over time**: the calories they are asked to eat (line) and the energy their body
+  uses (dots), week by week; the weeks before the app kept them are worked out again from their logs. In the
+  app: Food → Your targets over time, and the Progress dashboard. In the app: **Progress → Progress
   dashboard**.
 - **Profile → Pace towards the goal**: how fast to lose fat (slow, normal or fast: 250, 500 or 750 kcal a day
   below what their body uses) or to gain muscle (150, 250 or 400 kcal above). **Calorie adjustment** adds or
@@ -230,6 +233,11 @@ Open Forza! Coach whenever you like:
   Points**, the daily quiz that keeps earning points after every lesson is read (2 questions a day from the
   lessons read, 5 points for each right answer; the Overview shows how it goes). Everyone sees the change the next time they open Learn;
   **Back to the original** returns a lesson to the built-in version, which keeps getting the app's own updates.
+- **Exercises & videos → Add from the exercise library**: describe the movement in everyday words, in any
+  language ("I raise a knee and touch it with the opposite elbow"); the closest exercises of a free database
+  (870+, with photos) appear with why they match. Check the photos, then **Add for the family**: it gets short
+  steps in English and Italian and its photos, and everyone can pick it in their workouts. People can do the
+  same in the app for themselves (adding an exercise → make your own).
 - **Exercises & videos**: every exercise as the app shows it. **Edit** one to add photos, a GIF or a short
   video (from your computer, or a web address), put them in order, add a video link or your own tip; **Back to
   the built-in photos** undoes it. **+ New exercise** adds one for everyone; **Delete** removes it, or retires

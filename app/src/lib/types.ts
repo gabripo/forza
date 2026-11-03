@@ -50,6 +50,8 @@ export interface Profile {
   bws_auto_sync: boolean
   bws_synced_at: string | null
   bws_sync_requested_at: string | null
+  /** Meals the person usually does not have (intermittent fasting): not asked about, not suggested. */
+  skip_meals?: Meal[]
 }
 
 export interface BodyWeight {
@@ -150,10 +152,43 @@ export interface FoodLog {
   score_fat_loss: number | null
   score_muscle_gain: number | null
   photo_path: string | null
-  source: 'ai' | 'manual' | 'barcode' | 'voice' | 'import' | 'health_connect'
+  source: 'ai' | 'manual' | 'barcode' | 'voice' | 'import' | 'health_connect' | 'shared'
   ai_notes: string | null
-  /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science). */
+  /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science); for a shared meal, who shared it. */
   origin?: string | null
+}
+
+/** What the person said about a day's food: all logged or not (an incomplete day is left out of every sum), and the meals skipped. */
+export interface FoodDay {
+  day: string
+  status: 'complete' | 'incomplete' | null
+  skipped: Meal[]
+}
+
+/** A dish of the family: its ingredients, how many portions it makes and its weight when ready. */
+export interface Recipe {
+  id: string
+  food_id: string | null
+  name: string
+  servings: number
+  total_g: number | null
+  items: FoodItem[]
+  source: 'manual' | 'link' | 'text'
+  source_url: string | null
+  created_by: string | null
+  updated_at: string
+}
+
+/** The daily targets of one day, as they were then. */
+export interface TargetDay {
+  day: string
+  kcal: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  tdee: number | null
+  method: string | null
+  weight_kg: number | null
 }
 
 export interface Checkin {

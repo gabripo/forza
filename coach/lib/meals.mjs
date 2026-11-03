@@ -69,8 +69,36 @@ async function editable(db, id) {
   return row
 }
 
+// The same name the app matches foods on: lower case, no accents, words only.
+const nameKey = (name) =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join(' ')
+
+/**
+ * The foods of a meal added here join the family's food database (values per 100 g) and count as used by the
+ * person, as when they log in the app. A failure only means they are not remembered this time.
+ */
+async function remember(db, userId, items) {
+  const foods = items
+    .filter((i) => i.grams > 0 && nameKey(i.name))
+    .map((i) => {
+      const k = 100 / i.grams
+      const per100 = Object.fromEntries(NUTRIENTS.map((n) => [n, round1(i[n] * k)]))
+      const optional = Object.fromEntries(OPTIONAL.filter(([n]) => i[n] != null).map(([n]) => [n, Math.round(i[n] * k * 100) / 100]))
+      return { name: i.name, name_key: nameKey(i.name), ...per100, ...optional, portion_g: i.grams, source: 'manual', grams: i.grams }
+    })
+  if (foods.length) await db.rpc('remember_foods_as', { p_user: userId, p_foods: foods }).then(() => {}, () => {})
+}
+
 export async function addMeal(db, userId, body) {
-  return check(await db.from('food_logs').insert({ ...mealFields(body), user_id: userId, source: 'manual' }).select().single())
+  const row = check(await db.from('food_logs').insert({ ...mealFields(body), user_id: userId, source: 'manual' }).select().single())
+  await remember(db, userId, row.items ?? [])
+  return row
 }
 
 export async function updateMeal(db, id, body) {

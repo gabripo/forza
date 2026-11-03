@@ -62,7 +62,7 @@ export interface NextMeal {
   others: number
 }
 
-export function nextMeal(food: FoodLog[], targets: Targets, locale: Locale, now = new Date(), pick = 0): NextMeal | null {
+export function nextMeal(food: FoodLog[], targets: Targets, locale: Locale, now = new Date(), pick = 0, skip: Meal[] = []): NextMeal | null {
   const today = localDay(now)
   const eatenLogs = food.filter((f) => localDay(new Date(f.eaten_at)) === today)
   const hour = now.getHours() + now.getMinutes() / 60
@@ -70,7 +70,8 @@ export function nextMeal(food: FoodLog[], targets: Targets, locale: Locale, now 
   // Snacks are suggested only to people who have them: many older people eat three meals.
   const snacker = food.some((f) => f.meal === 'snack' && now.getTime() - new Date(f.eaten_at).getTime() < 14 * 86_400_000)
   // The meals still to come today: after the last one logged, and not yet over.
-  const ahead = MEALS.filter((m, i) => i > loggedOrder && m.until > hour && (m.meal !== 'snack' || snacker))
+  // Meals the person always skips (intermittent fasting) are never suggested.
+  const ahead = MEALS.filter((m, i) => i > loggedOrder && m.until > hour && (m.meal !== 'snack' || snacker) && !skip.includes(m.meal))
   if (!ahead.length) return null
   const next = ahead[0]
 

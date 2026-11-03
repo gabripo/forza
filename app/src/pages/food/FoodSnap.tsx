@@ -1,7 +1,7 @@
 import { Camera, Check, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlateAdvice } from '../../components/PlateAdvice'
+import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented } from '../../components/ui'
 import { useApp } from '../../lib/auth'
@@ -16,7 +16,7 @@ import { useEnergy } from '../../lib/useEnergy'
 export function FoodSnap() {
   const { t, locale, num } = useI18n()
   const { profile, session } = useApp()
-  const { energy } = useEnergy()
+  const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
@@ -95,7 +95,7 @@ export function FoodSnap() {
       } catch {
         photo_path = null // the log matters more than the picture
       }
-      await addFood({
+      const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
         title: title.trim() || result.title,
@@ -108,7 +108,7 @@ export function FoodSnap() {
         ai_notes: result.tip,
       })
       rememberItems(items, 'ai')
-      navigate('/food', { state: { logged: true } })
+      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
     } finally {
       setSaving(false)
     }
@@ -185,7 +185,9 @@ export function FoodSnap() {
               cameraRef.current?.click()
             }}
             onAdjust={() => navigate('/food/add', { state: { items, meal } })}
+            context={{ food, targets: energy.targets }}
           />
+          <MealSoFar totals={sumItems(items)} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
           <Card>
             <button onClick={() => setDetails(!details)} className="flex w-full items-center gap-2 text-left" aria-expanded={details}>
               <span className="flex-1">

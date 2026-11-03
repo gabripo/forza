@@ -43,7 +43,11 @@ export async function uploadMedia(db, { exercise_id, mime, data }) {
 /** Removes stored files no longer listed (files elsewhere, such as links to other sites, are left alone). */
 async function removeUnused(db, before, after) {
   const prefix = `/storage/v1/object/public/${BUCKET}/`
-  const paths = before.filter((u) => !after.includes(u) && u.includes(prefix)).map((u) => decodeURIComponent(u.split(prefix)[1]))
+  // Photos from the exercise library (library/…) may be used by other exercises too: they stay.
+  const paths = before
+    .filter((u) => !after.includes(u) && u.includes(prefix))
+    .map((u) => decodeURIComponent(u.split(prefix)[1]))
+    .filter((p) => !p.startsWith('library/'))
   if (paths.length) await db.storage.from(BUCKET).remove(paths).catch(() => {})
 }
 

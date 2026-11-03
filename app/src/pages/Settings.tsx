@@ -161,6 +161,29 @@ export function Settings() {
               ]}
             />
           </Field>
+          {/* Meals the person usually does not have (intermittent fasting): not asked about, not suggested. */}
+          <Field label={t('settings.skipMeals')} hint={t('settings.skipMealsHint')}>
+            <div className="flex flex-wrap gap-2">
+              {(['breakfast', 'lunch', 'dinner'] as const).map((m) => {
+                const on = (draft.skip_meals ?? []).includes(m)
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      const next = on ? (draft.skip_meals ?? []).filter((x) => x !== m) : [...(draft.skip_meals ?? []), m]
+                      set('skip_meals', next)
+                      void saveProfile({ skip_meals: next })
+                    }}
+                    className={`min-h-11 rounded-xl border-2 px-3 font-semibold ${on ? 'border-sky bg-sky-soft' : 'border-line bg-card text-ink-2'}`}
+                  >
+                    {t(`meal.${m}`)}
+                  </button>
+                )
+              })}
+            </div>
+          </Field>
           <Field label={t('onb.perWeek')}>
             <Segmented<number>
               value={draft.workouts_per_week}

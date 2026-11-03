@@ -17,7 +17,7 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
-import { computeEnergy } from '../shared/energy.mjs'
+import { computeEnergy, incompleteDays, pastTargets, targetSeries } from '../shared/energy.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
 import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
@@ -163,6 +163,7 @@ async function progressData(id, query) {
   const db = need()
   const from = query.get('from') ?? ''
   const to = query.get('to') ?? ''
+  const kcal = Number(query.get('kcal')) || 0
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw badRequest('Choose the first and the last day')
   const start = new Date(`${from}T00:00:00`).toISOString()
   const end = new Date(new Date(`${to}T00:00:00`).getTime() + 86_400_000).toISOString()
@@ -173,15 +174,38 @@ async function progressData(id, query) {
     fetchAll((a, b) => db.from('daily_steps').select('day, steps').eq('user_id', id).gte('day', from).lte('day', to).order('day').range(a, b)),
     fetchAll((a, b) => db.from('food_logs').select('eaten_at, kcal, protein_g').eq('user_id', id).gte('eaten_at', start).lt('eaten_at', end).order('eaten_at').order('id').range(a, b)),
   ])
-  return { weights: check(weights), sessions: check(sessions), sets: check(sets), steps: check(steps), foodDays: dailyFood(check(food)) }
+  // Days not all logged stay out of the food charts, as in the app.
+  const notes = (await db.from('food_days').select('day, status').eq('user_id', id).gte('day', from).lte('day', to)).data ?? []
+  const partial = kcal ? incompleteDays(check(food), kcal, notes) : new Set()
+  return { weights: check(weights), sessions: check(sessions), sets: check(sets), steps: check(steps), foodDays: dailyFood(check(food)).filter((d) => !partial.has(d.day)) }
 }
 
-function energyOf(profile, weights, steps, sessions, food) {
+function energyOf(profile, weights, steps, sessions, food, notes) {
   try {
-    return computeEnergy(profile, weights, steps, sessions, food)
+    return computeEnergy(profile, weights, steps, sessions, food, notes)
   } catch (e) {
     console.error('[energy]', e.message)
     return null
+  }
+}
+
+const localDayOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/**
+ * The daily targets over time: those kept day by day (by the app, and here), and the weeks before worked out again
+ * from the logs. Today's are kept too, so the history grows for people who rarely open the app.
+ */
+function targetsOverTime(db, id, profile, energy, data) {
+  if (!profile || !energy) return []
+  const tg = energy.targets
+  const today = { day: localDayOf(new Date()), kcal: tg.kcal, protein_g: tg.protein_g, carbs_g: tg.carbs_g, fat_g: tg.fat_g, tdee: energy.tdee.tdee, method: energy.tdee.method, weight_kg: Math.round(energy.weightKg * 100) / 100 }
+  db.from('target_history').upsert({ user_id: id, ...today }, { onConflict: 'user_id,day' }).then(() => {}, () => {})
+  try {
+    const kept = [...data.kept.filter((r) => r.day !== today.day), today].sort((a, b) => a.day.localeCompare(b.day))
+    return targetSeries(kept, pastTargets(profile, data.weights, data.steps, data.sessions, data.food, data.notes, 26))
+  } catch (e) {
+    console.error('[targets]', e.message)
+    return []
   }
 }
 
@@ -189,7 +213,7 @@ async function userData(id) {
   const db = need()
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
   const month = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons, quiz, moves, foodDays] = await Promise.all([
+  const [profile, weights, sessions, sets, steps, food, checkins, templates, sync, activities, photos, lessons, quiz, moves, foodDays, notes, kept] = await Promise.all([
     db.from('profiles').select('*').eq('id', id).maybeSingle(),
     fetchAll((from, to) => db.from('body_weights').select('*').eq('user_id', id).gte('measured_at', year).order('measured_at').order('id').range(from, to)),
     db.from('workout_sessions').select('*').eq('user_id', id).gte('started_at', year).order('started_at', { ascending: false }),
@@ -206,7 +230,12 @@ async function userData(id) {
     db.from('workout_moves').select('id, template_id, from_day, to_day').eq('user_id', id).gte('to_day', new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10)),
     // A year of calories and protein, for the progress charts.
     fetchAll((from, to) => db.from('food_logs').select('eaten_at, kcal, protein_g').eq('user_id', id).gte('eaten_at', year).order('eaten_at').range(from, to)),
+    // What they said about past days (all logged or not), and the targets kept day by day.
+    db.from('food_days').select('day, status, skipped').eq('user_id', id).gte('day', year.slice(0, 10)),
+    db.from('target_history').select('day, kcal, protein_g, carbs_g, fat_g, tdee, method, weight_kg').eq('user_id', id).gte('day', year.slice(0, 10)).order('day'),
   ])
+  const energy = profile.data ? energyOf(profile.data, weights.data ?? [], steps.data ?? [], sessions.data ?? [], foodDays.data ?? [], notes.data ?? []) : null
+  const partial = energy ? incompleteDays(foodDays.data ?? [], energy.targets.kcal, notes.data ?? []) : new Set()
   return {
     profile: check(profile),
     weights: check(weights),
@@ -221,11 +250,14 @@ async function userData(id) {
     photos: check(photos),
     lessons: check(lessons),
     // The daily targets, worked out exactly as on their phone (the app's own code, shared/energy.mjs).
-    energy: profile.data ? energyOf(profile.data, weights.data ?? [], steps.data ?? [], sessions.data ?? [], food.data ?? []) : null,
+    energy,
     // A server not updated yet has no daily quiz (or moves).
     quiz: quiz.data ?? [],
     moves: moves.data ?? [],
-    foodDays: dailyFood(foodDays.data ?? []),
+    // Days not all logged stay out of the food charts, as in the app.
+    foodDays: dailyFood(foodDays.data ?? []).filter((d) => !partial.has(d.day)),
+    partialDays: [...partial],
+    targetHistory: targetsOverTime(db, id, profile.data, energy, { kept: kept.data ?? [], weights: weights.data ?? [], steps: steps.data ?? [], sessions: sessions.data ?? [], food: foodDays.data ?? [], notes: notes.data ?? [] }),
     homeSections: HOME_SECTIONS,
     homeOrder: homeOrder(profile.data?.home_order),
   }
@@ -534,6 +566,32 @@ async function suggestLesson(body) {
   }
 }
 
+/** Calls the food AI with the project's secret key (no daily limit), as Forza! Coach. */
+async function foodAi(body) {
+  need()
+  const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.key}`, apikey: ctx.key },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw Object.assign(new Error(data.error === 'not_configured' ? 'The food AI is not set up (Setup → Food photo AI)' : (data.detail ?? data.error ?? `HTTP ${res.status}`)), { status: 502 })
+  return data
+}
+
+/** Exercises of the free exercise database matching a description in everyday words. */
+async function librarySearch(body) {
+  const query = String(body.query ?? '').trim()
+  if (query.length < 3) throw badRequest('Describe the exercise, for example "I raise a knee and touch it with the opposite elbow"')
+  return foodAi({ mode: 'exercise', query, locale: 'en' })
+}
+
+/** One exercise of the database added for the whole family, with its steps in both languages and its photos. */
+async function libraryAdd(body) {
+  const x = await foodAi({ mode: 'exercise_add', id: String(body.id ?? '') })
+  return addCustom(need(), { name_en: x.name_en, name_it: x.name_it, muscles: x.muscles, equipment: x.equipment, kind: x.kind, steps_en: x.steps_en, steps_it: x.steps_it, image_urls: x.image_urls })
+}
+
 async function testFoodAi(body) {
   need()
   const res = await fetch(`${ctx.url}/functions/v1/food-estimate`, {
@@ -695,6 +753,8 @@ const routes = [
   ['PUT', /^\/api\/overrides\/([\w-]+)$/, (m, body) => saveOverride(need(), m[1], body)],
   ['POST', /^\/api\/exercise-media$/, (_m, body) => uploadMedia(need(), body)],
   ['POST', /^\/api\/custom-exercises$/, (_m, body) => addCustom(need(), body)],
+  ['POST', /^\/api\/exercise-library\/search$/, (_m, body) => librarySearch(body)],
+  ['POST', /^\/api\/exercise-library\/add$/, (_m, body) => libraryAdd(body)],
   ['PUT', /^\/api\/custom-exercises\/([\w-]+)$/, (m, body) => updateCustom(need(), m[1], body)],
   ['DELETE', /^\/api\/custom-exercises\/([\w-]+)$/, (m) => deleteCustom(need(), m[1])],
   [

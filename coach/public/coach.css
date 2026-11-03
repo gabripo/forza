@@ -478,3 +478,13 @@ details summary {
     border: none;
   }
 }
+
+/* A kind closing line under a chart. */
+.good-note {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eaf7ee;
+  color: #15803d;
+  text-align: center;
+}

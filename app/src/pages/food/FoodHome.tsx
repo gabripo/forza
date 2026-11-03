@@ -1,16 +1,21 @@
-import { Barcode, CalendarCheck, Camera, ChevronLeft, ChevronRight, Copy, Info, Mic, PenLine, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, CalendarCheck, Camera, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
+import { ConsistencyLink } from '../../components/Consistency'
 import { CopiedNotice } from '../../components/CopyMeal'
+import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
+import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
 import { NextMealCard } from '../../components/NextMealCard'
+import { TargetHistory } from '../../components/TargetHistory'
 import { TargetSheet } from '../../components/TargetSheet'
 import { Button, Card, Empty, Loading, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate, sodiumMg } from '../../lib/calc'
 import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
 import { deleteFood, updateFood } from '../../lib/data'
+import { stillSkipped, totalsOf } from '../../lib/dayCheck'
 import { useI18n } from '../../lib/i18n'
 import type { FoodLog, Meal } from '../../lib/types'
 import { balancedDays } from '../../lib/rewards'
@@ -22,9 +27,9 @@ export function FoodHome() {
   const { t, num, date } = useI18n()
   const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
-  const navState = useLocation().state as { logged?: boolean; offset?: number } | null
+  const navState = useLocation().state as { logged?: boolean; loggedIds?: string[]; offset?: number } | null
   const justLogged = Boolean(navState?.logged)
-  const { energy, food, weights, loading, reload } = useEnergy()
+  const { energy, food, weights, notes, loading, reload } = useEnergy()
   const [savingCheckin, setSavingCheckin] = useState(false)
   // Home's "Copy a meal" opens yesterday, where every meal can be copied to today.
   const [offset, setOffset] = useState(navState?.offset ?? 0)
@@ -40,11 +45,21 @@ export function FoodHome() {
     for (const f of unscored) {
       scored.current.add(f.id)
       const s = scorePlate({ kcal: Number(f.kcal), protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g), fiber_g: Number(f.fiber_g), sugar_g: Number(f.sugar_g) }, f.meal, energy.targets.kcal, false, new Date(f.eaten_at))
-      void updateFood(f.id, { score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain }).catch(() => { })
+      void updateFood(f.id, { score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain }).catch(() => {})
     }
   }, [food, energy])
+  // A meal that is always skipped (intermittent fasting) is asked about again once the person eats it again.
+  useEffect(() => {
+    if (!profile?.skip_meals?.length || !food.length) return
+    const still = stillSkipped(profile.skip_meals, food)
+    if (still.length !== profile.skip_meals.length) void saveProfile({ skip_meals: still })
+  }, [food, profile, saveProfile])
   const [explain, setExplain] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
+  const [history, setHistory] = useState(false)
+  // A meal opened to see what it brings; meals being shared with whoever ate the same.
+  const [openMeal, setOpenMeal] = useState<Meal | null>(null)
+  const [sharing, setSharing] = useState<string[] | null>(null)
   // The meal being moved to another part of the day (breakfast, lunch, snack, dinner).
   const [moving, setMoving] = useState<FoodLog | null>(null)
 
@@ -103,6 +118,12 @@ export function FoodHome() {
 
       {/* Right after logging: what the next meal could be, before anything else. */}
       {justLogged ? <NextMealCard food={food} targets={tg} justLogged /> : null}
+      {justLogged && navState?.loggedIds?.length ? (
+        <Button variant="secondary" onClick={() => setSharing(navState.loggedIds ?? null)}>
+          <Share2 className="size-5" aria-hidden /> {t('share.ask')}
+        </Button>
+      ) : null}
+      {!justLogged && offset === 0 ? <DayQuestionCard food={food} notes={notes} targets={tg} onAnswered={() => void reload()} /> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>
@@ -116,6 +137,12 @@ export function FoodHome() {
         </Button>
         <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add')}>
           <PenLine className="size-6 text-brand" aria-hidden /> {t('food.manual')}
+        </Button>
+        <Button variant="secondary" className="leading-tight" onClick={() => navigate('/food/recipes')}>
+          <BookOpen className="size-5 text-brand" aria-hidden /> {t('food.recipes')}
+        </Button>
+        <Button variant="secondary" className="leading-tight" onClick={() => navigate('/food/menu')}>
+          <ScrollText className="size-5 text-brand" aria-hidden /> {t('food.menu')}
         </Button>
       </div>
 
@@ -220,6 +247,8 @@ export function FoodHome() {
         <p className="mt-3 text-sm text-ink-2">
           {sum.kcal < tg.kcal ? t('food.left', { kcal: num(tg.kcal - sum.kcal) }) : t('food.over', { kcal: num(sum.kcal - tg.kcal) })}
         </p>
+        {notes.some((n) => n.day === day && n.status === 'incomplete') ? <p className="mt-1 text-xs text-ink-3">{t('food.leftOut')}</p> : null}
+        <ConsistencyLink className="-ml-3 mt-1" />
         {sum.satfat > tg.satfat_g ? (
           <p className="mt-2 rounded-2xl bg-danger-soft p-3 text-sm" role="alert">
             <b>⚠️ {t('food.satfatOver', { g: num(sum.satfat, 1), max: num(tg.satfat_g) })}</b> {t('food.satfatTip')}
@@ -244,23 +273,36 @@ export function FoodHome() {
         </p>
       </div>
 
+      {entries.length ? <DayEvaluationCard totals={totalsOf(entries)} targets={tg} day={day} /> : null}
+
       {entries.length === 0 ? (
         <Card>
           <Empty icon="🍽️" title={t('food.empty')} text={t('food.emptyText')} />
         </Card>
       ) : (
-        MEALS.filter((m) => entries.some((e) => e.meal === m)).map((m) => (
+        MEALS.filter((m) => entries.some((e) => e.meal === m)).map((m) => {
+          const mt = totalsOf(entries.filter((e) => e.meal === m))
+          return (
           <Card
             key={m}
             title={t(`meal.${m}`)}
             action={
-              offset > 0 ? (
-                <Button size="sm" variant="secondary" loading={copying.busy} onClick={() => void copyToToday(entries.filter((e) => e.meal === m))}>
-                  <Copy className="size-4" aria-hidden /> {t('copyMeal.toToday')}
+              <span className="flex gap-1">
+                <Button size="sm" variant="ghost" onClick={() => setOpenMeal(m)} aria-label={t('mealSheet.open', { meal: t(`meal.${m}`) })}>
+                  <ListTree className="size-4" aria-hidden /> {t('mealSheet.details')}
                 </Button>
-              ) : undefined
+                {offset > 0 ? (
+                  <Button size="sm" variant="secondary" loading={copying.busy} onClick={() => void copyToToday(entries.filter((e) => e.meal === m))}>
+                    <Copy className="size-4" aria-hidden /> {t('copyMeal.toToday')}
+                  </Button>
+                ) : null}
+              </span>
             }
           >
+            {/* The meal's own totals, then each food logged in it. */}
+            <button onClick={() => setOpenMeal(m)} className="-mt-1 mb-2 block w-full rounded-xl text-left text-sm text-ink-2 active:bg-card-2">
+              <b className="text-ink">{num(mt.kcal)} kcal</b> · {t('macro.protein')} {num(mt.protein_g)} g · {t('macro.carbs')} {num(mt.carbs_g)} g · {t('macro.fat')} {num(mt.fat_g)} g
+            </button>
             <ul className="grid gap-2">
               {entries
                 .filter((e) => e.meal === m)
@@ -279,10 +321,22 @@ export function FoodHome() {
                       <button onClick={() => (synced ? undefined : setMoving(e))} disabled={synced} className="min-w-0 flex-1 rounded-xl text-left active:bg-card-2 disabled:active:bg-transparent">
                         <p className="truncate font-semibold">{e.title}</p>
                         <p className="text-sm text-ink-2">
-                          {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g · {t('macro.carbs')} {num(Number(e.carbs_g))} g · {t('macro.fat')} {num(Number(e.fat_g))} g · {t('macro.satfat')} {num(Number(e.satfat_g))} g · {t('macro.fiber')} {num(Number(e.fiber_g))} g
-                          {profile.track_salt && e.salt_g != null ? ` · ${t('macro.salt')} ${num(Number(e.salt_g), 1)} g` : ''}
+                          {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g
+                        </p>
+                        {/* The rest on a second, smaller line; values a synced meal did not bring are left out, not shown as 0. */}
+                        <p className="text-xs text-ink-3">
+                          {[
+                            `${t('macro.carbs')} ${num(Number(e.carbs_g))} g`,
+                            `${t('macro.fat')} ${num(Number(e.fat_g))} g`,
+                            e.satfat_g != null ? `${t('macro.satfat')} ${num(Number(e.satfat_g), 1)} g` : null,
+                            `${t('macro.fiber')} ${num(Number(e.fiber_g))} g`,
+                            profile.track_salt && e.salt_g != null ? `${t('macro.salt')} ${num(Number(e.salt_g), 1)} g` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </p>
                         {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
+                        {e.source === 'shared' ? <p className="text-xs text-ink-3">{t('food.sharedBy', { name: e.origin || '' })}</p> : null}
                       </button>
                       {band ? (
                         <span className={`rounded-full px-2 py-0.5 text-sm font-bold ${band === 'rethink' ? 'bg-danger-soft text-danger' : band === 'okay' ? 'bg-sun-soft text-sun' : 'bg-leaf-soft text-leaf'}`}>
@@ -300,7 +354,8 @@ export function FoodHome() {
                 })}
             </ul>
           </Card>
-        ))
+          )
+        })
       )}
 
       <Card
@@ -320,6 +375,9 @@ export function FoodHome() {
           {t('food.tdeeLine', { tdee: num(energy.tdee.tdee), target: num(tg.kcal) })}
         </p>
         <p className="mt-1 text-sm text-ink-3">{t(`food.method.${energy.tdee.method}`)}</p>
+        <Button variant="ghost" size="sm" className="-ml-3 mt-1" onClick={() => setHistory(true)}>
+          <History className="size-4" aria-hidden /> {t('targetHistory.open')}
+        </Button>
       </Card>
 
       <Sheet open={Boolean(moving)} onClose={() => setMoving(null)} title={moving?.title ?? ''}>
@@ -336,8 +394,32 @@ export function FoodHome() {
               options={MEALS.map((m) => ({ value: m, label: t(`meal.${m}`) }))}
             />
             <p className="text-sm text-ink-3">{t('food.moveHint')}</p>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const id = moving.id
+                setMoving(null)
+                setSharing([id])
+              }}
+            >
+              <Share2 className="size-5" aria-hidden /> {t('share.this')}
+            </Button>
           </div>
         ) : null}
+      </Sheet>
+      <MealSheet
+        meal={openMeal}
+        entries={openMeal ? entries.filter((e) => e.meal === openMeal) : []}
+        targets={tg}
+        onClose={() => setOpenMeal(null)}
+        onShare={(ids) => {
+          setOpenMeal(null)
+          setSharing(ids)
+        }}
+      />
+      <ShareMealSheet key={sharing?.join(',') ?? 'none'} ids={sharing} onClose={() => setSharing(null)} />
+      <Sheet open={history} onClose={() => setHistory(false)} title={t('targetHistory.title')}>
+        {history ? <TargetHistory /> : null}
       </Sheet>
       <TargetSheet open={adjusting} onClose={() => setAdjusting(false)} onChanged={() => void reload()} current={tg.kcal} />
       <Sheet open={explain} onClose={() => setExplain(false)} title={t('food.how')}>

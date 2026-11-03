@@ -165,6 +165,10 @@ with the value of that day or week, and has a table behind it for screen readers
   with **two decimals**, as smart scales measure it.
 - **Strength**: estimated one-repetition maximum (Epley formula, capped at 15 reps) per exercise, from
   working sets only.
+- **Daily targets over time** (dashboard, and Food → Your targets over time): the calories to eat and the
+  energy the body uses, kept once a day in `target_history` (by the app, and by Coach when it opens the
+  person); the weeks before are worked out again from the logs with today's settings (marked so). Told as a
+  path, never as a judgement, closing with "You are great being on this path to health. Forza!".
 - **Verdicts** for weight pace (against the goal pace), strength, consistency, steps and food, each with
   a concrete tip; weekly **check-ins** for energy, sleep, mood and waist.
 - **Streaks and records** (weeks in a row with a workout, recent personal records), **progress photos**
@@ -180,9 +184,12 @@ The calorie target is built in five explainable steps, shown in the app with the
 2. **Moving**: with steps from the phone, `BMR × 1.2` (daily basics) + walking (0.04 kcal per step for
    70 kg, scaled by weight) + training (≈ 4 kcal per kg of body weight per hour above rest, averaged over the
    week); without steps, `BMR ×` the activity factor the person chose (1.2–1.9).
-3. **Reality check**: after 14 days with meals logged and a weight trend, the measured need is
-   `average intake − weight change × 7,700 kcal / days`; the app then uses the average of formula and
-   measurement (only when the measurement is plausible).
+3. **Reality check, more and more**: from the last 4 weeks (never today, never a day not all logged), the
+   measured need is `average intake − change of the weight trend × 7,700 kcal / days`. It counts from 7
+   complete days and 4 weigh-ins, with a share that grows as data adds up:
+   `share = 0.8 × min(1, complete days / 21) × min(1, weigh-ins / 8)`, and
+   `TDEE = formula × (1 − share) + measured × share` (only when the measurement is plausible; never more than
+   80%, so one odd month does not move the target too far). The explainer shows the formulas and the share.
 4. **Goal and pace**: a fixed daily difference from TDEE, chosen as a pace (*Food → Adjust*, Settings, or
    the coach): fat loss −250 / **−500** / −750 kcal (slow / **normal** / fast; 500 kcal a day is about
    0.45 kg a week, at 7,700 kcal per kg), muscle gain +150 / **+250** / +400 kcal, maintain = TDEE.
@@ -237,8 +244,10 @@ can be stored per 100 g), foods the AI recognised, products found online. `food_
 person had each food (built-in ones too). Saving goes through `remember_foods()`: values from a barcode, a
 label or typed in replace what the AI had guessed, never the other way round. What comes of it:
 
-- **Your usual foods first.** "Add by hand" opens on the person's most frequent foods; the search lists their
-  own foods, then the family's, then the built-in table.
+- **Your usual foods first.** "Add by hand" opens on the person's most frequent foods, then **the family's
+  favourites** (foods logged by at least two people, or often: `family_food_uses()` gives counts only, never
+  who); the search lists their own foods, then the family's (the most logged first), then the built-in table.
+  Meals added in Coach feed the database too (`remember_foods_as()`, service key only).
 - **Your mozzarella is "the" mozzarella.** When a dictated word or a photo names a food the person logged from
   a barcode, a label, by hand or from an online search (all its words in the product's name), that product's
   values replace the generic ones, with "★ Your usual one" next to it. AI guesses never stand in this way.
@@ -254,6 +263,56 @@ cooking). Meals synced from another app have none yet.
 
 **Moving a meal.** Tapping a logged meal moves it to another part of the day (breakfast, lunch, snack,
 dinner); Coach can do the same.
+
+**Each meal and the whole day.** Each logged food shows calories and protein, then the other values on a
+smaller second line (values a synced meal did not bring are left out, not shown as 0). Each meal shows its
+totals, and **Details** opens every value of the meal with its share of the day's target, food by food. Above
+the meals, **The whole day** (snacks included) gives a 0–100 score and what went well or could be added:
+energy in its range 30, protein 30, fibre 20, saturated fat under the limit 20; today is judged on the hours
+gone by (about 20% of the day by 9, all of it by 21), with gentler words while the day is not over. Home shows
+one sentence from the same evaluation: the best thing of the day, then the one thing to add ("Great protein
+today! Put some fibre in"). While logging, the plate's advice takes in the same meal logged before (a second
+dish of the same lunch is judged with the first) and the whole day with this plate (past the calories, past
+the saturated fat, or in the evening still short of protein or fibre), with "Lunch so far" in numbers.
+
+**Days not all logged, meals skipped.** A day under 70% of the calorie target counts as logged only in part:
+once it is over, the app asks "Did you log everything?". "No" (or no answer) leaves it out of every sum and
+average: the measured energy, the dashboard's food charts (app and Coach). A main meal missing from a day with
+other meals logged gets "Did you skip it?" (yes: noted; no, I ate but did not log it: the day is left out).
+The same meal skipped 3 days in a row gets "Is it your way of eating, as with intermittent fasting?": yes
+puts it in `profiles.skip_meals`, so it is never asked about nor suggested, until it is logged on 2 of 5 days
+(Settings has it too). Answers are kept in `food_days` (status, skipped meals); one question at a time, the
+newest day first, at most 3 days back.
+
+**Recipes.** Food → Recipes: a dish written once (name, portions, ingredients one per line, weight when ready),
+then anyone in the family logs a portion in one tap. Ingredients are read like a dictated meal (built-in foods,
+the person's usual products, the AI for the rest); the weight comes from the grams written on each line, water
+and salt included, unless the weight when ready is given (pasta takes up water, a roast loses it). Saving goes
+through `save_recipe()`, which also keeps the dish as a food of the family database (source `recipe`, values per
+100 g, a portion = the dish ÷ its portions), so it is found by the search and by name when dictated. **From a
+link**: Cookidoo (the Thermomix/Bimby site) puts a schema.org Recipe in its public pages (name, portions,
+ingredients, nutrition per portion); the Bimby community site (ricettario-bimby.it) marks each ingredient with
+`itemprop="recipeIngredient"`; most recipe sites do one of the two. `food-search` (mode `recipe`) reads the page
+on the server (public addresses by name only, redirects checked one by one) and the editor opens filled in,
+with the page's own figure per portion to compare.
+
+**A meal for more people.** One person cooked, more ate: right after saving ("Did someone eat the same?"), or
+from a meal's Details or a food's menu, the meal goes into the food logs of the people chosen, same time and
+part of the day, with their own portion (½, the same, ×1½, ×2), marked "Shared by …". `share_meal()` copies
+only the caller's own meals; the others can change or delete their copy.
+
+**What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
+dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order
+first) reads the menu into dishes with rough values per portion; a stronger model (`FOOD_AI_REASONING_ORDER`,
+by default a Gemini Pro model, then the usual order) gets those dishes with what was eaten today and the
+targets, picks the one that fits the rest of the day best, and says why in two or three everyday sentences (no
+jargon, linked to the day), with one small tweak, up to two other good dishes and up to two to keep for another
+time. It counts as one use of the daily AI limit; the chosen dish opens pre-filled to log.
+
+**Not obsessed with numbers.** Next to the numbers (Food, Home), "Why one day's numbers matter little" opens an
+infographic: a week of uneven days whose average sits on the target, what helps more than any number (a
+kitchen that helps, planned meals, sleep, doing it together), and three thought traps with a kinder thought
+(all or nothing, perfect numbers, the scale's ups and downs).
 
 **Dictate.** Tap **Dictate** and say the meal. The words come from the phone's own speech recognition (the
 Web Speech API in Chrome on Android and Safari on iPhone). Where a browser lacks it, such as Firefox, the same
@@ -468,6 +527,15 @@ Coach and the app ([`shared/history-import.mjs`](../shared/history-import.mjs)).
 
 ### Forza! Coach
 
+- **Exercise library**: a description in everyday words ("I raise a knee and touch it with the opposite
+  elbow") finds the closest exercises of the free exercise database (github.com/yuhonas/free-exercise-db,
+  public domain, 870+ exercises with start and end photos): `food-estimate` (mode `exercise`) gives a quick
+  model the list and the words and returns up to 5 with why; the photos show before adding. Adding (mode
+  `exercise_add`) writes short steps in English and Italian and copies the photos into `exercise-media/library/`
+  (never removed by Coach's media clean-up, as other exercises may use them). In Coach the exercise is for the
+  whole family; in the app (Train → add an exercise → make your own) it is the person's.
+- **Daily targets over time** in Overview: the same history as the app, as a line (calories to eat) and dots
+  (energy used).
 - **Set-up wizard**: Supabase access token → choose or create a project → optional Gemini key → install.
   It uses the Supabase Management API to apply migrations (recorded like the Supabase CLI does), deploy the
   Edge Functions, close sign-ups and read the keys. No CLI, no Docker. "Update the server" reruns it after

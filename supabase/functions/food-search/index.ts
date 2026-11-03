@@ -1,6 +1,9 @@
 // Searches foods by name in Open Food Facts (https://world.openfoodfacts.org, ODbL licence): millions of
 // products, very good for Italy and Europe. The app cannot ask its search service directly (it does not allow
 // requests from web pages), so this function asks for it and answers with values per 100 g.
+// With mode 'recipe' it reads a recipe page instead (Cookidoo, the Thermomix/Bimby recipe site; the Bimby
+// community site ricettario-bimby.it; most recipe sites): its name, portions, ingredients as written and, when
+// the page says, the nutrition of one portion.
 // Signed-in people only; nothing is stored here (the app saves the foods people log).
 import { adminClient, corsHeaders, json, userIdFromRequest } from '../_shared/util.ts'
 
@@ -11,16 +14,151 @@ const n = (v: unknown, max: number) => {
   return Number.isFinite(x) && x >= 0 ? Math.min(max, Math.round(x * 10) / 10) : 0
 }
 
+// ---------------------------------------------------------------------------
+// Recipe pages
+// ---------------------------------------------------------------------------
+
+/** Only public sites by name, on the usual ports: never an address, a local name or another port. */
+function publicUrl(raw: string): URL | null {
+  try {
+    const u = new URL(raw)
+    const host = u.hostname.toLowerCase()
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+    if (u.port || u.username || u.password || !host.includes('.') || /^[\d.]+$/.test(host) || host.includes(':') || /(^|\.)(localhost|local|internal|lan|home|arpa)$/.test(host)) return null
+    return u
+  } catch {
+    return null
+  }
+}
+
+/** The page, following up to three redirects, each checked like the first address. */
+async function fetchPage(start: URL): Promise<string | null> {
+  let url = start
+  for (let hop = 0; hop < 4; hop++) {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Forza! family fitness app; github.com/gabripo/forza)', 'Accept-Language': 'it,en;q=0.8', Accept: 'text/html' },
+      signal: AbortSignal.timeout(12_000),
+    })
+    if (res.status >= 300 && res.status < 400) {
+      const next = publicUrl(new URL(res.headers.get('location') ?? '', url).toString())
+      await res.body?.cancel()
+      if (!next) return null
+      url = next
+      continue
+    }
+    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('html')) return null
+    const text = await res.text()
+    return text.slice(0, 3_000_000)
+  }
+  return null
+}
+
+const plainText = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;|&apos;|&rsquo;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&agrave;/g, 'à')
+    .replace(/&egrave;/g, 'è')
+    .replace(/&eacute;/g, 'é')
+    .replace(/&igrave;/g, 'ì')
+    .replace(/&ograve;/g, 'ò')
+    .replace(/&ugrave;/g, 'ù')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+/** A number from "413.7 kcal", "8,9 g" or 12. */
+const amount = (v: unknown) => {
+  const m = String(v ?? '').replace(',', '.').match(/\d+(\.\d+)?/)
+  return m ? Math.round(Number(m[0]) * 10) / 10 : undefined
+}
+
+/** The schema.org Recipe of the page, wherever it is in its JSON-LD (a list, a @graph, nested). */
+function findRecipe(node: unknown): Record<string, unknown> | null {
+  if (!node || typeof node !== 'object') return null
+  if (Array.isArray(node)) {
+    for (const x of node) {
+      const r = findRecipe(x)
+      if (r) return r
+    }
+    return null
+  }
+  const o = node as Record<string, unknown>
+  const type = o['@type']
+  if (type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))) return o
+  return findRecipe(o['@graph']) ?? findRecipe(o.mainEntity)
+}
+
+/** Ingredients as people write them: "200 grammo acqua" reads "200 g acqua". */
+const ingredientLine = (s: string) =>
+  plainText(s)
+    .replace(/\bgramm[oi]\b/gi, 'g')
+    .replace(/\bchilogramm[oi]\b/gi, 'kg')
+    .replace(/\bmillilitr[oi]\b/gi, 'ml')
+    .slice(0, 160)
+
+async function readRecipe(raw: string) {
+  const url = publicUrl(raw)
+  if (!url) return json({ error: 'bad_url' }, 400)
+  let html: string | null
+  try {
+    html = await fetchPage(url)
+  } catch {
+    return json({ error: 'recipe_failed' }, 502)
+  }
+  if (!html) return json({ error: 'recipe_failed' }, 502)
+  const meta = (p: string) => html!.match(new RegExp(`<meta[^>]+property=["']og:${p}["'][^>]+content=["']([^"']*)["']`, 'i'))?.[1] ?? null
+
+  let recipe: Record<string, unknown> | null = null
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      recipe = findRecipe(JSON.parse(m[1]))
+    } catch {
+      // a broken block: try the next
+    }
+    if (recipe) break
+  }
+  let name = ''
+  let ingredients: string[] = []
+  let servings: number | null = null
+  let nutrition: Record<string, number | undefined> | null = null
+  let image: string | null = meta('image')
+  if (recipe) {
+    name = plainText(String(recipe.name ?? ''))
+    ingredients = (Array.isArray(recipe.recipeIngredient) ? recipe.recipeIngredient : []).map((x) => ingredientLine(String(x)))
+    const y = Array.isArray(recipe.recipeYield) ? recipe.recipeYield[0] : recipe.recipeYield
+    servings = amount(y) ?? null
+    const n = recipe.nutrition as Record<string, unknown> | undefined
+    if (n && (n.calories || n.proteinContent)) {
+      nutrition = { kcal: amount(n.calories), protein_g: amount(n.proteinContent), carbs_g: amount(n.carbohydrateContent), fat_g: amount(n.fatContent) }
+    }
+    const img = Array.isArray(recipe.image) ? recipe.image[0] : recipe.image
+    image = (typeof img === 'string' ? img : (img as { url?: string } | undefined)?.url) ?? image
+  } else {
+    // Microdata (the Bimby community site): each ingredient marked itemprop="recipeIngredient".
+    ingredients = [...html.matchAll(/<(li|span|div|p)[^>]*itemprop=["']recipeIngredient["'][^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => ingredientLine(m[2]))
+    name = plainText(meta('title') ?? html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? '')
+    servings = amount(html.match(/itemprop=["']recipeYield["'][^>]*>([^<]*)</i)?.[1]) ?? null
+  }
+  ingredients = ingredients.filter(Boolean).slice(0, 60)
+  if (!ingredients.length) return json({ error: 'no_recipe' }, 422)
+  return json({ name: name.slice(0, 120), servings: servings && servings >= 1 && servings <= 50 ? Math.round(servings) : null, ingredients, nutrition, image: image && /^https:\/\//.test(image) ? image : null })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   if (!(await userIdFromRequest(req, adminClient()))) return json({ error: 'unauthorized' }, 401)
-  let body: { q?: string; locale?: string }
+  let body: { q?: string; locale?: string; mode?: string; url?: string }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
+  if (body.mode === 'recipe') return readRecipe(String(body.url ?? '').trim().slice(0, 500))
   const q = String(body.q ?? '').trim().slice(0, 80)
   if (q.length < 2) return json({ products: [] })
   const lang = body.locale === 'it' ? 'it' : 'en'

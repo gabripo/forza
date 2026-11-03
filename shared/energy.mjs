@@ -31,12 +31,14 @@ function estimateTdee(args) {
 	} else formula = Math.round(base * ACTIVITY_FACTOR[profile.activity_level ?? "light"]);
 	const adaptive = args.adaptive ?? null;
 	const plausible = adaptive !== null && adaptive > base && adaptive < base * 2.6;
+	const w = plausible ? Math.min(.8, Math.max(0, args.adaptiveWeight ?? .5)) : 0;
 	return {
 		bmr: base,
 		formula,
 		adaptive: plausible ? Math.round(adaptive) : null,
-		tdee: plausible ? Math.round((formula + adaptive) / 2) : formula,
-		method: plausible ? "blended" : method,
+		tdee: w > 0 ? Math.round(formula * (1 - w) + adaptive * w) : formula,
+		adaptiveWeight: Math.round(w * 100) / 100,
+		method: w > 0 ? "blended" : method,
 		stepsKcal,
 		trainingKcal
 	};
@@ -292,42 +294,80 @@ function round1(n) {
 function localDay(d) {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function daysAgo(n) {
-	const d = /* @__PURE__ */ new Date();
-	d.setHours(0, 0, 0, 0);
-	d.setDate(d.getDate() - n);
-	return d;
-}
 // src/lib/energy.ts
 const avg = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
 function sessionMinutes(s) {
 	if (!s.finished_at) return 0;
 	return Math.max(0, (new Date(s.finished_at).getTime() - new Date(s.started_at).getTime()) / 6e4);
 }
-/** Daily energy needs from everything we know about the person. */
-function computeEnergy(profile, weights, steps, sessions, food) {
-	const trend = weightTrend(dailyWeights(weights));
+/** Midnight `n` days before `now`. */
+function before(now, n) {
+	const d = new Date(now);
+	d.setHours(0, 0, 0, 0);
+	d.setDate(d.getDate() - n);
+	return d;
+}
+/**
+* Days whose food is left out of every sum and average: the person said something was not logged, or the day is
+* under 70% of the calorie target and the person did not say it was everything. Today is never judged (not over).
+*/
+function incompleteDays(food, targetKcal, notes = [], now = /* @__PURE__ */ new Date()) {
+	const kcal = /* @__PURE__ */ new Map();
+	for (const f of food) {
+		const d = localDay(new Date(f.eaten_at));
+		kcal.set(d, (kcal.get(d) ?? 0) + Number(f.kcal));
+	}
+	const said = new Map(notes.map((n) => [n.day, n.status]));
+	const today = localDay(now);
+	const out = /* @__PURE__ */ new Set();
+	for (const [d, k] of kcal) {
+		if (d >= today) continue;
+		const s = said.get(d);
+		if (s === "incomplete" || s !== "complete" && k < targetKcal * .7) out.add(d);
+	}
+	for (const n of notes) if (n.status === "incomplete") out.add(n.day);
+	return out;
+}
+/**
+* Daily energy needs from everything we know about the person, as of `now` (today, or a past day to rebuild the
+* history of the targets). `notes` are what the person said about past days (all logged or not).
+*/
+function computeEnergy(profile, weights, steps, sessions, food, notes = [], now = /* @__PURE__ */ new Date()) {
+	const at = now.getTime();
+	const today = localDay(now);
+	const trend = weightTrend(dailyWeights(weights.filter((w) => new Date(w.measured_at).getTime() <= at)));
 	const weightKg = trend.at(-1)?.trend ?? Number(profile.start_weight_kg ?? 70);
-	const from14 = localDay(daysAgo(14));
-	const recentSteps = steps.filter((s) => s.day >= from14 && s.steps > 0);
+	const from14 = localDay(before(now, 14));
+	const recentSteps = steps.filter((s) => s.day >= from14 && s.day <= today && s.steps > 0);
 	const avgSteps = recentSteps.length >= 4 ? Math.round(avg(recentSteps.map((s) => s.steps))) : null;
-	const since28 = daysAgo(28);
-	const recent = sessions.filter((s) => new Date(s.started_at) >= since28);
+	const since28 = before(now, 28);
+	const recent = sessions.filter((s) => new Date(s.started_at) >= since28 && new Date(s.started_at).getTime() <= at);
 	const workoutsPerWeek = recent.length / 4;
 	const minutes = recent.map(sessionMinutes).filter((m) => m > 5 && m < 240);
 	const avgWorkoutMinutes = minutes.length ? avg(minutes) : 50;
+	const reference = dailyTargets(profile, weightKg, estimateTdee({
+		profile,
+		weightKg,
+		avgSteps,
+		workoutsPerWeek,
+		avgWorkoutMinutes
+	}).tdee);
+	const skip = incompleteDays(food, (bwsTargets(profile, reference) ?? reference).kcal, notes, now);
 	const kcalByDay = /* @__PURE__ */ new Map();
 	for (const f of food) {
-		if (new Date(f.eaten_at) < since28) continue;
-		const d = localDay(new Date(f.eaten_at));
+		const when = new Date(f.eaten_at);
+		const d = localDay(when);
+		if (when < since28 || d >= today || skip.has(d)) continue;
 		kcalByDay.set(d, (kcalByDay.get(d) ?? 0) + Number(f.kcal));
 	}
-	const goodDays = [...kcalByDay].filter(([, k]) => k >= 900);
+	const goodDays = [...kcalByDay];
 	let adaptive = null;
+	let adaptiveWeight = 0;
 	const window = trend.filter((p) => new Date(p.day) >= since28);
-	if (goodDays.length >= 14 && window.length >= 6) {
+	if (goodDays.length >= 7 && window.length >= 4) {
 		const span = Math.max(7, (new Date(window.at(-1).day).getTime() - new Date(window[0].day).getTime()) / 864e5);
 		adaptive = adaptiveTdee(avg(goodDays.map(([, k]) => k)), window.at(-1).trend - window[0].trend, span);
+		adaptiveWeight = .8 * Math.min(1, goodDays.length / 21) * Math.min(1, window.length / 8);
 	}
 	const tdee = estimateTdee({
 		profile,
@@ -335,7 +375,8 @@ function computeEnergy(profile, weights, steps, sessions, food) {
 		avgSteps,
 		workoutsPerWeek,
 		avgWorkoutMinutes,
-		adaptive
+		adaptive,
+		adaptiveWeight
 	});
 	const own = dailyTargets(profile, weightKg, tdee.tdee);
 	return {
@@ -345,7 +386,40 @@ function computeEnergy(profile, weights, steps, sessions, food) {
 		avgSteps,
 		workoutsPerWeek,
 		avgWorkoutMinutes,
-		loggedFoodDays: goodDays.length
+		loggedFoodDays: goodDays.length,
+		weighIns: window.length,
+		leftOutDays: [...skip].filter((d) => d >= localDay(since28)).length
 	};
 }
-export { PACE_KCAL, SALT_LIMIT_G, computeEnergy, kcalFloor, paceKcal, scorePlate, sodiumMg, sumItems };
+/**
+* The targets of past weeks (one a week), worked out as the app would have then, from what was logged up to each
+* week: the history before targets were kept. Today's settings are used (goal, pace, a target set by hand).
+*/
+function pastTargets(profile, weights, steps, sessions, food, notes = [], weeks = 26, now = /* @__PURE__ */ new Date()) {
+	const out = [];
+	for (let i = weeks; i >= 1; i--) {
+		const at = new Date(now);
+		at.setDate(at.getDate() - 7 * i);
+		at.setHours(21, 0, 0, 0);
+		if (!weights.some((w) => new Date(w.measured_at) <= at) && !food.some((f) => new Date(f.eaten_at) <= at)) continue;
+		const e = computeEnergy(profile, weights, steps, sessions, food, notes, at);
+		out.push({
+			day: localDay(at),
+			kcal: e.targets.kcal,
+			protein_g: e.targets.protein_g,
+			carbs_g: e.targets.carbs_g,
+			fat_g: e.targets.fat_g,
+			tdee: e.tdee.tdee,
+			method: e.tdee.method,
+			weight_kg: Math.round(e.weightKg * 100) / 100,
+			estimated: true
+		});
+	}
+	return out;
+}
+/** The targets kept day by day, with the weeks before the first one worked out again: one line, oldest first. */
+function targetSeries(kept, past) {
+	const first = kept[0]?.day;
+	return [...past.filter((p) => !first || p.day < first), ...kept].sort((a, b) => a.day.localeCompare(b.day));
+}
+export { PACE_KCAL, SALT_LIMIT_G, computeEnergy, incompleteDays, kcalFloor, paceKcal, pastTargets, scorePlate, sodiumMg, sumItems, targetSeries };

@@ -1,7 +1,7 @@
 import { Check, Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlateAdvice } from '../../components/PlateAdvice'
+import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow } from '../../components/PlateResult'
 import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, cx } from '../../components/ui'
 import { PROCESSED_FOODS } from '../../data/foods'
@@ -50,7 +50,7 @@ const toBase64 = (blob: Blob) =>
 export function FoodVoice() {
   const { t, locale, num } = useI18n()
   const { profile } = useApp()
-  const { energy } = useEnergy()
+  const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const [meal, setMeal] = useState<Meal>(mealForNow())
   const [text, setText] = useState('')
@@ -237,7 +237,7 @@ export function FoodVoice() {
       const now = new Date()
       const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
       const said = text.trim()
-      await addFood({
+      const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
         title: (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120),
@@ -250,7 +250,7 @@ export function FoodVoice() {
         ai_notes: tip,
       })
       rememberItems(items, 'ai')
-      navigate('/food', { state: { logged: true } })
+      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
     } finally {
       setSaving(false)
     }
@@ -364,7 +364,9 @@ export function FoodVoice() {
                 listen()
               }}
               onAdjust={() => setAdjust(true)}
+              context={{ food, targets: energy.targets }}
             />
+            <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
             <Card>
               <p className="text-2xl font-extrabold tabular">
                 {num(totals.kcal)} kcal <span className="text-base font-semibold text-ink-2">· {t('macro.protein')} {num(totals.protein_g)} g</span>

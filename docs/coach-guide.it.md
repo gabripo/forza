@@ -227,8 +227,11 @@ Apri Forza! Coach quando vuoi:
 - **Check-ins**: quello che ha registrato.
 - **Overview → Progress**: peso, forza per esercizio, allenamenti e volume a settimana, passi, calorie e proteine
   da 1 mese a 1 anno, o tra due giorni qualsiasi (**From** … **to**); punta il grafico per leggere un giorno o una
-  settimana. Nell'app: **Progressi → Cruscotto
-  dei progressi**.
+  settimana. Nell'app: **Progressi → Cruscotto dei progressi**. Le giornate che ha detto di non aver registrato
+  per intero restano fuori dai grafici del cibo.
+- **Overview → Daily targets over time**: le calorie che deve mangiare (linea) e l'energia che il corpo consuma
+  (punti), settimana per settimana; le settimane prima che l'app le conservasse sono ricalcolate dai suoi dati.
+  Nell'app: Cibo → I tuoi obiettivi nel tempo, e il Cruscotto dei progressi.
 - **Profile → Pace towards the goal**: quanto in fretta perdere grasso (lento, normale o veloce: 250, 500 o
   750 kcal al giorno sotto quello che il corpo consuma) o mettere muscolo (150, 250 o 400 kcal sopra).
   **Calorie adjustment** aggiunge o toglie una quantità fissa ogni giorno, e **Calorie target from** può seguire
@@ -246,6 +249,11 @@ Apri Forza! Coach quando vuoi:
   (2 domande al giorno dalle lezioni lette, 5 punti per ogni risposta giusta; l'Overview mostra come va). Tutti vedono la modifica alla prossima apertura di
   Impara; **Back to the original** riporta una lezione alla versione originale, che continua a ricevere gli
   aggiornamenti dell'app.
+- **Exercises & videos → Add from the exercise library**: descrivi il movimento con parole tue, in qualsiasi lingua
+  ("alzo un ginocchio e lo tocco con il gomito opposto"); compaiono gli esercizi più vicini di un archivio gratuito
+  (oltre 870, con foto) con il motivo. Guarda le foto, poi **Add for the family**: riceve passi brevi in inglese e
+  italiano e le sue foto, e tutti possono sceglierlo negli allenamenti. Dall'app si può fare lo stesso per sé
+  (aggiungendo un esercizio → crealo tu).
 - **Exercises & videos**: ogni esercizio come lo mostra l'app. **Edit** per aggiungere foto, una GIF o un breve
   video (dal computer o da un indirizzo web), metterli in ordine, aggiungere un link video o un tuo consiglio;
   **Back to the built-in photos** torna alle foto originali. **+ New exercise** ne aggiunge uno per tutti;

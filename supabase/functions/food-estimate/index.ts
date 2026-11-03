@@ -50,6 +50,11 @@ function chain(): Step[] {
       ? [{ provider: 'custom', model: Deno.env.get('FOOD_AI_MODEL') ?? '' }]
       : [GEMINI_MODEL, ...GEMINI_FALLBACKS].map((model) => ({ provider: 'gemini', model }))
   }
+  return available(steps)
+}
+
+/** The models of an order whose provider has a key (and an address). */
+function available(steps: Step[]): Step[] {
   return steps.filter((s) => {
     const p = PROVIDERS[s.provider]
     // Gemini has its own endpoint; the others need an address (built in, or FOOD_AI_BASE_URL for "custom").
@@ -370,6 +375,280 @@ function cleanLabel(a: Record<string, unknown>) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// "What should I order?" A restaurant menu (a photo, or written or dictated) is read by a quick, low-cost model
+// into a list of dishes with rough values; a stronger model then picks the best dish for this person today, from
+// what they already ate and their targets, and says why in everyday words.
+// ---------------------------------------------------------------------------
+
+const LIGHT = /lite|mini|8b|small|flash-8/i
+
+/** The quick, low-cost models first (for reading and sorting), then the rest of the usual order. */
+function quickChain(): Step[] {
+  const c = chain()
+  return [...c.filter((s) => LIGHT.test(s.model)), ...c.filter((s) => !LIGHT.test(s.model))]
+}
+
+/** The stronger models for choosing and explaining (FOOD_AI_REASONING_ORDER, like FOOD_AI_ORDER), then the usual order. */
+function reasoningChain(): Step[] {
+  let first: Step[] = []
+  try {
+    first = (JSON.parse(Deno.env.get('FOOD_AI_REASONING_ORDER') ?? '[]') as string[]).map((x) => {
+      const i = String(x).indexOf(':')
+      return { provider: String(x).slice(0, i), model: String(x).slice(i + 1) }
+    })
+  } catch {
+    first = []
+  }
+  if (!first.length) first = [{ provider: 'gemini', model: Deno.env.get('GEMINI_REASONING_MODEL') ?? 'gemini-3.6-pro' }]
+  const strong = available(first)
+  const usual = chain().filter((s) => !LIGHT.test(s.model))
+  return [...strong, ...usual.filter((s) => !strong.some((f) => f.provider === s.provider && f.model === s.model)), ...chain().filter((s) => LIGHT.test(s.model))]
+}
+
+const dishSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    name: { type: 'STRING' },
+    description: { type: 'STRING' },
+    portion_g: { type: 'NUMBER' },
+    ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])),
+    satfat_g: { type: 'NUMBER' },
+  },
+  required: ['name', 'description', 'portion_g', ...NUTRIENTS, 'satfat_g'],
+}
+const menuReadSchema: Schema = { type: 'OBJECT', properties: { is_menu: { type: 'BOOLEAN' }, dishes: list(dishSchema) }, required: ['is_menu', 'dishes'] }
+const menuPickSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    choice: { type: 'INTEGER' },
+    why: { type: 'STRING' },
+    tweak: { type: 'STRING' },
+    also: list({ type: 'OBJECT', properties: { dish: { type: 'INTEGER' }, why: { type: 'STRING' } }, required: ['dish', 'why'] }),
+    rather_not: list({ type: 'OBJECT', properties: { dish: { type: 'INTEGER' }, why: { type: 'STRING' } }, required: ['dish', 'why'] }),
+  },
+  required: ['choice', 'why', 'tweak', 'also', 'rather_not'],
+}
+
+function menuReadPrompt(language: string, text: string): string {
+  return [
+    'Read this restaurant menu' + (text ? ' (written or dictated by a person; it may contain small mistakes)' : ' (a photo)') + '.',
+    text ? `The menu: """${text}"""` : '',
+    'List every dish or drink someone could order (skip section titles, prices and notes), at most 40.',
+    'For each: its name as written, a short description (main ingredients), a typical restaurant portion in grams,',
+    'and the nutrients of that portion (standard tables; restaurant cooking uses more oil and salt than home).',
+    'satfat_g is the saturated fat in grams (part of fat_g).',
+    'If this is not a menu or a list of dishes, set is_menu false and return no dishes.',
+    `Write descriptions in ${language}; keep dish names as on the menu.`,
+  ].filter(Boolean).join('\n')
+}
+
+interface MenuBody {
+  goal?: string
+  meal?: string
+  locale?: string
+  hour?: number
+  eaten?: string[]
+  day?: Record<string, number>
+  targets?: Record<string, number>
+}
+
+function menuPickPrompt(language: string, b: MenuBody, dishes: Record<string, unknown>[]): string {
+  const d = b.day ?? {}
+  const tg = b.targets ?? {}
+  const r = (k: string) => Math.round(Number(d[k] ?? 0))
+  const lines = dishes.map((x, i) => `${i}. ${x.name} — ${x.description} (≈${x.portion_g} g: ${x.kcal} kcal, protein ${x.protein_g} g, carbs ${x.carbs_g} g, fat ${x.fat_g} g of which saturated ${x.satfat_g} g, fibre ${x.fiber_g} g)`)
+  return [
+    'You help a person choose what to order at a restaurant, so their day ends close to their targets.',
+    `Their goal: ${GOAL_TEXT[b.goal ?? 'maintain'] ?? GOAL_TEXT.maintain}. This is their ${b.meal ?? 'meal'}, at about ${Math.round(Number(b.hour ?? 13))}:00.`,
+    `Their daily targets: ${tg.kcal} kcal, protein ${tg.protein_g} g, carbs ${tg.carbs_g} g, fat ${tg.fat_g} g, fibre ${tg.fiber_g} g, saturated fat at most ${tg.satfat_g} g.`,
+    (b.eaten ?? []).length
+      ? `Already eaten today: ${(b.eaten ?? []).slice(0, 12).join('; ')} — together ${r('kcal')} kcal, protein ${r('protein_g')} g, carbs ${r('carbs_g')} g, fat ${r('fat_g')} g, fibre ${r('fiber_g')} g, saturated fat ${r('satfat_g')} g.`
+      : 'Nothing else eaten yet today.',
+    'The menu (number. dish — description, rough values):',
+    ...lines,
+    'Pick the ONE dish (by its number) that best fits what is left of their day: enough protein, vegetables or fibre,',
+    'calories that fit, not too much saturated fat. Prefer real, filling food; a sensible side may be suggested in "tweak".',
+    '"why": 2 or 3 short sentences anyone understands (no nutrition jargon, no grams, at most one number for calories),',
+    'linking the choice to what they ate today (e.g. "this morning was light on protein"). Warm and encouraging, never shaming.',
+    '"tweak": one small, practical request to make the dish even better (e.g. "ask for the dressing on the side"), or "".',
+    '"also": up to 2 other good dishes, each with a short reason. "rather_not": up to 2 dishes that fit worse today, each with a kind, short reason.',
+    `Write everything in ${language}.`,
+  ].join('\n')
+}
+
+async function menuPick(b: MenuBody & { image?: string; mime?: string; text?: string }, coachTest: boolean) {
+  const language = b.locale === 'it' ? 'Italian' : 'English'
+  const text = String(b.text ?? '').trim().slice(0, 4000)
+  const image = text ? '' : String(b.image ?? '')
+  const mime = String(b.mime ?? 'image/jpeg').split(';')[0].trim()
+  if (!text && (!image || image.length * 0.75 > MAX_IMAGE_BYTES || !/^image\/(jpeg|png|webp)$/.test(mime))) return json({ error: 'bad_request' }, 400)
+  const started = Date.now()
+  try {
+    // 1. Read the menu: the quick model.
+    const read = await ask({ prompt: menuReadPrompt(language, text), schema: menuReadSchema, image, mime }, quickChain())
+    const r = read.answer as Record<string, unknown>
+    const dishes = (Array.isArray(r.dishes) ? r.dishes : []).slice(0, 40).map((x: Record<string, unknown>) => ({
+      name: str(x.name),
+      description: str(x.description, 160),
+      portion_g: num(x.portion_g, 3000),
+      ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(x[k], k === 'kcal' ? 5000 : 500)])),
+      satfat_g: Math.min(num(x.satfat_g, 300), num(x.fat_g, 500)),
+    })).filter((x) => x.name)
+    if (r.is_menu === false || !dishes.length) return json({ error: 'not_a_menu' }, 422)
+    // 2. Choose and explain: the stronger model, with the person's day.
+    const pick = await ask({ prompt: menuPickPrompt(language, b, dishes), schema: menuPickSchema, image: '', mime: 'text/plain' }, reasoningChain())
+    const a = pick.answer as Record<string, unknown>
+    const at = (i: unknown) => (Number.isInteger(Number(i)) && Number(i) >= 0 && Number(i) < dishes.length ? Number(i) : -1)
+    const choice = at(a.choice) >= 0 ? at(a.choice) : 0
+    const others = (k: string) =>
+      (Array.isArray(a[k]) ? a[k] : [])
+        .map((x: Record<string, unknown>) => ({ dish: at(x.dish), why: str(x.why, 240) }))
+        .filter((x) => x.dish >= 0 && x.dish !== choice)
+        .slice(0, 2)
+    const result = { dishes, choice, why: str(a.why, 500), tweak: str(a.tweak, 200), also: others('also'), rather_not: others('rather_not') }
+    return json(coachTest ? { ...result, models: [read.model, pick.model], ms: Date.now() - started, tried: [...read.tried, ...pick.tried] } : result)
+  } catch (e) {
+    const tried = (e as { tried?: string[] }).tried ?? []
+    return json(coachTest ? { error: 'ai_failed', detail: tried.join('\n') || (e as Error).message } : { error: 'ai_failed' }, 502)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Exercises from the free exercise database (github.com/yuhonas/free-exercise-db, public domain: 870+ exercises
+// with photos), found from a description in everyday words ("I raise a knee and touch it with the opposite elbow").
+// ---------------------------------------------------------------------------
+
+const EXERCISE_DB = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main'
+interface DbExercise {
+  id: string
+  name: string
+  category: string
+  equipment: string | null
+  primaryMuscles: string[]
+  secondaryMuscles: string[]
+  instructions: string[]
+  images: string[]
+  level: string
+}
+let exerciseIndex: DbExercise[] | null = null
+
+async function exercises(): Promise<DbExercise[]> {
+  if (exerciseIndex) return exerciseIndex
+  const res = await fetch(`${EXERCISE_DB}/dist/exercises.json`, { signal: AbortSignal.timeout(15_000) })
+  if (!res.ok) throw new Error(`exercise database ${res.status}`)
+  exerciseIndex = (await res.json()) as DbExercise[]
+  return exerciseIndex
+}
+
+// The app's own names for muscles and equipment.
+const MUSCLES: Record<string, string> = {
+  abdominals: 'abs', abductors: 'abductors', adductors: 'adductors', biceps: 'biceps', calves: 'calves', chest: 'chest', forearms: 'forearms',
+  glutes: 'glutes', hamstrings: 'hamstrings', lats: 'lats', 'lower back': 'lower_back', 'middle back': 'back', neck: 'traps', quadriceps: 'quads',
+  shoulders: 'shoulders', traps: 'traps', triceps: 'triceps',
+}
+const equipmentOf = (e: string | null) =>
+  !e || e === 'body only' ? 'bodyweight' : e === 'dumbbell' ? 'dumbbell' : e === 'barbell' || e === 'e-z curl bar' ? 'barbell' : e === 'cable' ? 'cable' : e === 'machine' ? 'machine' : 'other'
+const photos = (x: DbExercise) => x.images.slice(0, 2).map((p) => `${EXERCISE_DB}/exercises/${p}`)
+
+const exerciseFindSchema: Schema = {
+  type: 'OBJECT',
+  properties: { matches: list({ type: 'OBJECT', properties: { id: { type: 'STRING' }, name_it: { type: 'STRING' }, why: { type: 'STRING' } }, required: ['id', 'name_it', 'why'] }) },
+  required: ['matches'],
+}
+const exerciseAddSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    name_it: { type: 'STRING' },
+    kind: { type: 'STRING', enum: ['reps', 'bodyweight', 'time', 'cardio'] },
+    steps_en: list({ type: 'STRING' }),
+    steps_it: list({ type: 'STRING' }),
+  },
+  required: ['name_it', 'kind', 'steps_en', 'steps_it'],
+}
+
+async function exerciseSearch(b: { query?: string; locale?: string }, coachTest: boolean) {
+  const query = String(b.query ?? '').trim().slice(0, 300)
+  if (query.length < 3) return json({ error: 'bad_request' }, 400)
+  const language = b.locale === 'it' ? 'Italian' : 'English'
+  try {
+    const all = await exercises()
+    const lines = all.map((x) => `${x.id} | ${x.name} | ${x.category} | ${x.equipment ?? 'none'} | ${x.primaryMuscles.join(', ')}`)
+    const prompt = [
+      'A person describes an exercise in their own words (any language); find it in this list of exercises.',
+      `Their words: "${query}".`,
+      'Think about the movement they describe (what moves, what touches what, standing or lying, with or without equipment),',
+      'not only the words. Return up to 5 ids from the list, best match first; fewer if few fit.',
+      `"why": one short sentence in ${language} on how it matches. "name_it": the usual Italian name of the exercise (gym Italian, English terms are fine where Italians use them).`,
+      'The list (id | name | category | equipment | main muscles):',
+      ...lines,
+    ].join('\n')
+    const { answer, model, tried } = await ask({ prompt, schema: exerciseFindSchema, image: '', mime: 'text/plain' }, quickChain())
+    const found = ((answer as { matches?: { id: string; name_it: string; why: string }[] }).matches ?? [])
+      .map((m) => ({ m, x: all.find((x) => x.id === m.id) }))
+      .filter((p): p is { m: { id: string; name_it: string; why: string }; x: DbExercise } => Boolean(p.x))
+      .slice(0, 5)
+      .map(({ m, x }) => ({
+        id: x.id,
+        name_en: x.name,
+        name_it: str(m.name_it) || x.name,
+        why: str(m.why, 240),
+        equipment: equipmentOf(x.equipment),
+        muscles: [...new Set(x.primaryMuscles.map((k) => MUSCLES[k]).filter(Boolean))],
+        images: photos(x),
+        instructions: x.instructions.slice(0, 6),
+      }))
+    return json(coachTest ? { matches: found, model, tried } : { matches: found })
+  } catch (e) {
+    const tried = (e as { tried?: string[] }).tried ?? []
+    return json(coachTest ? { error: 'ai_failed', detail: tried.join('\n') || (e as Error).message } : { error: 'ai_failed' }, 502)
+  }
+}
+
+/**
+ * One exercise of the database made ready for the app: short steps in English and Italian, its kind, and its
+ * photos copied into the project's own storage (shown as an animation, like the built-in exercises).
+ */
+async function exerciseAdd(b: { id?: string }, admin: ReturnType<typeof adminClient>, coachTest: boolean) {
+  try {
+    const x = (await exercises()).find((e) => e.id === String(b.id ?? ''))
+    if (!x) return json({ error: 'not_found' }, 404)
+    const prompt = [
+      `Exercise: ${x.name} (${x.category}, equipment: ${x.equipment ?? 'none'}).`,
+      'Its instructions:',
+      ...x.instructions.map((s, i) => `${i + 1}. ${s}`),
+      'Rewrite them as 3 short, clear steps for a beginner (max 20 words each), in English (steps_en) and in Italian',
+      '(steps_it, natural gym Italian, addressing the person informally and in a gender-neutral way).',
+      '"name_it": the usual Italian name. "kind": reps (with weights), bodyweight (reps without weights), time (held or timed, like a plank or a stretch) or cardio.',
+    ].join('\n')
+    const { answer } = await ask({ prompt, schema: exerciseAddSchema, image: '', mime: 'text/plain' }, quickChain())
+    const a = answer as { name_it?: string; kind?: string; steps_en?: string[]; steps_it?: string[] }
+    const urls: string[] = []
+    for (const [i, src] of photos(x).entries()) {
+      const img = await fetch(src, { signal: AbortSignal.timeout(15_000) })
+      if (!img.ok) continue
+      const path = `library/${x.id}/${i}.jpg`
+      const { error } = await admin.storage.from('exercise-media').upload(path, await img.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
+      if (!error) urls.push(admin.storage.from('exercise-media').getPublicUrl(path).data.publicUrl)
+    }
+    const steps = (v: unknown) => (Array.isArray(v) ? v : []).map((s) => str(s, 200)).filter(Boolean).slice(0, 5)
+    return json({
+      source_id: x.id,
+      name_en: x.name,
+      name_it: str(a.name_it) || x.name,
+      kind: ['reps', 'bodyweight', 'time', 'cardio'].includes(String(a.kind)) ? a.kind : equipmentOf(x.equipment) === 'bodyweight' ? 'bodyweight' : 'reps',
+      equipment: equipmentOf(x.equipment),
+      muscles: [...new Set(x.primaryMuscles.map((k) => MUSCLES[k]).filter(Boolean))],
+      steps_en: steps(a.steps_en).length ? steps(a.steps_en) : x.instructions.slice(0, 4),
+      steps_it: steps(a.steps_it),
+      image_urls: urls.length ? urls : photos(x),
+    })
+  } catch (e) {
+    const tried = (e as { tried?: string[] }).tried ?? []
+    return json(coachTest ? { error: 'ai_failed', detail: tried.join('\n') || (e as Error).message } : { error: 'ai_failed' }, 502)
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
@@ -381,11 +660,22 @@ Deno.serve(async (req) => {
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number; topic?: string; sources?: { id: string; title: string }[] }
+  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number; topic?: string; sources?: { id: string; title: string }[] } & MenuBody & { query?: string; id?: string }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
+  }
+  // The menu, the exercise search and adding an exercise: each counts as one use of the day.
+  if (body.mode === 'menu' || body.mode === 'exercise' || body.mode === 'exercise_add') {
+    if (userId) {
+      const { error: limitError } = await admin.rpc('bump_ai_usage', { p_user: userId, p_limit: DAILY_LIMIT })
+      if (limitError) {
+        const reached = limitError.message.includes('daily_limit_reached')
+        return json({ error: reached ? 'daily_limit_reached' : 'usage_error' }, reached ? 429 : 500)
+      }
+    }
+    return body.mode === 'menu' ? menuPick(body, coachTest) : body.mode === 'exercise' ? exerciseSearch(body, coachTest) : exerciseAdd(body, admin, coachTest)
   }
   const mode: Mode = (['label', 'text', 'transcribe', 'tidy', 'lesson'] as const).find((m) => m === body.mode) ?? 'plate'
   // Lessons are drafted for the family coach only (Forza! Coach, with the project's secret key).
@@ -393,7 +683,8 @@ Deno.serve(async (req) => {
   const topic = (body.topic ?? '').trim().slice(0, 120)
   if (mode === 'lesson' && !topic) return json({ error: 'bad_request' }, 400)
   const words = mode === 'text' || mode === 'tidy' || mode === 'lesson'
-  const text = (body.text ?? '').trim().slice(0, mode === 'tidy' ? 1000 : 500)
+  // A recipe's ingredients can be long; a meal said in words is short.
+  const text = (body.text ?? '').trim().slice(0, mode === 'tidy' ? 1000 : 1500)
   const image = words ? '' : mode === 'transcribe' ? (body.audio ?? '') : (body.image ?? '')
   // "audio/webm;codecs=opus" → "audio/webm"
   const mime = (body.mime ?? 'image/jpeg').split(';')[0].trim()
