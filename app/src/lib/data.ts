@@ -22,6 +22,7 @@ import type {
   TargetDay,
   ProgressPhoto,
   SetLog,
+  SharedCopy,
   WorkoutSession,
   WorkoutTemplate,
 } from './types'
@@ -397,6 +398,16 @@ export async function getFamilyPeople(myId: string): Promise<{ id: string; displ
 /** Copies these meals into the food logs of the people who ate the same (each portion × factor). */
 export async function shareMeals(ids: string[], people: string[], factor = 1): Promise<number> {
   return check(await supabase.rpc('share_meal', { p_ids: ids, p_users: people, p_factor: factor })) as number
+}
+
+/** The copies of one of this person's meals that they shared: whose log, and what each one had. */
+export async function getSharedCopies(mealId: string): Promise<SharedCopy[]> {
+  return check(await supabase.rpc('shared_copies', { p_from: mealId })) as SharedCopy[]
+}
+
+/** Changes someone's copy of a meal this person shared (their portion, foods out or back in, amounts). */
+export async function updateSharedMeal(id: string, items: FoodItem[]): Promise<void> {
+  check(await supabase.rpc('update_shared_meal', { p_id: id, p_items: items }))
 }
 
 export async function getRecipes(): Promise<Recipe[]> {

@@ -331,7 +331,12 @@ part of the day, with their own portion (½, the same, ×1½, ×2), marked "Shar
 only the caller's own meals; the others can change or delete their copy. Meals from another app (Build With
 Science, Health Connect) are shared the same way: they cannot be changed here, but the copies are the family's
 own and no sync touches them. In Forza! Coach, the coach ticks meals of one person and copies them to another
-(**Copy to**), synced ones included.
+(**Copy to**), synced ones included. Each copy remembers who shared it and from which meal (`shared_by`,
+`shared_from`), so **the person who shared it can change the others' copies** afterwards: under their own meal
+("Shared with"), each person's portion of the whole meal, an amount per food (grams, or calories for foods
+without grams), a food taken out or put back. `shared_copies()` lists only the copies the caller shared, and
+`update_shared_meal()` changes only those, working the totals out again from the foods (salt and saturated fat
+stay "not known" when no food says); the other person's app scores the meal again.
 
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order
@@ -498,6 +503,12 @@ member's phone. Three paths cover it instead:
 | Weigh-ins | Build With Science (and the scale) store them in Health Connect → *Forza! Health* helper | yes, hourly |
 | Food diary | Build With Science writes every entry to Health Connect (Nutrition) → helper; and the helper reads the food log on the phone, for days Health Connect does not have | yes, hourly (Health Connect); with each workout sync (phone) |
 | Workouts, plan, goal | the *Forza! Health* helper reads the app on the phone itself, or Forza! Coach over ADB (below) | on request or with a daily reminder (phone); when the phone is connected and idle (Coach) |
+
+**Sync the meals now.** On the Food page, people whose meals come from Build With Science (on the Android phone
+with the helper) see **Sync now**: it wakes the helper (`forzahealth://sync`), which reads the last 14 days of
+meals from Health Connect again, so meals added, changed or deleted in Build With Science show at once; the page
+looks for them when the person comes back, and again after a few seconds. For a day Health Connect does not
+have, a second link starts the helper's reading of Build With Science itself (`forzahealth://bws`).
 
 Workouts are not in Health Connect (Build With Science does not write exercise sessions), so Forza! Coach reads
 them the way a person would: through Android's

@@ -407,7 +407,7 @@ test("food log: Coach copies meals into another person's log, ones from another 
   const inserted = []
   const filters = []
   const rows = {
-    food_logs: [{ eaten_at: '2026-11-04T12:30:00Z', meal: 'lunch', title: 'Pasta, Chicken Breast', items: [{ name: 'Pasta', grams: 0, kcal: 350 }], kcal: 550, protein_g: 45, carbs_g: 70, fat_g: 8, fiber_g: 4, sugar_g: 3, salt_g: null, satfat_g: null }],
+    food_logs: [{ id: 'm1', eaten_at: '2026-11-04T12:30:00Z', meal: 'lunch', title: 'Pasta, Chicken Breast', items: [{ name: 'Pasta', grams: 0, kcal: 350 }], kcal: 550, protein_g: 45, carbs_g: 70, fat_g: 8, fiber_g: 4, sugar_g: 3, salt_g: null, satfat_g: null }],
     profiles: [
       { id: 'gabriele', display_name: 'Gabriele' },
       { id: 'gabriella', display_name: 'Gabriella' },
@@ -427,6 +427,10 @@ test("food log: Coach copies meals into another person's log, ones from another 
   assert.equal(inserted[0].eaten_at, '2026-11-04T12:30:00Z')
   assert.equal(inserted[0].kcal, 550)
   assert.equal(inserted[0].score_fat_loss, null)
+  // The person whose meal it was can change the copy later.
+  assert.equal(inserted[0].shared_by, 'gabriele')
+  assert.equal(inserted[0].shared_from, 'm1')
+  assert.equal(inserted[0].id, undefined)
   await assert.rejects(copyMeals(db, 'gabriele', { to: 'gabriele', ids: ['m1'] }), /someone else/)
   await assert.rejects(copyMeals(db, 'gabriele', { to: 'gabriella', ids: [] }), /from 1 to 50/)
 })

@@ -156,6 +156,21 @@ export interface FoodLog {
   ai_notes: string | null
   /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science); for a shared meal, who shared it. */
   origin?: string | null
+  /** A shared copy: the person who shared it (who can change it) and the meal it was copied from. */
+  shared_by?: string | null
+  shared_from?: string | null
+}
+
+/** A copy of one of this person's meals, shared with someone in the family. */
+export interface SharedCopy {
+  id: string
+  user_id: string
+  person: string
+  items: FoodItem[]
+  kcal: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
 }
 
 /** What the person said about a day's food: all logged or not (an incomplete day is left out of every sum), and the meals skipped. */

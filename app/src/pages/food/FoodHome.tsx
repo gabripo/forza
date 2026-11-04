@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { ConsistencyLink } from '../../components/Consistency'
+import { BwsFoodSync } from '../../components/BwsFoodSync'
 import { CopiedNotice } from '../../components/CopyMeal'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
+import { SharedCopies } from '../../components/SharedCopies'
 import { NextMealCard } from '../../components/NextMealCard'
 import { TargetHistory } from '../../components/TargetHistory'
 import { TargetSheet } from '../../components/TargetSheet'
@@ -149,6 +151,9 @@ export function FoodHome() {
           <ScrollText className="size-5 text-brand" aria-hidden /> {t('food.menu')}
         </Button>
       </div>
+
+      {/* Meals from Build With Science: brought now, instead of at the next hourly sync. */}
+      <BwsFoodSync food={food} onSynced={() => void reload()} />
 
       {copying.copied ? (
         <CopiedNotice kcal={copying.copied.kcal} onUndo={() => void copying.undo()} busy={copying.busy} />
@@ -430,6 +435,8 @@ export function FoodHome() {
             >
               <Share2 className="size-5" aria-hidden /> {t('share.this')}
             </Button>
+            {/* Shared before: the copies in the others' logs, which this person can change. */}
+            <SharedCopies key={moving.id} meal={moving} />
           </div>
         ) : null}
       </Sheet>

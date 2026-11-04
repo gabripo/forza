@@ -132,15 +132,16 @@ export async function copyMeals(db, from, { to, ids }) {
   if (!Array.isArray(ids) || !ids.length || ids.length > 50) throw bad('Choose from 1 to 50 meals')
   if (!to || to === from) throw bad('Choose someone else')
   const [rows, people] = await Promise.all([
-    db.from('food_logs').select('eaten_at, meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g').eq('user_id', from).in('id', ids),
+    db.from('food_logs').select('id, eaten_at, meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g').eq('user_id', from).in('id', ids),
     db.from('profiles').select('id, display_name').in('id', [from, to]),
   ])
   const meals = check(rows)
   const names = new Map(check(people).map((p) => [p.id, p.display_name]))
   if (!names.has(to)) throw bad('That person is gone', 404)
   if (!meals.length) return { copied: 0 }
-  // No score: the app works it out against the other person's own target.
-  const copies = meals.map((m) => ({ ...m, items: m.items ?? [], user_id: to, source: 'shared', origin: names.get(from) || 'family', score_fat_loss: null, score_muscle_gain: null }))
+  // No score: the app works it out against the other person's own target. The person whose meal it was can
+  // change the copy afterwards, as when they share it in the app.
+  const copies = meals.map(({ id, ...m }) => ({ ...m, items: m.items ?? [], user_id: to, source: 'shared', origin: names.get(from) || 'family', shared_by: from, shared_from: id, score_fat_loss: null, score_muscle_gain: null }))
   check(await db.from('food_logs').insert(copies))
   return { copied: copies.length }
 }
