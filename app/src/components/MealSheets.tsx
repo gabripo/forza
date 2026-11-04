@@ -6,7 +6,7 @@ import { getFamilyPeople, shareMeals } from '../lib/data'
 import { totalsOf, type Totals } from '../lib/dayCheck'
 import { useI18n } from '../lib/i18n'
 import type { FoodItem, FoodLog, Meal } from '../lib/types'
-import { Button, Segmented, Sheet } from './ui'
+import { Button, NumberInput, Segmented, Sheet } from './ui'
 
 /** Each nutrient of a meal (or a plate) and how much of the day's target it is. */
 export function MealNumbers({ totals, targets, salt = false }: { totals: Totals; targets: Targets; salt?: boolean }) {
@@ -77,30 +77,77 @@ export function MealSheet({ meal, entries, targets, onClose, onShare }: { meal: 
   )
 }
 
+const SHARES = [0.25, 0.5, 0.75, 1]
+
+/** How much of the whole meal one person had: a quarter, half, three quarters, all of it, or another percentage. */
+function ShareOf({ name, share, wholeKcal, onChange }: { name: string; share: number | null; wholeKcal: number; onChange: (share: number | null) => void }) {
+  const { t, num } = useI18n()
+  const [other, setOther] = useState<number | null>(share !== null && !SHARES.includes(share) ? Math.round(share * 100) : null)
+  return (
+    <div className="grid gap-2 px-1 pt-2">
+      <p className="text-sm font-semibold">{t('share.howMuch', { name })}</p>
+      <Segmented<number>
+        value={other === null ? share : null}
+        onChange={(v) => {
+          setOther(null)
+          onChange(v)
+        }}
+        options={SHARES.map((v) => ({ value: v, label: `${num(v * 100)}%` }))}
+      />
+      <div className="flex items-center gap-2 text-sm">
+        <span>{t('eaten.other')}</span>
+        <div className="w-20">
+          <NumberInput
+            decimals={false}
+            value={other}
+            onChange={(v) => {
+              setOther(v)
+              onChange(v && v >= 5 && v <= 300 ? Math.round(v) / 100 : null)
+            }}
+            aria-label={t('share.percentOf', { name })}
+          />
+        </div>
+        <span>%</span>
+        <span className="ml-auto text-ink-2 tabular">{share === null ? t('share.outOfRange') : `${num(Math.round(wholeKcal * share))} kcal`}</span>
+      </div>
+    </div>
+  )
+}
+
 /**
  * One person cooked, more ate: the meal goes into the food log of the people chosen, at the same time and part of
- * the day, with their own portion (the same, half, one and a half, double). They can change their copy.
- * Give it a new key for each meal shared, so it starts afresh.
+ * the day, each with how much of it they had: a percentage of the whole meal as logged (a Cookidoo dish logged whole
+ * and eaten only in part counts whole). They can change their copy. Give it a new key for each meal shared, so it
+ * starts afresh.
  */
-export function ShareMealSheet({ ids, onClose, onShared }: { ids: string[] | null; onClose: () => void; onShared?: (n: number) => void }) {
-  const { t } = useI18n()
+export function ShareMealSheet({ meals, onClose, onShared }: { meals: FoodLog[] | null; onClose: () => void; onShared?: (n: number) => void }) {
+  const { t, num } = useI18n()
   const { session } = useApp()
   const [people, setPeople] = useState<{ id: string; display_name: string }[] | null>(null)
-  const [chosen, setChosen] = useState<string[]>([])
-  const [factor, setFactor] = useState(1)
+  // The people chosen, in the order they were, each with their share of the whole meal (null: a percentage not allowed).
+  const [chosen, setChosen] = useState<{ id: string; share: number | null }[]>([])
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!ids || !session || people) return
+    if (!meals || !session || people) return
     void getFamilyPeople(session.user.id).then(setPeople, () => setPeople([]))
-  }, [ids, session, people])
+  }, [meals, session, people])
+
+  // How much of the whole meal this person ate, when the same for all of it: the others start with the same.
+  const own = (meals ?? []).map((m) => Number(m.eaten_share) || 1)
+  const mine = own.length && own.every((s) => s === own[0]) ? own[0] : 1
+  const wholeKcal = (meals ?? []).reduce((s, m) => s + Number(m.kcal) / (Number(m.eaten_share) || 1), 0)
+  const ready = Boolean(meals?.length) && chosen.length > 0 && chosen.every((c) => c.share !== null)
 
   async function share() {
-    if (!ids || !chosen.length) return
+    if (!meals || !ready) return
     setBusy(true)
     try {
-      await shareMeals(ids, chosen, factor)
+      await shareMeals(
+        meals.map((m) => m.id),
+        chosen.map((c) => ({ id: c.id, share: c.share ?? 1 })),
+      )
       setDone(chosen.length)
       onShared?.(chosen.length)
     } finally {
@@ -109,8 +156,8 @@ export function ShareMealSheet({ ids, onClose, onShared }: { ids: string[] | nul
   }
 
   return (
-    <Sheet open={Boolean(ids)} onClose={onClose} title={t('share.title')}>
-      {ids ? (
+    <Sheet open={Boolean(meals)} onClose={onClose} title={t('share.title')}>
+      {meals ? (
         done !== null ? (
           <div className="grid gap-3 text-center">
             <p className="text-lg font-bold text-leaf">
@@ -127,39 +174,36 @@ export function ShareMealSheet({ ids, onClose, onShared }: { ids: string[] | nul
             ) : people.length === 0 ? (
               <p className="rounded-2xl bg-card-2 p-3">{t('share.none')}</p>
             ) : (
-              <ul className="grid gap-2">
+              <ul className="grid gap-3">
                 {people.map((p) => {
-                  const on = chosen.includes(p.id)
+                  const pick = chosen.find((c) => c.id === p.id)
                   return (
                     <li key={p.id}>
                       <button
-                        onClick={() => setChosen((xs) => (on ? xs.filter((x) => x !== p.id) : [...xs, p.id]))}
-                        aria-pressed={on}
-                        className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left font-semibold ${on ? 'border-leaf bg-leaf-soft' : 'border-line bg-card'}`}
+                        onClick={() => setChosen((xs) => (pick ? xs.filter((x) => x.id !== p.id) : [...xs, { id: p.id, share: mine }]))}
+                        aria-pressed={Boolean(pick)}
+                        className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left font-semibold ${pick ? 'border-leaf bg-leaf-soft' : 'border-line bg-card'}`}
                       >
                         <Users className="size-5 text-ink-3" aria-hidden />
                         <span className="flex-1">{p.display_name}</span>
-                        {on ? <Check className="size-5 text-leaf" aria-hidden /> : null}
+                        {pick ? <Check className="size-5 text-leaf" aria-hidden /> : null}
                       </button>
+                      {pick ? (
+                        <ShareOf
+                          name={p.display_name}
+                          share={pick.share}
+                          wholeKcal={wholeKcal}
+                          onChange={(share) => setChosen((xs) => xs.map((x) => (x.id === p.id ? { ...x, share } : x)))}
+                        />
+                      ) : null}
                     </li>
                   )
                 })}
               </ul>
             )}
-            <div>
-              <p className="mb-1 font-semibold">{t('share.portion')}</p>
-              <Segmented<number>
-                value={factor}
-                onChange={setFactor}
-                options={[
-                  { value: 0.5, label: '½' },
-                  { value: 1, label: t('share.same') },
-                  { value: 1.5, label: '×1½' },
-                  { value: 2, label: '×2' },
-                ]}
-              />
-            </div>
-            <Button size="lg" block onClick={() => void share()} loading={busy} disabled={!chosen.length}>
+            {/* A dish logged whole and eaten only in part: the percentages are of all of it, not of this person's part. */}
+            {mine !== 1 && chosen.length ? <p className="text-sm text-ink-2">{t('share.ofWhole', { pct: num(Math.round(mine * 100)) })}</p> : null}
+            <Button size="lg" block onClick={() => void share()} loading={busy} disabled={!ready}>
               <Share2 className="size-5" aria-hidden /> {t('share.button')}
             </Button>
           </div>

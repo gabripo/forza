@@ -6,7 +6,8 @@ import { useI18n } from '../lib/i18n'
 import type { FoodItem, FoodLog, SharedCopy } from '../lib/types'
 import { Button, NumberInput } from './ui'
 
-const PORTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
+// Shares of the whole meal as logged, as when sharing it.
+const PORTIONS = [0.25, 0.5, 0.75, 1, 1.5]
 
 /** A food with its amount, and every value with it, times k. */
 function scaleItem(it: FoodItem, k: number): FoodItem {
@@ -52,7 +53,9 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
   if (!copies?.length) return null
   // The meal as this person logged it: what a portion is measured against, and the foods to put back.
   const original: FoodItem[] = meal.items?.length ? meal.items : [{ name: meal.title, grams: 0, kcal: Number(meal.kcal), protein_g: Number(meal.protein_g), carbs_g: Number(meal.carbs_g), fat_g: Number(meal.fat_g), fiber_g: Number(meal.fiber_g), sugar_g: Number(meal.sugar_g) }]
-  const originalKcal = sum(original, 'kcal')
+  // A dish logged whole and eaten only in part: what the others had is a share of all of it.
+  const mine = Number(meal.eaten_share) || 1
+  const wholeKcal = sum(original, 'kcal') / mine
 
   const rowsOf = (items: FoodItem[]) => items.map((it) => ({ base: it, item: it }))
   const items = editing?.rows.map((r) => r.item) ?? []
@@ -108,7 +111,7 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
       <ul className="grid gap-2">
         {copies.map((c) => {
           const open = editing?.id === c.id
-          const k = originalKcal > 0 ? Number(c.kcal) / originalKcal : null
+          const k = wholeKcal > 0 ? Number(c.kcal) / wholeKcal : null
           return (
             <li key={c.id} className="rounded-xl bg-card p-2">
               <div className="flex items-center gap-2">
@@ -116,7 +119,7 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
                   <b>{c.person}</b>
                   <span className="block text-sm text-ink-2">
                     {num(Number(c.kcal))} kcal · {t('macro.protein')} {num(Number(c.protein_g))} g
-                    {k !== null && Math.abs(k - 1) >= 0.05 ? ` · ${t('sharedCopies.ofYours', { pct: Math.round(k * 100) })}` : ''}
+                    {k !== null ? ` · ${t('sharedCopies.ofWhole', { pct: Math.round(k * 100) })}` : ''}
                   </span>
                 </span>
                 {open ? null : (
@@ -135,8 +138,8 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
                     <p className="mb-1 text-sm font-semibold">{t('sharedCopies.portion', { name: c.person })}</p>
                     <div className="flex flex-wrap gap-1">
                       {PORTIONS.map((p) => (
-                        <Button key={p} size="sm" variant="secondary" className="bg-card-2" onClick={() => setEditing({ ...editing, rows: rowsOf(original.map((it) => scaleItem(it, p))) })}>
-                          {p === 1 ? t('share.same') : `×${num(p, 2)}`}
+                        <Button key={p} size="sm" variant="secondary" className="bg-card-2" onClick={() => setEditing({ ...editing, rows: rowsOf(original.map((it) => scaleItem(it, p / mine))) })}>
+                          {num(p * 100)}%
                         </Button>
                       ))}
                     </div>
