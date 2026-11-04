@@ -5,6 +5,7 @@ import { MacroBar, Ring } from '../../components/charts'
 import { ConsistencyLink } from '../../components/Consistency'
 import { BwsFoodSync } from '../../components/BwsFoodSync'
 import { CopiedNotice } from '../../components/CopyMeal'
+import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
@@ -361,6 +362,7 @@ export function FoodHome() {
                         </p>
                         {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
                         {e.source === 'shared' ? <p className="text-xs text-ink-3">{t('food.sharedBy', { name: e.origin || '' })}</p> : null}
+                        {Number(e.eaten_share ?? 1) !== 1 ? <p className="text-xs text-ink-3">{t('eaten.badge', { pct: Math.round(Number(e.eaten_share) * 100) })}</p> : null}
                       </button>
                       {band ? (
                         <span className={`rounded-full px-2 py-0.5 text-sm font-bold ${band === 'rethink' ? 'bg-danger-soft text-danger' : band === 'okay' ? 'bg-sun-soft text-sun' : 'bg-leaf-soft text-leaf'}`}>
@@ -412,6 +414,16 @@ export function FoodHome() {
               <p className="text-ink-2">{t('food.syncedFrom', { app: moving.origin || 'Health Connect' })}</p>
             ) : (
               <>
+                {/* Eaten only in part (a portion of a Cookidoo recipe, a plate not finished): the meal follows. */}
+                <EatenShare
+                  key={`${moving.id}:${moving.eaten_share ?? 1}`}
+                  meal={moving}
+                  onChanged={(m) => {
+                    scored.current.delete(m.id)
+                    setMoving(m)
+                    void reload()
+                  }}
+                />
                 <p className="font-semibold">{t('food.moveTo')}</p>
                 <Segmented<Meal>
                   value={moving.meal}

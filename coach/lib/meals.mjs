@@ -59,8 +59,9 @@ function mealFields(body) {
   if (Number.isNaN(at.getTime())) throw bad('When was it eaten?')
   const meal = mealItems(body.items)
   const title = String(body.title ?? '').trim().slice(0, 200) || meal.items.map((i) => i.name).join(', ').slice(0, 200)
-  // No score: the app works it out from the new amounts, against the person's own target.
-  return { meal: body.meal, eaten_at: at.toISOString(), title, ...meal, score_fat_loss: null, score_muscle_gain: null }
+  // No score: the app works it out from the new amounts, against the person's own target. The amounts written
+  // here are what was eaten: all of it.
+  return { meal: body.meal, eaten_at: at.toISOString(), title, ...meal, eaten_share: 1, score_fat_loss: null, score_muscle_gain: null }
 }
 
 async function editable(db, id) {
