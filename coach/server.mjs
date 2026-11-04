@@ -20,7 +20,7 @@ import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
 import { computeEnergy, incompleteDays, pastTargets, targetSeries } from '../shared/energy.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
-import { addMeal, deleteMeal, foodPicks, updateMeal } from './lib/meals.mjs'
+import { addMeal, copyMeals, deleteMeal, foodPicks, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
 import { deleteSession, moveWorkout, saveSession } from './lib/sessions.mjs'
 import { importWeights, previewWeights } from './lib/weights.mjs'
@@ -681,6 +681,8 @@ const routes = [
   // The family's food database and the meals logged before, for "Add a meal".
   ['GET', /^\/api\/users\/([\w-]+)\/food-picks$/, (m) => foodPicks(need(), m[1])],
   ['POST', /^\/api\/users\/([\w-]+)\/food$/, (m, body) => addMeal(need(), m[1], body)],
+  // Some meals of this person, into another person's food log.
+  ['POST', /^\/api\/users\/([\w-]+)\/copy-meals$/, (m, body) => copyMeals(need(), m[1], body)],
   ['PUT', /^\/api\/food\/([\w-]+)$/, (m, body) => updateMeal(need(), m[1], body)],
   ['DELETE', /^\/api\/food\/([\w-]+)$/, (m) => deleteMeal(need(), m[1])],
   // Weigh-ins from a CSV file (EufyLife exports the whole family: each member goes to a person).

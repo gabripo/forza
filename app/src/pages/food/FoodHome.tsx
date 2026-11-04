@@ -24,6 +24,9 @@ import { useEnergy } from '../../lib/useEnergy'
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
 
+/** From another app (Health Connect, or Build With Science read on the phone): changed there, not here. */
+const isSynced = (e: FoodLog) => e.source === 'health_connect' || (e.source === 'import' && Boolean(e.origin))
+
 export function FoodHome() {
   const { t, num, date } = useI18n()
   const { profile, saveProfile } = useApp()
@@ -330,11 +333,11 @@ export function FoodHome() {
                       : { fatLoss: e.score_fat_loss, muscleGain: e.score_muscle_gain ?? e.score_fat_loss }
                   const score = goal === 'muscle_gain' ? scores.muscleGain : scores.fatLoss
                   // From another app (Health Connect, or Build With Science read on the phone): changed there.
-                  const synced = e.source === 'health_connect' || (e.source === 'import' && Boolean(e.origin))
+                  const synced = isSynced(e)
                   const band = score !== null ? scoreBand(score) : null
                   return (
                     <li key={e.id} className="flex items-center gap-3">
-                      <button onClick={() => (synced ? undefined : setMoving(e))} disabled={synced} className="min-w-0 flex-1 rounded-xl text-left active:bg-card-2 disabled:active:bg-transparent">
+                      <button onClick={() => setMoving(e)} className="min-w-0 flex-1 rounded-xl text-left active:bg-card-2">
                         <p className="truncate font-semibold">{e.title}</p>
                         <p className="text-sm text-ink-2">
                           {num(Number(e.kcal))} kcal · {t('macro.protein')} {num(Number(e.protein_g))} g
@@ -399,17 +402,24 @@ export function FoodHome() {
       <Sheet open={Boolean(moving)} onClose={() => setMoving(null)} title={moving?.title ?? ''}>
         {moving ? (
           <div className="grid gap-3">
-            <p className="font-semibold">{t('food.moveTo')}</p>
-            <Segmented<Meal>
-              value={moving.meal}
-              onChange={(meal) => {
-                const id = moving.id
-                setMoving(null)
-                void updateFood(id, { meal }).then(() => reload())
-              }}
-              options={MEALS.map((m) => ({ value: m, label: t(`meal.${m}`) }))}
-            />
-            <p className="text-sm text-ink-3">{t('food.moveHint')}</p>
+            {/* A meal from another app is changed there; sharing it with the family works all the same. */}
+            {isSynced(moving) ? (
+              <p className="text-ink-2">{t('food.syncedFrom', { app: moving.origin || 'Health Connect' })}</p>
+            ) : (
+              <>
+                <p className="font-semibold">{t('food.moveTo')}</p>
+                <Segmented<Meal>
+                  value={moving.meal}
+                  onChange={(meal) => {
+                    const id = moving.id
+                    setMoving(null)
+                    void updateFood(id, { meal }).then(() => reload())
+                  }}
+                  options={MEALS.map((m) => ({ value: m, label: t(`meal.${m}`) }))}
+                />
+                <p className="text-sm text-ink-3">{t('food.moveHint')}</p>
+              </>
+            )}
             <Button
               variant="secondary"
               onClick={() => {

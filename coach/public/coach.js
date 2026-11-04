@@ -734,13 +734,18 @@ const OPTIONAL_NUTRIENTS = ['satfat_g', 'salt_g']
 const syncedMeal = (f) => f.source === 'health_connect' || (f.source === 'import' && Boolean(f.origin))
 
 function foodView(d) {
-  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button></div>`
+  // Meals ticked here go to another person's food log ("Copy to"), synced ones included.
+  const others = state.users.filter((u) => u.id !== state.selected)
+  const copy = others.length
+    ? `<span style="flex:1"></span><span class="muted small">Ticked meals:</span><select id="meal-copy-to" title="Copy the ticked meals to">${others.map((u) => `<option value="${esc(u.id)}">${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select><button class="btn secondary" data-action="meal-copy">Copy to</button>`
+    : ''
+  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button>${d.food.length ? copy : ''}</div>`
   const editor = state.mealEdit ? mealEditor(d) : ''
   if (!d.food.length) return `${editor}${state.mealEdit ? '' : add}<div class="card muted">No meals logged in the last 30 days.</div>`
-  return `${editor}${state.mealEdit ? '' : add}<div class="card"><table><thead><tr><th></th><th>When</th><th>Meal</th><th class="num">kcal</th><th class="num">P / C / F</th><th class="num">Score (fat loss · muscle)</th><th></th></tr></thead><tbody>
+  return `${editor}${state.mealEdit ? '' : add}<div class="card"><table><thead><tr><th class="no-print"></th><th></th><th>When</th><th>Meal</th><th class="num">kcal</th><th class="num">P / C / F</th><th class="num">Score (fat loss · muscle)</th><th></th></tr></thead><tbody>
     ${d.food
       .map(
-        (f) => `<tr><td>${f.photo_path ? `<img class="thumb" data-photo="${esc(f.photo_path)}" alt="">` : ''}</td>
+        (f) => `<tr><td class="no-print"><input type="checkbox" data-meal-pick="${f.id}" aria-label="Tick to copy"></td><td>${f.photo_path ? `<img class="thumb" data-photo="${esc(f.photo_path)}" alt="">` : ''}</td>
         <td>${fmtDate(f.eaten_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}<div class="muted small">${esc(f.meal)}</div></td>
         <td>${esc(f.title)}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
         <td class="num">${fmtNum(f.kcal)}</td><td class="num">${fmtNum(f.protein_g)} / ${fmtNum(f.carbs_g)} / ${fmtNum(f.fat_g)}</td>
@@ -897,6 +902,16 @@ async function mealAction(action, btn) {
     state.mealEdit = null
     toast(m.id ? 'Meal changed' : 'Meal added')
     return reloadFood()
+  }
+  if (action === 'meal-copy') {
+    const ids = [...app.querySelectorAll('[data-meal-pick]:checked')].map((el) => el.dataset.mealPick)
+    if (!ids.length) return toast('Tick the meals to copy first')
+    const select = document.getElementById('meal-copy-to')
+    const name = select.selectedOptions[0]?.textContent
+    if (!confirm(`Copy ${ids.length === 1 ? 'this meal' : `these ${ids.length} meals`} to ${name}'s food log, at the same time? ${name} can change or delete the copy.`)) return
+    const r = await api(`/api/users/${state.selected}/copy-meals`, { method: 'POST', body: { to: select.value, ids } })
+    for (const el of app.querySelectorAll('[data-meal-pick]:checked')) el.checked = false
+    return toast(`Copied ${r.copied} ${r.copied === 1 ? 'meal' : 'meals'} to ${name}`)
   }
   if (action === 'meal-del') {
     const f = state.data.food.find((x) => x.id === btn.dataset.id)
