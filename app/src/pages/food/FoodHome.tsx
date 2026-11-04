@@ -17,11 +17,11 @@ import { Button, Card, Empty, Loading, PageHeader, Segmented, Sheet } from '../.
 import { useApp } from '../../lib/auth'
 import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate, sodiumMg } from '../../lib/calc'
 import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
-import { deleteFood, setFoodDay, updateFood } from '../../lib/data'
+import { deleteFood, deleteSharedCopies, getSharedCopies, setFoodDay, updateFood } from '../../lib/data'
 import { INCOMPLETE_SHARE } from '../../lib/energy'
 import { stillSkipped, totalsOf } from '../../lib/dayCheck'
 import { useI18n } from '../../lib/i18n'
-import type { FoodLog, Meal } from '../../lib/types'
+import type { FoodLog, Meal, SharedCopy } from '../../lib/types'
 import { balancedDays } from '../../lib/rewards'
 import { useEnergy } from '../../lib/useEnergy'
 
@@ -31,7 +31,7 @@ const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
 const isSynced = (e: FoodLog) => e.source === 'health_connect' || (e.source === 'import' && Boolean(e.origin))
 
 export function FoodHome() {
-  const { t, num, date } = useI18n()
+  const { t, num, date, locale } = useI18n()
   const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
   const navState = useLocation().state as { logged?: boolean; loggedIds?: string[]; offset?: number } | null
@@ -69,6 +69,9 @@ export function FoodHome() {
   const [sharing, setSharing] = useState<string[] | null>(null)
   // The meal being moved to another part of the day (breakfast, lunch, snack, dinner).
   const [moving, setMoving] = useState<FoodLog | null>(null)
+  // A shared meal being deleted: from this person's log only, or from everyone's.
+  const [deleting, setDeleting] = useState<{ log: FoodLog; copies: SharedCopy[] } | null>(null)
+  const [deletingBusy, setDeletingBusy] = useState(false)
 
   if ((loading && !energy) || !profile) return <Loading />
   if (!energy) return null
@@ -113,10 +116,27 @@ export function FoodHome() {
     }
   }
 
-  async function remove(id: string) {
+  async function remove(log: FoodLog) {
+    // Shared with someone: ask whether it goes from their food logs too.
+    const copies = await getSharedCopies(log.id).catch(() => [])
+    if (copies.length) return setDeleting({ log, copies })
     if (!window.confirm(t('food.confirmDelete'))) return
-    await deleteFood(id)
+    await deleteFood(log.id)
     void reload()
+  }
+
+  async function removeShared(everywhere: boolean) {
+    if (!deleting) return
+    setDeletingBusy(true)
+    try {
+      // The copies first: once the meal is gone they no longer point to it.
+      if (everywhere) await deleteSharedCopies(deleting.copies.map((c) => c.id))
+      await deleteFood(deleting.log.id)
+      setDeleting(null)
+      void reload()
+    } finally {
+      setDeletingBusy(false)
+    }
   }
 
   return (
@@ -371,7 +391,7 @@ export function FoodHome() {
                       ) : null}
                       {/* Synced meals are changed in the app that logged them: a delete here would come back. */}
                       {synced ? null : (
-                        <button onClick={() => remove(e.id)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
+                        <button onClick={() => void remove(e)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
                           <Trash2 className="size-5" />
                         </button>
                       )}
@@ -449,6 +469,26 @@ export function FoodHome() {
             </Button>
             {/* Shared before: the copies in the others' logs, which this person can change. */}
             <SharedCopies key={moving.id} meal={moving} />
+          </div>
+        ) : null}
+      </Sheet>
+      <Sheet open={Boolean(deleting)} onClose={() => setDeleting(null)} title={deleting?.log.title ?? ''}>
+        {deleting ? (
+          <div className="grid gap-3">
+            <p>
+              {t(deleting.copies.length === 1 ? 'food.deleteSharedOne' : 'food.deleteSharedMany', {
+                names: new Intl.ListFormat(locale, { type: 'conjunction' }).format(deleting.copies.map((c) => c.person)),
+              })}
+            </p>
+            <Button variant="danger" size="lg" onClick={() => void removeShared(true)} loading={deletingBusy}>
+              <Trash2 className="size-5" aria-hidden /> {t('food.deleteEverywhere')}
+            </Button>
+            <Button variant="secondary" onClick={() => void removeShared(false)} disabled={deletingBusy}>
+              {t('food.deleteMineOnly')}
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={deletingBusy}>
+              {t('common.cancel')}
+            </Button>
           </div>
         ) : null}
       </Sheet>

@@ -447,6 +447,11 @@ export async function updateSharedMeal(id: string, items: FoodItem[]): Promise<v
   check(await supabase.rpc('update_shared_meal', { p_id: id, p_items: items }))
 }
 
+/** Takes copies of a meal this person shared out of the others' food logs; returns how many went. */
+export async function deleteSharedCopies(ids: string[]): Promise<number> {
+  return check(await supabase.rpc('delete_shared_copies', { p_ids: ids })) as number
+}
+
 export async function getRecipes(): Promise<Recipe[]> {
   return check(await supabase.from('recipes').select('*').order('updated_at', { ascending: false })) as Recipe[]
 }
