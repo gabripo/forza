@@ -116,6 +116,7 @@ export function ShareMealSheet({ ids, onClose, onShared }: { ids: string[] | nul
             <p className="text-lg font-bold text-leaf">
               <Check className="mr-1 inline size-5" aria-hidden /> {t('share.done', { n: done })}
             </p>
+            <p className="text-sm text-ink-2">{t('share.editLater')}</p>
             <Button onClick={onClose}>{t('common.close')}</Button>
           </div>
         ) : (
