@@ -214,7 +214,9 @@ Apri Forza! Coach quando vuoi:
   dalle serie della nuova persona.
 - **Food**: i suoi pasti. **Change** corregge una porzione (cambiando i grammi cambiano anche calorie e
   nutrienti, oppure **× 0.5** … **× 2** per tutto il pasto), toglie o aggiunge alimenti; **Delete** elimina un
-  pasto; **Add a meal** ne registra uno al suo posto, dalla tabella degli alimenti o scritto a mano. **Meal** lo
+  pasto; **Add a meal** ne registra uno al suo posto: dalla tabella degli alimenti, dagli alimenti della famiglia,
+  da un pasto già registrato in famiglia (come "Caffè con zucchero", con tutti i suoi alimenti) o scritto a mano.
+  **Meal** lo
   sposta in un altro momento della giornata, e **Salt** è facoltativo (vuoto vuol dire non noto). L'app
   ricalcola il punteggio del pasto cambiato. I pasti registrati in un'altra app (tramite Connessione Salute, o
   Build With Science) si cambiano in quell'app.

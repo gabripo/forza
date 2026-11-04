@@ -1,8 +1,10 @@
-import { Camera, Check, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
+import { Camera, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
+import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
+import { useMealCheck } from '../../lib/mealCheck'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { round1, scorePlate, sumItems } from '../../lib/calc'
@@ -31,6 +33,7 @@ export function FoodSnap() {
   const [title, setTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [details, setDetails] = useState(false)
+  const check = useMealCheck(items)
 
   async function onFile(file: File | undefined) {
     if (!file) return
@@ -120,12 +123,10 @@ export function FoodSnap() {
     <div className="grid gap-4">
       <PageHeader title={t('snap.title')} back="/food">
         {/* Saving is the next step once the AI has answered: at the top, where it is seen at once. */}
-        {result && energy ? (
-          <Button variant="leaf" block onClick={save} loading={saving} disabled={!items.length}>
-            <Check className="size-5" aria-hidden /> {t('snap.save')}
-          </Button>
-        ) : null}
+        {result && energy ? <SaveMealButton check={check} onSave={save} loading={saving} disabled={!items.length} /> : null}
       </PageHeader>
+      {/* A plate that looks too big: the amounts to check, right under the button. */}
+      {result && energy ? <MealCheckWarning check={check} onFix={() => setDetails(true)} /> : null}
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
 

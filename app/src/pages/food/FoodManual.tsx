@@ -1,8 +1,10 @@
-import { Barcode, Camera, Check, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
+import { Barcode, Camera, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { MealSoFar } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
+import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
+import { useMealCheck } from '../../lib/mealCheck'
 import { Scanner } from '../../components/Scanner'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
@@ -48,6 +50,7 @@ export function FoodManual() {
   const frequent = useMemo(() => frequentFoods(db, 8), [db])
   const favourites = useMemo(() => familyFavourites(db, 6), [db])
   const results = useMemo((): Pick[] => (q.trim() ? searchAll(q, db) : FOODS.slice(0, 12).map((food) => ({ kind: 'builtin', food, uses: 0 }))), [q, db])
+  const check = useMealCheck(items)
 
   async function findOnline() {
     setOnlineBusy(true)
@@ -171,12 +174,10 @@ export function FoodManual() {
     <div className="grid gap-4">
       <PageHeader title={t('manual.title')} back="/food">
         {/* At the top as soon as the plate has a food (scanned, searched or typed), not below the search. */}
-        {items.length ? (
-          <Button variant="leaf" block onClick={save} loading={busy}>
-            <Check className="size-5" aria-hidden /> {t('snap.save')}
-          </Button>
-        ) : null}
+        {items.length ? <SaveMealButton check={check} onSave={save} loading={busy} /> : null}
       </PageHeader>
+      {/* A meal that looks like a mistake: the amounts to check, right under the button. */}
+      <MealCheckWarning check={check} />
       {/* The search first: the quickest way to a food. While typing, the results come right under it. */}
       <div className="relative">
         <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />

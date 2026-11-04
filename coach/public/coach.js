@@ -803,21 +803,55 @@ function mealEditor(d) {
     <p class="small muted">Changing the grams changes the food's calories and nutrients with them.</p>
     <div class="row small">Whole meal: ${[0.5, 0.75, 1.25, 1.5, 2].map((f) => `<button class="btn small secondary" data-action="meal-scale" data-f="${f}">× ${fmtNum(f, 2)}</button>`).join('')}</div>
     <div class="row" style="margin-top:10px">
-      <input list="food-table" id="meal-food" placeholder="Add from the food table (English or Italian)" style="flex:1;min-width:220px">
+      <input list="food-table" id="meal-food" placeholder="Add a food or a meal logged before (English or Italian)" style="flex:1;min-width:220px">
       <input class="n" type="number" min="1" id="meal-food-g" placeholder="g">
       <button class="btn small" data-action="meal-add-food">Add</button>
       <button class="btn small secondary" data-action="meal-add-other">Add another food</button>
     </div>
-    <datalist id="food-table">${(state.foods ?? []).map((f) => `<option value="${esc(f.name[lang])}">${esc(f.name[lang === 'it' ? 'en' : 'it'])} · ${f.kcal} kcal/100 g</option>`).join('')}</datalist>
+    <datalist id="food-table">${[...foodChoices(lang)].map(([value, c]) => `<option value="${esc(value)}">${esc(c.label)}</option>`).join('')}</datalist>
+    <p class="small muted">The list has the app's food table, the family's foods and the meals the family logged before: a meal adds all of its foods.</p>
     <p class="small muted">The app works out the meal's score again, from the new amounts and the person's own calorie target.</p>
     <div class="row"><button class="btn" data-action="meal-save">Save</button><button class="btn secondary" data-action="meal-cancel">Cancel</button></div>
   </div>`
+}
+
+/**
+ * What the food field offers, by the text it puts in the field: the app's table, the family's food database,
+ * then the meals the family logged before ("Caffè con zucchero"). A name already taken gets what it is after it.
+ */
+function foodChoices(lang) {
+  const out = new Map()
+  const add = (value, choice) => {
+    const v = out.has(value) ? `${value} · ${choice.kind === 'meal' ? 'meal' : 'family'}` : value
+    if (!out.has(v)) out.set(v, choice)
+  }
+  for (const f of state.foods ?? []) add(f.name[lang], { kind: 'table', food: f, label: `${f.name[lang === 'it' ? 'en' : 'it']} · ${f.kcal} kcal/100 g` })
+  for (const f of state.picks?.foods ?? []) {
+    const name = f.brand && !f.name.toLowerCase().includes(f.brand.toLowerCase()) ? `${f.name} (${f.brand})` : f.name
+    add(name, { kind: 'family', food: f, label: `${f.source === 'recipe' ? 'family recipe' : 'family food'} · ${Math.round(f.kcal)} kcal/100 g` })
+  }
+  for (const meal of state.picks?.meals ?? []) {
+    const foods = meal.items.map((i) => i.name).filter((n) => n !== meal.title)
+    add(meal.title, { kind: 'meal', meal, label: `meal logged ${meal.uses} ${meal.uses === 1 ? 'time' : 'times'} · ${Math.round(meal.kcal)} kcal${foods.length ? ` · ${foods.join(', ')}` : ''}` })
+  }
+  return out
+}
+
+/** A food with its amount (and its nutrients) times k. */
+function scaledItem(it, k) {
+  const out = { ...it, grams: Math.round((Number(it.grams) || 0) * k) }
+  for (const n of NUTRIENTS) out[n] = nutrientValue(n, (Number(it[n]) || 0) * k)
+  if (it.salt_g != null && it.salt_g !== '') out.salt_g = Math.round(Number(it.salt_g) * k * 100) / 100
+  if (it.satfat_g != null && it.satfat_g !== '') out.satfat_g = nutrientValue('satfat_g', Number(it.satfat_g) * k)
+  return out
 }
 
 async function mealAction(action, btn) {
   const m = state.mealEdit
   if (action === 'meal-new' || action === 'meal-edit') {
     state.foods ??= await api('/api/foods')
+    // The family's foods and meals change with every meal logged: read again each time.
+    state.picks = await api(`/api/users/${state.selected}/food-picks`).catch(() => state.picks ?? null)
     const f = action === 'meal-edit' ? state.data.food.find((x) => x.id === btn.dataset.id) : null
     const items = f?.items?.length ? f.items : f ? [{ name: f.title, grams: 0, ...Object.fromEntries(NUTRIENTS.map((k) => [k, Number(f[k]) || 0])) }] : []
     state.mealEdit = { id: f?.id ?? null, meal: f?.meal ?? 'snack', at: localInput(f?.eaten_at ?? new Date()), title: f?.title ?? '', items: items.map(withPer) }
@@ -827,24 +861,33 @@ async function mealAction(action, btn) {
   if (action === 'meal-cancel') state.mealEdit = null
   if (action === 'meal-item-del') m.items.splice(Number(btn.dataset.i), 1)
   if (action === 'meal-add-other') m.items.push(withPer({ name: '', grams: 100, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }))
-  if (action === 'meal-scale') {
-    const k = Number(btn.dataset.f)
-    for (const it of m.items) {
-      it.grams = Math.round((Number(it.grams) || 0) * k)
-      for (const n of NUTRIENTS) it[n] = nutrientValue(n, (Number(it[n]) || 0) * k)
-      if (it.salt_g != null && it.salt_g !== '') it.salt_g = Math.round(Number(it.salt_g) * k * 100) / 100
-      if (it.satfat_g != null && it.satfat_g !== '') it.satfat_g = nutrientValue('satfat_g', Number(it.satfat_g) * k)
-    }
-  }
+  if (action === 'meal-scale') m.items = m.items.map((it) => withPer(scaledItem(it, Number(btn.dataset.f))))
   if (action === 'meal-add-food') {
-    const name = document.getElementById('meal-food').value.trim().toLowerCase()
-    const food = state.foods.find((f) => f.name.en.toLowerCase() === name || f.name.it.toLowerCase() === name)
-    if (!food) return toast('Choose a food from the list')
-    const grams = Number(document.getElementById('meal-food-g').value) || food.portion
     const lang = state.data.profile?.locale === 'it' ? 'it' : 'en'
-    // The table's values are per 100 g.
-    const per100 = { kcal: food.kcal, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat, fiber_g: food.fiber, sugar_g: food.sugar }
-    m.items.push(withPer({ name: food.name[lang], grams, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * grams) / 100)])), salt_g: Math.round((food.salt ?? 0) * grams) / 100, satfat_g: nutrientValue('satfat_g', ((food.satfat ?? 0) * grams) / 100) }))
+    const typed = document.getElementById('meal-food').value.trim()
+    const choices = foodChoices(lang)
+    const choice = choices.get(typed) ?? [...choices].find(([v]) => v.toLowerCase() === typed.toLowerCase())?.[1] ?? state.foods.find((f) => [f.name.en, f.name.it].some((n) => n.toLowerCase() === typed.toLowerCase()))
+    if (!choice) return toast('Choose a food or a meal from the list')
+    const grams = Number(document.getElementById('meal-food-g').value) || 0
+    if (choice.kind === 'meal') {
+      // All of the meal's foods; with grams, the whole meal scaled to that weight.
+      const total = choice.meal.items.reduce((s, i) => s + (Number(i.grams) || 0), 0)
+      const k = grams && total ? grams / total : 1
+      for (const it of choice.meal.items) m.items.push(withPer(scaledItem(it, k)))
+      if (!m.title.trim()) m.title = choice.meal.title
+    } else if (choice.kind === 'family') {
+      // The family database's values are per 100 g; the food counts as used again, not copied.
+      const f = choice.food
+      const g = grams || f.portion_g || 100
+      const name = f.brand && !f.name.toLowerCase().includes(f.brand.toLowerCase()) ? `${f.name} (${f.brand})` : f.name
+      m.items.push(withPer({ name, grams: g, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, ((Number(f[n]) || 0) * g) / 100)])), salt_g: f.salt_g == null ? null : Math.round(Number(f.salt_g) * g) / 100, satfat_g: f.satfat_g == null ? null : nutrientValue('satfat_g', (Number(f.satfat_g) * g) / 100), food_id: f.id }))
+    } else {
+      const food = choice.food ?? choice
+      const g = grams || food.portion
+      // The table's values are per 100 g.
+      const per100 = { kcal: food.kcal, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat, fiber_g: food.fiber, sugar_g: food.sugar }
+      m.items.push(withPer({ name: food.name[lang], grams: g, ...Object.fromEntries(NUTRIENTS.map((n) => [n, nutrientValue(n, (per100[n] * g) / 100)])), salt_g: Math.round((food.salt ?? 0) * g) / 100, satfat_g: nutrientValue('satfat_g', ((food.satfat ?? 0) * g) / 100), builtin: food.id }))
+    }
   }
   if (action === 'meal-save') {
     if (!m.items.length) return toast('Add at least one food')

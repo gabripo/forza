@@ -487,6 +487,15 @@ export const en = {
     title: '{meal} so far',
     text: 'What you logged for this meal today, with this plate added:',
   },
+  mealCheck: {
+    kcal: '{kcal} kcal in a single meal: that is a lot. A meal usually stays under {max} kcal.',
+    protein: '{protein} g of protein in a single meal: that is a lot. A meal usually stays under {max} g.',
+    check: 'Check the amounts, above all:',
+    before: 'An extra zero, or a food taken for another, happens easily. Are the amounts right?',
+    again: 'If the amounts are right, tap “Yes, save it” at the top.',
+    saveAnyway: 'Yes, save it',
+    fix: 'Change the amounts',
+  },
   motivation: {
     praise: {
       start: 'A new day: log your first meal and see how it goes!',
@@ -1174,6 +1183,7 @@ export const en = {
     installSub: 'Put Forza! on your home screen',
     about: 'About Forza!',
     aboutText: 'Forza! is a free, open-source project to help families take care of each other’s health. Your data is private and only visible to you and your family admin.',
+    version: 'App version of {date}.',
     signOut: 'Sign out',
     signOutConfirm: 'Sign out from this phone?',
   },

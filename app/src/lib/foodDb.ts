@@ -155,17 +155,30 @@ function matches(query: string[], name: string): boolean {
 }
 
 /**
- * This person's own version of a food said or seen ("mozzarella"): a product they logged whose name has all those
- * words, the one they had most often (then most recently). Null when they never logged one.
+ * Whether a product can be the food recognised: about as rich in energy (within 80 kcal per 100 g, or half to
+ * twice as much). The words alone can mislead: "latte" (milk) is also in "Protein Caramel Latte", a protein
+ * powder with six times the calories.
  */
-export function usualFor(text: string): { food: DbFood; lastGrams: number | null } | null {
+function sameKind(item: FoodItem | undefined, f: DbFood): boolean {
+  if (!item || !(item.grams > 0) || !(item.kcal > 0)) return true
+  const seen = (item.kcal / item.grams) * 100
+  const kcal = Number(f.kcal)
+  return Math.abs(kcal - seen) <= 80 || (kcal >= seen / 2 && kcal <= seen * 2)
+}
+
+/**
+ * This person's own version of a food said or seen ("mozzarella"): a product they logged whose name has all those
+ * words (and the same kind of food as the one recognised, when given), the one they had most often (then most
+ * recently). Null when they never logged one.
+ */
+export function usualFor(text: string, recognised?: FoodItem): { food: DbFood; lastGrams: number | null } | null {
   const q = nameStems(text)
   if (!q.length) return null
   let best: { food: DbFood; m: Memory } | null = null
   for (const f of state.foods) {
     if (!TRUSTED.has(f.source)) continue
     const m = uses(f.id)
-    if (!m || !matches(q, `${f.name} ${f.brand ?? ''}`)) continue
+    if (!m || !matches(q, `${f.name} ${f.brand ?? ''}`) || !sameKind(recognised, f)) continue
     if (!best || m.uses > best.m.uses || (m.uses === best.m.uses && m.last_used_at > best.m.last_used_at)) best = { food: f, m }
   }
   return best ? { food: best.food, lastGrams: best.m.last_grams } : null
@@ -176,7 +189,7 @@ export function usualFor(text: string): { food: DbFood; lastGrams: number | null
  * amount they usually have, when none was said). Foods with no usual product stay as they are.
  */
 export function withUsual<T extends LoggedItem>(item: T, text: string, amountSaid = true): T & { usual?: boolean } {
-  const u = usualFor(text)
+  const u = usualFor(text, item)
   if (!u) return item
   const grams = amountSaid || !u.lastGrams ? item.grams || u.food.portion_g || 100 : u.lastGrams
   return { ...item, ...dbFoodAt(u.food, grams), foodId: undefined, dbId: u.food.id, barcode: u.food.barcode ?? undefined, brand: u.food.brand, origin: u.food.source, usual: true }
