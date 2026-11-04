@@ -114,6 +114,14 @@ or Apple Health in the last 30 days): one less thing to do, and no duplicate ent
 weigh-in arrives, the checklist item says "step on the scale (it syncs by itself)". Every weigh-in form reminds people to weigh in the same conditions: just woken
 up, after the toilet, before drinking or eating.
 
+**The weigh-in of the day.** From 4:00 to 10:30, until the day has a weight, a card at the top of Home says
+it is the right moment and how to log it: **Log weight**, or **Sync now** when a scale sends the weight
+through Health Connect. On an iPhone whose Apple Health data already arrives through the **Forza Sync**
+shortcut, the card stays all day while there is no weight yet, and its main button runs the shortcut
+(`shortcuts://run-shortcut?name=Forza%20Sync`): the scale writes to Apple Health, the shortcut brings it here.
+**Not today** hides it until tomorrow. Home reads its data again each time the app comes back to the screen,
+so the weight brought by the shortcut shows at once.
+
 Home sits in the middle of the bottom bar, raised, so it is always under the thumb. People who never log
 workouts can hide **Train** (Settings → Training section, or from Coach): the tab becomes Settings, and
 workout items leave the Home page.

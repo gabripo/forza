@@ -489,6 +489,15 @@ export const it: Dict = {
     title: '{meal} finora',
     text: 'Quello che hai registrato per questo pasto oggi, con questo piatto aggiunto:',
   },
+  weighIn: {
+    title: 'Buongiorno: è il momento di pesarsi',
+    noneYet: 'Nessun peso oggi',
+    shortcut: 'Hai già usato la bilancia? Tocca “Forza Sync” per portare in Forza! il peso da Salute (Apple Health).',
+    synced: 'Sali sulla bilancia: il peso arriva da solo entro un’ora. Hai fretta? Sincronizza ora.',
+    runShortcut: 'Forza Sync',
+    byHand: 'Scrivilo a mano',
+    notToday: 'Non oggi',
+  },
   mealCheck: {
     kcal: '{kcal} kcal in un solo pasto: sono tante. Di solito un pasto resta sotto le {max} kcal.',
     protein: '{protein} g di proteine in un solo pasto: sono tante. Di solito un pasto resta sotto i {max} g.',

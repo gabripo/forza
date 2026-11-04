@@ -1,11 +1,12 @@
 import { ArrowUpDown, Barcode, BookOpen, Camera, Check, ChevronRight, Footprints, Lightbulb, Mic, Play, Plus, RefreshCw, Scale, Settings as SettingsIcon, Trophy } from 'lucide-react'
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
 import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
 import { WeekSummaryCard } from '../components/WeekSummary'
+import { WeighInCard } from '../components/WeighInCard'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { PointsQuizCard } from '../components/PointsQuizCard'
 import { StrengthChart } from '../components/StrengthChart'
@@ -71,6 +72,8 @@ export function Dashboard() {
     const weighedToday = weights.some((w) => localDay(new Date(w.measured_at)) === today)
     // Weigh-ins arriving from a scale or a health app: no need to ask for them.
     const scaleSynced = weights.some((w) => (w.source === 'health_connect' || w.source === 'apple_health') && new Date(w.measured_at) >= daysAgo(30))
+    // Steps or weigh-ins from Apple Health: the "Forza Sync" shortcut is set up on this person's iPhone.
+    const iphoneSync = weights.some((w) => w.source === 'apple_health') || steps.some((s) => s.source === 'apple_health')
     const rewardInput = {
       lessons,
       quizAnswers,
@@ -103,6 +106,7 @@ export function Dashboard() {
       next,
       weighedToday,
       scaleSynced,
+      iphoneSync,
       points: weekPoints(rewardInput),
       todayFoodCount: todayFood.length,
       // After the first meal of the day: an idea for the next one.
@@ -123,6 +127,14 @@ export function Dashboard() {
     }
   }, [data, profile, date, locale, knowledge])
   useKeepTargets(view?.energy ?? null)
+  // Back to the app (after the scale, or the "Forza Sync" shortcut): what arrived meanwhile shows at once.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void reload()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [reload])
 
   if (loading && !data) return <Loading />
   if (!view || !profile) return null
@@ -431,6 +443,9 @@ export function Dashboard() {
           <SettingsIcon className="size-6" />
         </Link>
       </header>
+
+      {/* The weigh-in of the day: in the morning, and on an iPhone one tap to bring it from Apple Health. */}
+      <WeighInCard weighedToday={view.weighedToday} iphoneSync={view.iphoneSync} scaleSynced={view.scaleSynced} onLog={() => setLogOpen(true)} />
 
       {/* Once a week, for a week logged well enough: what happened, and how the target moved. */}
       {view.week ? <WeekSummaryCard summary={view.week} onChanged={() => void reload()} /> : null}

@@ -487,6 +487,15 @@ export const en = {
     title: '{meal} so far',
     text: 'What you logged for this meal today, with this plate added:',
   },
+  weighIn: {
+    title: 'Good morning: time to weigh in',
+    noneYet: 'No weight yet today',
+    shortcut: 'Used the scale already? Tap “Forza Sync” to bring the weight from Apple Health into Forza!',
+    synced: 'Step on the scale: the weight arrives by itself within the hour. In a hurry? Sync now.',
+    runShortcut: 'Forza Sync',
+    byHand: 'Type it in',
+    notToday: 'Not today',
+  },
   mealCheck: {
     kcal: '{kcal} kcal in a single meal: that is a lot. A meal usually stays under {max} kcal.',
     protein: '{protein} g of protein in a single meal: that is a lot. A meal usually stays under {max} g.',
