@@ -20,7 +20,7 @@ import { cleanTemplate, importHistory } from '../shared/history-import.mjs'
 import { computeEnergy, incompleteDays, pastTargets, targetSeries } from '../shared/energy.mjs'
 import { HOME_SECTIONS, homeOrder } from '../shared/home-sections.mjs'
 import { addCustom, deleteCustom, saveOverride, updateCustom, uploadMedia } from './lib/exercises.mjs'
-import { addMeal, deleteMeal, updateMeal } from './lib/meals.mjs'
+import { addMeal, deleteMeal, foodPicks, updateMeal } from './lib/meals.mjs'
 import { copyWorkouts } from './lib/plans.mjs'
 import { deleteSession, moveWorkout, saveSession } from './lib/sessions.mjs'
 import { importWeights, previewWeights } from './lib/weights.mjs'
@@ -678,6 +678,8 @@ const routes = [
   ['POST', /^\/api\/users\/([\w-]+)\/copy-workouts$/, (m, body) => copyWorkouts(need(), { from: m[1], to: body.to, ids: body.ids })],
   // The food log: the built-in food table (values per 100 g), and meals added, changed or removed.
   ['GET', /^\/api\/foods$/, async () => JSON.parse(await readFile(join(here, '../shared/foods.json'), 'utf8'))],
+  // The family's food database and the meals logged before, for "Add a meal".
+  ['GET', /^\/api\/users\/([\w-]+)\/food-picks$/, (m) => foodPicks(need(), m[1])],
   ['POST', /^\/api\/users\/([\w-]+)\/food$/, (m, body) => addMeal(need(), m[1], body)],
   ['PUT', /^\/api\/food\/([\w-]+)$/, (m, body) => updateMeal(need(), m[1], body)],
   ['DELETE', /^\/api\/food\/([\w-]+)$/, (m) => deleteMeal(need(), m[1])],

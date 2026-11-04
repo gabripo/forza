@@ -1,8 +1,10 @@
-import { Check, Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
+import { Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow } from '../../components/PlateResult'
+import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
+import { useMealCheck } from '../../lib/mealCheck'
 import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, cx } from '../../components/ui'
 import { PROCESSED_FOODS } from '../../data/foods'
 import { useApp } from '../../lib/auth'
@@ -15,6 +17,8 @@ import { useEnergy } from '../../lib/useEnergy'
 import { mergeSpeech, parseMeal } from '../../lib/voice'
 
 type Item = LoggedItem & { usual?: boolean }
+
+const NO_ITEMS: Item[] = []
 
 interface Recognition {
   lang: string
@@ -71,7 +75,9 @@ export function FoodVoice() {
   const rec = useRef<Recognition | null>(null)
   const recorder = useRef<MediaRecorder | null>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   useFoodDb()
+  const check = useMealCheck(items ?? NO_ITEMS)
 
   useEffect(
     () => () => {
@@ -263,12 +269,18 @@ export function FoodVoice() {
     <div className="grid gap-4">
       <PageHeader title={t('voice.title')} back="/food">
         {/* Saving is the next step once the foods are found: at the top, where it is seen at once. */}
-        {items?.length && energy ? (
-          <Button variant="leaf" block onClick={save} loading={saving}>
-            <Check className="size-5" aria-hidden /> {t('snap.save')}
-          </Button>
-        ) : null}
+        {items?.length && energy ? <SaveMealButton check={check} onSave={save} loading={saving} /> : null}
       </PageHeader>
+      {/* "Three scoops" heard as three hundred grams: the amounts to check, right under the button. */}
+      {items?.length && energy ? (
+        <MealCheckWarning
+          check={check}
+          onFix={() => {
+            setAdjust(true)
+            listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }}
+        />
+      ) : null}
 
       <Segmented<Meal>
         value={meal}
@@ -371,7 +383,7 @@ export function FoodVoice() {
               <p className="text-2xl font-extrabold tabular">
                 {num(totals.kcal)} kcal <span className="text-base font-semibold text-ink-2">· {t('macro.protein')} {num(totals.protein_g)} g</span>
               </p>
-              <ul className="mt-3 grid gap-2">
+              <ul ref={listRef} className="mt-3 grid gap-2">
                 {items.map((it, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">

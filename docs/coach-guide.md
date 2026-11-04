@@ -203,7 +203,8 @@ Open Forza! Coach whenever you like:
   replaced, and starting weights are left out: the app works them out from the new person's own sets.
 - **Food**: their meals. **Change** fixes a portion (changing the grams changes the calories and nutrients
   with them, or **× 0.5** … **× 2** for the whole meal), removes or adds foods; **Delete** removes a meal; **Add
-  a meal** logs one for them, from the built-in food table or typed in. **Meal** moves it to another part of the
+  a meal** logs one for them: from the built-in food table, the family's foods, a meal the family logged before
+  (such as "Caffè con zucchero", with all its foods), or typed in. **Meal** moves it to another part of the
   day, and **Salt** is optional (blank means not known). The app scores the changed meal again.
   Meals logged in another app (through Health Connect, or Build With Science) are changed in that app.
 - **Workouts**: what they logged. **Log a workout** adds one they did without the phone (pick it from their

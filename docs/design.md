@@ -247,10 +247,18 @@ label or typed in replace what the AI had guessed, never the other way round. Wh
 - **Your usual foods first.** "Add by hand" opens on the person's most frequent foods, then **the family's
   favourites** (foods logged by at least two people, or often: `family_food_uses()` gives counts only, never
   who); the search lists their own foods, then the family's (the most logged first), then the built-in table.
-  Meals added in Coach feed the database too (`remember_foods_as()`, service key only).
+  Meals added in Coach feed the database too (`remember_foods_as()`, service key only), and Coach's **Add a
+  meal** offers it back: the built-in table, the family's foods and the meals the family logged in the last six
+  months ("Caffè con zucchero": a meal adds all of its foods). Foods of the built-in table, picked or with its
+  name, and foods picked from the family's are counted for the person, never copied into a new row.
 - **Your mozzarella is "the" mozzarella.** When a dictated word or a photo names a food the person logged from
   a barcode, a label, by hand or from an online search (all its words in the product's name), that product's
-  values replace the generic ones, with "★ Your usual one" next to it. AI guesses never stand in this way.
+  values replace the generic ones, with "★ Your usual one" next to it. AI guesses never stand in this way, nor
+  does a product of another kind: it must be about as rich in energy as the food recognised (within 80 kcal per
+  100 g, or half to twice as much), so "latte" (milk) never becomes "Protein Caramel Latte", a protein powder.
+- **A meal that looks like a mistake is checked.** Over 1,000 kcal or 100 g of protein in a single meal (an
+  extra zero, three scoops heard as 300 g, a product taken for another), a warning under **Save meal** lists
+  the foods that weigh most on it; the first tap asks to check the amounts, the second saves (`mealCheck.ts`).
 - **A larger database.** "Search more online" looks the words up in **Open Food Facts** (millions of products,
   many Italian) through the `food-search` function, because its search service does not answer web pages
   directly; a product picked there joins the family database too.
@@ -617,6 +625,12 @@ Everything a person uses daily runs in the cloud, so **the coach's computer can 
 | Steps, weight, scale, meals from other apps | the phone (Android helper, hourly; Apple Shortcut) → Supabase | no |
 | Build With Science **workouts** | the phone itself (helper's accessibility service → `bws-ingest`), or Forza! Coach over ADB | no (phone); yes, if Coach does it |
 | Following progress, editing plans | Forza! Coach (or nothing: the person's own app works without it) | only when the coach wants to look |
+
+**New versions of the app.** A phone keeps the app open in the background for days (an iPhone above all) and
+looks for a new version only when the app starts from scratch. The app also looks each time it comes back to the
+screen (at most once a minute, `updates.ts`). The new version takes over at once on a tab's first page (Home,
+Train, Progress, Food, Learn), where nothing is being typed; elsewhere it waits for the next such page, so no
+meal or workout half entered is lost. Settings → About shows the date of the version the phone has.
 
 Docker is **not** needed to use Forza!: it is only used by developers to run a local copy of Supabase
 ([advanced set-up](advanced-setup.md#local-development)). Coach talks to the cloud project directly.

@@ -8,7 +8,7 @@ import { PACE_KCAL } from '../lib/calc'
 import type { ActivityLevel, Goal, Locale, Pace, Profile, Sex } from '../lib/types'
 
 export function Settings() {
-  const { t, num } = useI18n()
+  const { t, num, date } = useI18n()
   const { profile, saveProfile, signOut, session } = useApp()
   const [draft, setDraft] = useState<Profile | null>(profile)
   const [busy, setBusy] = useState(false)
@@ -202,6 +202,8 @@ export function Settings() {
         <a href="https://github.com/gabripo/forza" target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-brand-ink">
           github.com/gabripo/forza
         </a>
+        {/* Which version this phone has: a new one comes when the app is opened again. */}
+        <p className="mt-2 text-sm text-ink-3">{t('settings.version', { date: date(__APP_BUILD__, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })}</p>
       </Card>
 
       <Button variant="danger" size="lg" onClick={() => window.confirm(t('settings.signOutConfirm')) && signOut()}>

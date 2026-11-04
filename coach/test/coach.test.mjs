@@ -9,7 +9,7 @@ import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } fro
 import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
 import { mediaList } from '../lib/exercises.mjs'
 import { memberFor, parseWeightCsv, sameName } from '../../shared/weight-csv.mjs'
-import { isSynced, mealItems } from '../lib/meals.mjs'
+import { addMeal, foodPicks, isSynced, mealItems } from '../lib/meals.mjs'
 import { computeEnergy, scorePlate } from '../../shared/energy.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
 
@@ -276,6 +276,67 @@ test('food log: a meal changed in Coach, with its totals', () => {
   assert.equal(isSynced({ source: 'health_connect' }), true)
   assert.equal(isSynced({ source: 'import', origin: null }), false)
   assert.equal(isSynced({ source: 'ai' }), false)
+})
+
+test('food log: a meal added in Coach joins the family foods, the app table ones and family ones counted, not copied', async () => {
+  const calls = []
+  const db = {
+    from: () => ({ insert: (row) => ({ select: () => ({ single: async () => ({ data: { ...row, id: 'm1' }, error: null }) }) }) }),
+    rpc: async (name, args) => calls.push([name, args]),
+  }
+  const family = '00000000-0000-4000-8000-000000000001'
+  await addMeal(db, 'u1', {
+    meal: 'breakfast',
+    eaten_at: '2026-11-04T07:00:00Z',
+    title: 'Caffè con zucchero',
+    items: [
+      { name: 'Zucchero', grams: 5, kcal: 19, carbs_g: 5 },
+      { name: 'Mozzarella (Granarolo)', grams: 125, kcal: 300, protein_g: 22, fat_g: 23, food_id: family },
+      { name: 'Torta della nonna', grams: 80, kcal: 300, carbs_g: 40, builtin: 'not-a-food' },
+      { name: 'Chicken breast (cooked)', grams: 100, kcal: 165, protein_g: 31, builtin: 'chicken_breast' },
+    ],
+  })
+  const [[name, { p_user, p_foods }]] = calls
+  assert.equal(name, 'remember_foods_as')
+  assert.equal(p_user, 'u1')
+  assert.deepEqual(p_foods[0], { builtin: 'sugar', grams: 5 })
+  assert.deepEqual(p_foods[1], { id: family, grams: 125 })
+  assert.equal(p_foods[2].name, 'Torta della nonna')
+  assert.equal(p_foods[2].kcal, 375)
+  assert.equal(p_foods[2].source, 'manual')
+  assert.deepEqual(p_foods[3], { builtin: 'chicken_breast', grams: 100 })
+})
+
+test("food log: Coach offers the family's foods and the meals logged before, each once", async () => {
+  const rows = {
+    foods: [{ id: 'f1', name: 'Mozzarella', brand: 'Granarolo', kcal: 240, source: 'barcode' }],
+    food_logs: [
+      { user_id: 'angela', title: 'Caffè con zucchero', items: [{ name: 'Zucchero', grams: 5, kcal: 19 }], kcal: 19, source: 'manual' },
+      { user_id: 'enzo', title: 'caffe con zucchero', items: [{ name: 'Zucchero', grams: 4, kcal: 15 }], kcal: 15, source: 'manual' },
+      { user_id: 'angela', title: 'Caffè con zucchero', items: [{ name: 'Zucchero', grams: 5, kcal: 19 }], kcal: 19, source: 'manual' },
+      { user_id: 'enzo', title: 'Pasta e ceci', items: [{ name: 'Pasta', grams: 80, kcal: 285 }, { name: 'Ceci', grams: 100, kcal: 120 }], kcal: 405, source: 'ai' },
+      { user_id: 'enzo', title: 'Zucchine', items: [{ name: 'Zucchine', grams: 150, kcal: 25 }], kcal: 25, source: 'manual' },
+      { user_id: 'enzo', title: 'Pizza, Melon', items: [{ name: 'Pizza', grams: 0, kcal: 900 }], kcal: 958, source: 'health_connect' },
+      { user_id: 'angela', title: 'Risotto', items: [], kcal: 600, protein_g: 14, salt_g: null, source: 'manual' },
+    ],
+  }
+  const query = (data) => {
+    const q = { select: () => q, order: () => q, limit: () => q, gte: () => q, then: (ok, ko) => Promise.resolve({ data, error: null }).then(ok, ko) }
+    return q
+  }
+  const picks = await foodPicks({ from: (table) => query(rows[table]) }, 'enzo')
+  assert.equal(picks.foods.length, 1)
+  // Enzo's own meals first, the most logged first; the most recent one stands for the others.
+  assert.deepEqual(
+    picks.meals.map((m) => [m.title, m.uses, m.mine]),
+    [
+      ['Caffè con zucchero', 3, 1],
+      ['Pasta e ceci', 1, 1],
+      ['Risotto', 1, 0],
+    ],
+  )
+  // A meal logged with its totals only: one food with those totals.
+  assert.deepEqual(picks.meals[2].items, [{ name: 'Risotto', grams: 0, kcal: 600, protein_g: 14, carbs_g: null, fat_g: null, fiber_g: null, sugar_g: null, salt_g: null, satfat_g: null }])
 })
 
 test('food log: salt is optional, and blank means not known', () => {

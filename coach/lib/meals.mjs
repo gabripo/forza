@@ -1,4 +1,5 @@
 // Changing a person's food log from Forza! Coach: portions, foods, removing and adding meals.
+import { readFile } from 'node:fs/promises'
 
 const MEALS = new Set(['breakfast', 'lunch', 'dinner', 'snack'])
 const NUTRIENTS = ['kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
@@ -79,26 +80,76 @@ const nameKey = (name) =>
     .filter(Boolean)
     .join(' ')
 
+let table = null
+/** The app's own food table: its ids, and its foods by name (English and Italian). */
+async function builtIn() {
+  table ??= readFile(new URL('../../shared/foods.json', import.meta.url), 'utf8').then((text) => {
+    const foods = JSON.parse(text)
+    return { ids: new Set(foods.map((f) => f.id)), byName: new Map(foods.flatMap((f) => [f.name.en, f.name.it].map((n) => [nameKey(n), f.id]))) }
+  })
+  return table
+}
+
+const UUID = /^[0-9a-f-]{36}$/
+
 /**
  * The foods of a meal added here join the family's food database (values per 100 g) and count as used by the
- * person, as when they log in the app. A failure only means they are not remembered this time.
+ * person, as when they log in the app. A food of the app's own table (picked from it, or with its name) and one
+ * picked from the family's foods are counted, not copied. A failure only means they are not remembered this time.
  */
-async function remember(db, userId, items) {
+async function remember(db, userId, items, origins = []) {
+  const { ids, byName } = await builtIn().catch(() => ({ ids: new Set(), byName: new Map() }))
   const foods = items
-    .filter((i) => i.grams > 0 && nameKey(i.name))
-    .map((i) => {
+    .map((i, n) => {
+      const key = nameKey(i.name)
+      const o = origins[n] ?? {}
+      const builtin = ids.has(o.builtin) ? o.builtin : !UUID.test(o.food_id ?? '') ? byName.get(key) : null
+      if (builtin) return { builtin, grams: i.grams }
+      if (UUID.test(o.food_id ?? '')) return { id: o.food_id, grams: i.grams }
+      if (!(i.grams > 0) || !key) return null
       const k = 100 / i.grams
       const per100 = Object.fromEntries(NUTRIENTS.map((n) => [n, round1(i[n] * k)]))
       const optional = Object.fromEntries(OPTIONAL.filter(([n]) => i[n] != null).map(([n]) => [n, Math.round(i[n] * k * 100) / 100]))
-      return { name: i.name, name_key: nameKey(i.name), ...per100, ...optional, portion_g: i.grams, source: 'manual', grams: i.grams }
+      return { name: i.name, name_key: key, ...per100, ...optional, portion_g: i.grams, source: 'manual', grams: i.grams }
     })
+    .filter(Boolean)
   if (foods.length) await db.rpc('remember_foods_as', { p_user: userId, p_foods: foods }).then(() => {}, () => {})
 }
 
 export async function addMeal(db, userId, body) {
   const row = check(await db.from('food_logs').insert({ ...mealFields(body), user_id: userId, source: 'manual' }).select().single())
-  await remember(db, userId, row.items ?? [])
+  // The foods keep their order when cleaned: where each came from is read from what was sent.
+  await remember(db, userId, row.items ?? [], Array.isArray(body.items) ? body.items : [])
   return row
+}
+
+/**
+ * What "Add a meal" offers besides the app's own table: the family's food database, and the meals the family
+ * logged in the last six months ("Caffè con zucchero"), each once, the person's own and the most logged first.
+ * Meals from another app are left out: they come back from there.
+ */
+export async function foodPicks(db, userId) {
+  const since = new Date(Date.now() - 183 * 86400000).toISOString()
+  const [foods, logs] = await Promise.all([
+    db.from('foods').select('id, name, brand, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g, portion_g, source').order('updated_at', { ascending: false }).limit(5000),
+    db.from('food_logs').select(`user_id, title, items, source, origin, ${[...NUTRIENTS, ...OPTIONAL.map(([k]) => k)].join(', ')}`).gte('eaten_at', since).order('eaten_at', { ascending: false }).limit(5000),
+  ])
+  const meals = new Map()
+  for (const r of check(logs)) {
+    const key = nameKey(r.title ?? '')
+    if (!key || isSynced(r)) continue
+    const listed = Array.isArray(r.items) && r.items.length > 0
+    // A meal of one food with the same name is that food: it is in the lists already.
+    if (listed && r.items.length === 1 && nameKey(r.items[0].name ?? '') === key) continue
+    // A meal logged with its totals only is one food with those totals.
+    const items = listed ? r.items : [{ name: r.title, grams: 0, ...Object.fromEntries([...NUTRIENTS, ...OPTIONAL.map(([k]) => k)].map((k) => [k, r[k] == null ? null : Number(r[k])])) }]
+    // The most recent one stands for the others.
+    const m = meals.get(key) ?? { title: r.title, items, kcal: Number(r.kcal) || 0, uses: 0, mine: 0 }
+    m.uses += 1
+    if (r.user_id === userId) m.mine += 1
+    meals.set(key, m)
+  }
+  return { foods: check(foods), meals: [...meals.values()].sort((a, b) => b.mine - a.mine || b.uses - a.uses).slice(0, 300) }
 }
 
 export async function updateMeal(db, id, body) {

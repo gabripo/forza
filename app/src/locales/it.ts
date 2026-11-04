@@ -489,6 +489,15 @@ export const it: Dict = {
     title: '{meal} finora',
     text: 'Quello che hai registrato per questo pasto oggi, con questo piatto aggiunto:',
   },
+  mealCheck: {
+    kcal: '{kcal} kcal in un solo pasto: sono tante. Di solito un pasto resta sotto le {max} kcal.',
+    protein: '{protein} g di proteine in un solo pasto: sono tante. Di solito un pasto resta sotto i {max} g.',
+    check: 'Controlla le quantità, soprattutto:',
+    before: 'Uno zero di troppo, o un cibo scambiato per un altro, capita facilmente. Le quantità sono giuste?',
+    again: 'Se le quantità sono giuste, tocca “Sì, salvalo” in alto.',
+    saveAnyway: 'Sì, salvalo',
+    fix: 'Cambia le quantità',
+  },
   motivation: {
     praise: {
       start: 'Un nuovo giorno: registra il primo pasto e guarda come va!',
@@ -1176,6 +1185,7 @@ export const it: Dict = {
     installSub: 'Metti Forza! nella schermata Home',
     about: 'Informazioni su Forza!',
     aboutText: 'Forza! è un progetto gratuito e open source per aiutare le famiglie a prendersi cura della salute a vicenda. I tuoi dati sono privati e visibili solo a te e all’amministratore di famiglia.',
+    version: 'Versione dell’app del {date}.',
     signOut: 'Esci',
     signOutConfirm: 'Uscire da questo telefono?',
   },

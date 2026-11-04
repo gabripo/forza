@@ -8,6 +8,8 @@ export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
   // The history importer in ../shared is used by the app and by Forza! Coach.
   server: { fs: { allow: ['..'] } },
+  // Shown in Settings: which version a phone has.
+  define: { __APP_BUILD__: JSON.stringify(new Date().toISOString()) },
   plugins: [
     react(),
     tailwindcss(),

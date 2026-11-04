@@ -4,6 +4,7 @@ import { Loading } from './components/ui'
 import { AppProvider, useApp } from './lib/auth'
 import { I18nProvider } from './lib/i18n'
 import { isConfigured } from './lib/supabase'
+import { useUpdateOnSafePage } from './lib/updates'
 import { Challenge } from './pages/Challenge'
 import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
@@ -95,12 +96,19 @@ function Gate() {
   )
 }
 
+/** A new version of the app, waiting, takes over on the next page where nothing is being typed. */
+function Updates() {
+  useUpdateOnSafePage()
+  return null
+}
+
 export default function App() {
   return (
     <I18nProvider>
       <AppProvider>
         <HashRouter>
           <Gate />
+          <Updates />
         </HashRouter>
       </AppProvider>
     </I18nProvider>
