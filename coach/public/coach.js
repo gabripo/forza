@@ -747,7 +747,7 @@ function foodView(d) {
       .map(
         (f) => `<tr><td class="no-print"><input type="checkbox" data-meal-pick="${f.id}" aria-label="Tick to copy"></td><td>${f.photo_path ? `<img class="thumb" data-photo="${esc(f.photo_path)}" alt="">` : ''}</td>
         <td>${fmtDate(f.eaten_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}<div class="muted small">${esc(f.meal)}</div></td>
-        <td>${esc(f.title)}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
+        <td>${esc(f.title)}${Number(f.eaten_share ?? 1) !== 1 ? ` <span class="muted small">· ${Math.round(Number(f.eaten_share) * 100)}% eaten</span>` : ''}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
         <td class="num">${fmtNum(f.kcal)}</td><td class="num">${fmtNum(f.protein_g)} / ${fmtNum(f.carbs_g)} / ${fmtNum(f.fat_g)}</td>
         <td class="num">${f.score_fat_loss ?? '—'} · ${f.score_muscle_gain ?? '—'}</td>
         <td class="no-print">${

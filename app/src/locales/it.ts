@@ -489,6 +489,17 @@ export const it: Dict = {
     ask: 'Qualcuno ha mangiato lo stesso? Condividilo',
     this: 'Condividi con chi ha mangiato lo stesso',
   },
+  eaten: {
+    title: 'Quanto ne hai mangiato?',
+    all: 'Tutto',
+    other: 'Altro:',
+    apply: 'Applica',
+    amount: 'Percentuale mangiata',
+    now: 'Ora conta {kcal} kcal · proteine {p} g',
+    whole: '(tutto: {kcal} kcal)',
+    hint: 'Hai mangiato solo una parte di quello che hai registrato (una porzione di una ricetta Bimby, un piatto non finito)? Scegli quanto: calorie e nutrienti seguono, e puoi cambiarlo ancora.',
+    badge: 'Mangiato: {pct}%',
+  },
   bwsSync: {
     title: 'Pasti da Build With Science',
     now: 'Sincronizza ora',

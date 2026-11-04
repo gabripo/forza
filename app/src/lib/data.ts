@@ -377,6 +377,43 @@ export async function updateFood(id: string, patch: Partial<Pick<FoodLog, 'meal'
   check(await supabase.from('food_logs').update(patch).eq('id', id))
 }
 
+/**
+ * How much of a logged meal was eaten (a share of it as logged: ½, ¾…): every food and total follows, worked out
+ * from the meal as logged, so the share can be changed again later. The score is worked out again by the page.
+ */
+export async function setEatenShare(log: FoodLog, share: number): Promise<FoodLog> {
+  const k = share / (Number(log.eaten_share) || 1)
+  const r1 = (n: number) => Math.round(n * 10) / 10
+  // One decimal even on grams and calories: going from ½ back to all of it comes back to what was logged.
+  const items = (log.items ?? []).map((it) => ({
+    ...it,
+    grams: r1(it.grams * k),
+    kcal: r1(it.kcal * k),
+    protein_g: r1(it.protein_g * k),
+    carbs_g: r1(it.carbs_g * k),
+    fat_g: r1(it.fat_g * k),
+    fiber_g: r1(it.fiber_g * k),
+    sugar_g: r1(it.sugar_g * k),
+    ...(it.salt_g != null ? { salt_g: Math.round(it.salt_g * k * 100) / 100 } : {}),
+    ...(it.satfat_g != null ? { satfat_g: r1(it.satfat_g * k) } : {}),
+  }))
+  const patch = {
+    items,
+    kcal: r1(Number(log.kcal) * k),
+    protein_g: r1(Number(log.protein_g) * k),
+    carbs_g: r1(Number(log.carbs_g) * k),
+    fat_g: r1(Number(log.fat_g) * k),
+    fiber_g: r1(Number(log.fiber_g) * k),
+    sugar_g: r1(Number(log.sugar_g) * k),
+    salt_g: log.salt_g == null ? null : Math.round(Number(log.salt_g) * k * 100) / 100,
+    satfat_g: log.satfat_g == null ? null : r1(Number(log.satfat_g) * k),
+    eaten_share: share,
+    score_fat_loss: null,
+    score_muscle_gain: null,
+  }
+  return check(await supabase.from('food_logs').update(patch).eq('id', log.id).select().single()) as FoodLog
+}
+
 export async function deleteFoods(ids: string[]): Promise<void> {
   check(await supabase.from('food_logs').delete().in('id', ids))
 }

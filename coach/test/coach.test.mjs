@@ -285,7 +285,7 @@ test('food log: a meal added in Coach joins the family foods, the app table ones
     rpc: async (name, args) => calls.push([name, args]),
   }
   const family = '00000000-0000-4000-8000-000000000001'
-  await addMeal(db, 'u1', {
+  const row = await addMeal(db, 'u1', {
     meal: 'breakfast',
     eaten_at: '2026-11-04T07:00:00Z',
     title: 'Caffè con zucchero',
@@ -296,6 +296,8 @@ test('food log: a meal added in Coach joins the family foods, the app table ones
       { name: 'Chicken breast (cooked)', grams: 100, kcal: 165, protein_g: 31, builtin: 'chicken_breast' },
     ],
   })
+  // What Coach writes is what was eaten: all of it.
+  assert.equal(row.eaten_share, 1)
   const [[name, { p_user, p_foods }]] = calls
   assert.equal(name, 'remember_foods_as')
   assert.equal(p_user, 'u1')

@@ -487,6 +487,17 @@ export const en = {
     ask: 'Did someone eat the same? Share it',
     this: 'Share with someone who ate the same',
   },
+  eaten: {
+    title: 'How much of it did you eat?',
+    all: 'All',
+    other: 'Other:',
+    apply: 'Apply',
+    amount: 'Share eaten',
+    now: 'It now counts {kcal} kcal · protein {p} g',
+    whole: '(all of it: {kcal} kcal)',
+    hint: 'Ate only part of what you logged (a portion of a Thermomix recipe, a plate you did not finish)? Choose how much: calories and nutrients follow, and you can change it again.',
+    badge: 'Eaten: {pct}%',
+  },
   bwsSync: {
     title: 'Meals from Build With Science',
     now: 'Sync now',

@@ -156,6 +156,8 @@ export interface FoodLog {
   ai_notes: string | null
   /** For meals synced from Health Connect: the app that logged them (e.g. Build With Science); for a shared meal, who shared it. */
   origin?: string | null
+  /** How much of the meal as logged was eaten (1 = all of it): the foods and totals already follow it. */
+  eaten_share?: number
   /** A shared copy: the person who shared it (who can change it) and the meal it was copied from. */
   shared_by?: string | null
   shared_from?: string | null

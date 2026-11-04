@@ -324,6 +324,13 @@ through a private search service the app does not use, so "Search on Cookidoo" o
 link of the recipe chosen is pasted back. In English there is Cookidoo's English search only: the English
 recipe community does not answer requests from servers. A recipe saved from a link is often cooked to be eaten
 now: back on the list, it asks at once whether to log a portion today ("No, just save it" keeps it saved only).
+**Eaten only in part.** A meal logged whole (a portion of a Cookidoo recipe, a plate) and not finished: tapping it
+on the Food page asks "How much of it did you eat?" (25%, 50%, 75%, all, or another percentage). Every food and
+total follows, and the share is kept with the meal (`eaten_share`), so it can be changed again from the meal as
+logged (from half to three quarters), not from what is left; the meal shows "Eaten: 50%" and is scored again.
+Values keep one decimal, so going back to all of it returns to what was logged. Meals from another app are
+changed there; a meal rewritten in Coach, or a shared copy changed by the person who shared it, counts as all
+eaten again.
 
 **A meal for more people.** One person cooked, more ate: right after saving ("Did someone eat the same?"), or
 from a meal's Details or a food's menu, the meal goes into the food logs of the people chosen, same time and
