@@ -343,7 +343,10 @@ own and no sync touches them. In Forza! Coach, the coach ticks meals of one pers
 ("Shared with"), each person's portion of the whole meal, an amount per food (grams, or calories for foods
 without grams), a food taken out or put back. `shared_copies()` lists only the copies the caller shared, and
 `update_shared_meal()` changes only those, working the totals out again from the foods (salt and saturated fat
-stay "not known" when no food says); the other person's app scores the meal again.
+stay "not known" when no food says); the other person's app scores the meal again. A meal shared by mistake, or not
+eaten after all, can go too: a copy is taken out of one person's log from the same list, and deleting a shared
+meal asks whether it goes from everyone's food logs or only from the person's own (`delete_shared_copies()`,
+again only for copies the caller shared).
 
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order

@@ -1,7 +1,7 @@
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { round1 } from '../lib/calc'
-import { getSharedCopies, updateSharedMeal } from '../lib/data'
+import { deleteSharedCopies, getSharedCopies, updateSharedMeal } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 import type { FoodItem, FoodLog, SharedCopy } from '../lib/types'
 import { Button, NumberInput } from './ui'
@@ -72,6 +72,22 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
     }
   }
 
+  /** Shared by mistake, or not eaten after all: out of that person's food log. */
+  async function remove(c: SharedCopy) {
+    if (!window.confirm(t('sharedCopies.removeConfirm', { name: c.person }))) return
+    setSaving(true)
+    setError(false)
+    try {
+      await deleteSharedCopies([c.id])
+      if (editing?.id === c.id) setEditing(null)
+      setCopies(await getSharedCopies(meal.id))
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   /** A new amount for one food: grams when it has them, otherwise its calories; the rest follows. */
   function setAmount(i: number, v: number | null) {
     if (!editing || !v) return
@@ -108,6 +124,9 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
                     <Pencil className="size-4" aria-hidden /> {t('sharedCopies.change')}
                   </Button>
                 )}
+                <button onClick={() => void remove(c)} disabled={saving} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2 disabled:opacity-40" aria-label={t('sharedCopies.remove', { name: c.person })}>
+                  <Trash2 className="size-5" />
+                </button>
               </div>
               {open && editing ? (
                 <div className="mt-2 grid gap-3">
@@ -170,6 +189,7 @@ export function SharedCopies({ meal }: { meal: FoodLog }) {
           )
         })}
       </ul>
+      {error && !editing ? <p className="rounded-xl bg-danger-soft p-2 text-sm">{t('common.saveError')}</p> : null}
       <p className="text-xs text-ink-3">{t('sharedCopies.hint')}</p>
     </div>
   )
