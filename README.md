@@ -40,7 +40,8 @@ and adjust their plan from your own computer.
 - 📷 **Snap, say or scan a meal**, and see first what to do ("add some protein"), judged together with the rest
   of that meal and of the day.
 - 📖 **Family recipes, Thermomix included.** Write a dish once, then anyone logs a portion in one tap. Got a
-  Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you.
+  Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you, and a
+  variant of your own (less butter, another vegetable) is one tap away.
 - 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own percentage of it; the family's
   food database grows with every meal anyone logs.
 - 🧭 **The day and the week at a glance.** A kind score for the whole day, each meal's breakdown, one sentence of

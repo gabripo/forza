@@ -324,6 +324,11 @@ through a private search service the app does not use, so "Search on Cookidoo" o
 link of the recipe chosen is pasted back. In English there is Cookidoo's English search only: the English
 recipe community does not answer requests from servers. A recipe saved from a link is often cooked to be eaten
 now: back on the list, it asks at once whether to log a portion today ("No, just save it" keeps it saved only).
+**A variant**: any recipe of the family (one imported from Cookidoo, most often) can be the start of another,
+from the sheet that logs a portion ("Make a variant"): the editor opens as a new recipe with the same foods,
+amounts, portions and weight, named "… (variant)", to change as the dish was cooked this time (less butter,
+no cheese, another vegetable). The original stays as it is, and the variant is its maker's to change; it keeps
+the original's link ("Original recipe"), and on saving it asks too whether to log a portion now.
 **Eaten only in part.** A meal logged whole (a portion of a Cookidoo recipe, a plate) and not finished: tapping it
 on the Food page asks "How much of it did you eat?" (25%, 50%, 75%, all, or another percentage). Every food and
 total follows, and the share is kept with the meal (`eaten_share`), so it can be changed again from the meal as

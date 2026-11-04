@@ -1,4 +1,4 @@
-import { BookOpen, Check, ChefHat, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
+import { BookOpen, Check, ChefHat, Copy, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
@@ -51,6 +51,17 @@ function dish(items: FoodItem[], servings: number, totalG: number | null) {
   return { weight, kcal: t.kcal, portionG: Math.round(weight / n), portionKcal: Math.round(t.kcal / n), portionProtein: round1(t.protein_g / n), totals: t }
 }
 
+/** The ingredients as lines to change, one per food ("150 g Riso"), without thousands separators to misread. */
+const ingredientText = (items: FoodItem[]) => items.map((i) => `${Math.round(i.grams)} g ${i.name}`).join('\n')
+
+/**
+ * A recipe of the family (one read from Cookidoo, most often) as the start of a new one: the same foods, amounts
+ * and portions under a new name, to change as it was cooked this time. The original stays as it is.
+ */
+function variantDraft(r: Recipe, name: string): Draft {
+  return { name, servings: r.servings, total_g: r.total_g, items: r.items, text: ingredientText(r.items), source: 'manual', source_url: r.source_url ?? undefined, variantOf: r.name }
+}
+
 /** The dish as one food of a meal, for an amount: a portion is the dish divided by its servings. */
 function recipeItem(r: Recipe, grams: number): LoggedItem {
   const d = dish(r.items, r.servings, r.total_g)
@@ -82,7 +93,8 @@ export function Recipes() {
   const navigate = useNavigate()
   const { data, loading } = useAsync(getRecipes, [])
   const location = useLocation()
-  const justImported = (location.state as { justImported?: string } | null)?.justImported ?? null
+  const back = location.state as { justImported?: string; variant?: boolean } | null
+  const justImported = back?.justImported ?? null
   const [url, setUrl] = useState('')
   const [reading, setReading] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -120,7 +132,7 @@ export function Recipes() {
 
   if (loading && !data) return <Loading />
   const recipes = data ?? []
-  // Back from saving a recipe imported from a link: log a portion straight away?
+  // Back from saving a recipe imported from a link, or a variant of one: log a portion straight away?
   const imported = justImported ? (recipes.find((r) => r.id === justImported) ?? null) : null
 
   return (
@@ -233,7 +245,7 @@ export function Recipes() {
 
       <LogPortionSheet
         recipe={logging ?? imported}
-        justSaved={!logging && Boolean(imported)}
+        justSaved={!logging && imported ? (back?.variant ? 'variant' : 'imported') : undefined}
         onClose={() => {
           setLogging(null)
           // Asked once: not again when coming back to this page.
@@ -246,9 +258,10 @@ export function Recipes() {
 
 /**
  * How much of the dish was eaten: portions, or grams. Opens the meal pre-filled, to save (or add more to). Right
- * after a recipe is imported it asks first whether it is being eaten now ("Not now" keeps it saved only).
+ * after a recipe is imported (or a variant saved) it asks first whether it is being eaten now ("Not now" keeps it
+ * saved only). Any recipe of the family can become the start of a variant of one's own.
  */
-function LogPortionSheet({ recipe, onClose, justSaved = false }: { recipe: Recipe | null; onClose: () => void; justSaved?: boolean }) {
+function LogPortionSheet({ recipe, onClose, justSaved }: { recipe: Recipe | null; onClose: () => void; justSaved?: 'imported' | 'variant' }) {
   const { t, num } = useI18n()
   const navigate = useNavigate()
   const [grams, setGrams] = useState<number | null>(null)
@@ -264,7 +277,7 @@ function LogPortionSheet({ recipe, onClose, justSaved = false }: { recipe: Recip
         <div className="grid gap-4">
           {justSaved ? (
             <p className="rounded-2xl bg-leaf-soft p-3">
-              <Check className="mr-1 inline size-5 text-leaf" aria-hidden /> <b>{t('recipes.imported')}</b> {t('recipes.logNow')}
+              <Check className="mr-1 inline size-5 text-leaf" aria-hidden /> <b>{t(justSaved === 'variant' ? 'recipes.variantSaved' : 'recipes.imported')}</b> {t('recipes.logNow')}
             </p>
           ) : null}
           <Segmented<number>
@@ -287,7 +300,19 @@ function LogPortionSheet({ recipe, onClose, justSaved = false }: { recipe: Recip
             <Button variant="ghost" block onClick={onClose}>
               {t('recipes.notNow')}
             </Button>
-          ) : null}
+          ) : (
+            <>
+              {/* Cooked differently this time (less butter, another vegetable): a copy to change, the original stays. */}
+              <Button variant="secondary" block onClick={() => navigate('/food/recipes/new', { state: { draft: variantDraft(recipe, t('recipes.variantName', { name: recipe.name.slice(0, 105) })) } })}>
+                <Copy className="size-5" aria-hidden /> {t('recipes.variant')}
+              </Button>
+              {recipe.source_url ? (
+                <a href={recipe.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 justify-self-center text-sm font-semibold text-brand-ink">
+                  <ExternalLink className="size-4" aria-hidden /> {t('recipes.original')}
+                </a>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
     </Sheet>
@@ -301,6 +326,10 @@ interface Draft {
   source?: Recipe['source']
   source_url?: string
   nutrition?: { kcal?: number; protein_g?: number } | null
+  // A variant: the foods worked out already, and the name of the recipe it comes from.
+  items?: FoodItem[]
+  total_g?: number | null
+  variantOf?: string
 }
 
 /** Writing a recipe: its name, portions and ingredients (typed, pasted, or read from a recipe page). */
@@ -312,9 +341,9 @@ export function RecipeEditor() {
   const draft = (useLocation().state as { draft?: Draft } | null)?.draft
   const [name, setName] = useState(draft?.name ?? '')
   const [servings, setServings] = useState<number | null>(draft?.servings ?? 4)
-  const [totalG, setTotalG] = useState<number | null>(null)
+  const [totalG, setTotalG] = useState<number | null>(draft?.total_g ?? null)
   const [text, setText] = useState(draft?.text ?? '')
-  const [items, setItems] = useState<LoggedItem[] | null>(null)
+  const [items, setItems] = useState<LoggedItem[] | null>(draft?.items ?? null)
   const [missing, setMissing] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -333,10 +362,10 @@ export function RecipeEditor() {
       setServings(r.servings)
       setTotalG(r.total_g)
       setItems(r.items)
-      setText(r.items.map((i) => `${num(i.grams)} g ${i.name}`).join('\n'))
+      setText(ingredientText(r.items))
       setMine(r.created_by === session?.user.id)
     })
-  }, [id, num, session])
+  }, [id, session])
 
   async function workOut() {
     if (!profile || !text.trim()) return
@@ -378,8 +407,10 @@ export function RecipeEditor() {
         source_url: draft?.source_url ?? null,
       })
       void loadFoodDb(true)
-      // A recipe just read from Cookidoo (or another site) is often cooked to be eaten now: the list asks.
-      navigate('/food/recipes', { state: !id && draft?.source === 'link' ? { justImported: saved } : null })
+      // A recipe just read from Cookidoo (or another site), or a variant of one, is often cooked to be eaten now:
+      // the list asks.
+      const ask = !id && (draft?.source === 'link' || Boolean(draft?.variantOf))
+      navigate('/food/recipes', { state: ask ? { justImported: saved, variant: Boolean(draft?.variantOf) } : null })
     } catch {
       setError(t('recipes.saveFailed'))
     } finally {
@@ -402,7 +433,7 @@ export function RecipeEditor() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t(id ? 'recipes.editTitle' : 'recipes.new')} back="/food/recipes">
+      <PageHeader title={t(id ? 'recipes.editTitle' : draft?.variantOf ? 'recipes.newVariant' : 'recipes.new')} back="/food/recipes">
         {d && name.trim() && mine ? (
           <Button variant="leaf" block onClick={() => void save()} loading={saving}>
             {t('recipes.save')}
@@ -410,6 +441,7 @@ export function RecipeEditor() {
         ) : null}
       </PageHeader>
       {!mine ? <p className="rounded-2xl bg-card-2 p-3 text-sm">{t('recipes.notMine')}</p> : null}
+      {!id && draft?.variantOf ? <p className="rounded-2xl bg-leaf-soft p-3 text-sm">{t('recipes.variantOf', { name: draft.variantOf })}</p> : null}
 
       <Card>
         <div className="grid gap-4">
