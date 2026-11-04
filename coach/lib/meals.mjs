@@ -124,6 +124,28 @@ export async function addMeal(db, userId, body) {
 }
 
 /**
+ * Meals of one person copied into another's food log, at the same time and part of the day, as when the
+ * person shares them in the app: one cooked, more ate. Meals from another app (Build With Science, Health
+ * Connect) are copied too: the copy is the other person's own, to change or delete, and no sync touches it.
+ */
+export async function copyMeals(db, from, { to, ids }) {
+  if (!Array.isArray(ids) || !ids.length || ids.length > 50) throw bad('Choose from 1 to 50 meals')
+  if (!to || to === from) throw bad('Choose someone else')
+  const [rows, people] = await Promise.all([
+    db.from('food_logs').select('eaten_at, meal, title, items, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, satfat_g').eq('user_id', from).in('id', ids),
+    db.from('profiles').select('id, display_name').in('id', [from, to]),
+  ])
+  const meals = check(rows)
+  const names = new Map(check(people).map((p) => [p.id, p.display_name]))
+  if (!names.has(to)) throw bad('That person is gone', 404)
+  if (!meals.length) return { copied: 0 }
+  // No score: the app works it out against the other person's own target.
+  const copies = meals.map((m) => ({ ...m, items: m.items ?? [], user_id: to, source: 'shared', origin: names.get(from) || 'family', score_fat_loss: null, score_muscle_gain: null }))
+  check(await db.from('food_logs').insert(copies))
+  return { copied: copies.length }
+}
+
+/**
  * What "Add a meal" offers besides the app's own table: the family's food database, and the meals the family
  * logged in the last six months ("Caffè con zucchero"), each once, the person's own and the most logged first.
  * Meals from another app are left out: they come back from there.

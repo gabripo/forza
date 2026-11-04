@@ -9,7 +9,7 @@ import { convert, convertFood, effortToRir, parseValue, sessionDate, uuid5 } fro
 import { BwsExtractor, cleanName, foodTargets, monthsSince } from '../lib/bws-extract.mjs'
 import { mediaList } from '../lib/exercises.mjs'
 import { memberFor, parseWeightCsv, sameName } from '../../shared/weight-csv.mjs'
-import { addMeal, foodPicks, isSynced, mealItems } from '../lib/meals.mjs'
+import { addMeal, copyMeals, foodPicks, isSynced, mealItems } from '../lib/meals.mjs'
 import { computeEnergy, scorePlate } from '../../shared/energy.mjs'
 import { regionForTimeZone } from '../lib/project.mjs'
 
@@ -403,3 +403,30 @@ test("weigh-ins from a CSV: EufyLife's export, with the whole family", () => {
   assert.equal(parseWeightCsv('Name,Height\nA,170').error, 'columns')
 })
 
+test("food log: Coach copies meals into another person's log, ones from another app too", async () => {
+  const inserted = []
+  const filters = []
+  const rows = {
+    food_logs: [{ eaten_at: '2026-11-04T12:30:00Z', meal: 'lunch', title: 'Pasta, Chicken Breast', items: [{ name: 'Pasta', grams: 0, kcal: 350 }], kcal: 550, protein_g: 45, carbs_g: 70, fat_g: 8, fiber_g: 4, sugar_g: 3, salt_g: null, satfat_g: null }],
+    profiles: [
+      { id: 'gabriele', display_name: 'Gabriele' },
+      { id: 'gabriella', display_name: 'Gabriella' },
+    ],
+  }
+  const query = (table) => {
+    const q = { select: () => q, eq: (k, v) => (filters.push([table, k, v]), q), in: (k, v) => (filters.push([table, k, v]), q), then: (ok, ko) => Promise.resolve({ data: rows[table], error: null }).then(ok, ko) }
+    return q
+  }
+  const db = { from: (table) => ({ ...query(table), insert: async (r) => (inserted.push(...r), { error: null }) }) }
+  assert.deepEqual(await copyMeals(db, 'gabriele', { to: 'gabriella', ids: ['m1'] }), { copied: 1 })
+  // Only the person's own meals are read.
+  assert.deepEqual(filters.filter(([t]) => t === 'food_logs'), [['food_logs', 'user_id', 'gabriele'], ['food_logs', 'id', ['m1']]])
+  assert.equal(inserted[0].user_id, 'gabriella')
+  assert.equal(inserted[0].source, 'shared')
+  assert.equal(inserted[0].origin, 'Gabriele')
+  assert.equal(inserted[0].eaten_at, '2026-11-04T12:30:00Z')
+  assert.equal(inserted[0].kcal, 550)
+  assert.equal(inserted[0].score_fat_loss, null)
+  await assert.rejects(copyMeals(db, 'gabriele', { to: 'gabriele', ids: ['m1'] }), /someone else/)
+  await assert.rejects(copyMeals(db, 'gabriele', { to: 'gabriella', ids: [] }), /from 1 to 50/)
+})

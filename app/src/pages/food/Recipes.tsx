@@ -1,4 +1,4 @@
-import { BookOpen, ChefHat, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
+import { BookOpen, Check, ChefHat, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
@@ -81,6 +81,8 @@ export function Recipes() {
   const { session } = useApp()
   const navigate = useNavigate()
   const { data, loading } = useAsync(getRecipes, [])
+  const location = useLocation()
+  const justImported = (location.state as { justImported?: string } | null)?.justImported ?? null
   const [url, setUrl] = useState('')
   const [reading, setReading] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -118,6 +120,8 @@ export function Recipes() {
 
   if (loading && !data) return <Loading />
   const recipes = data ?? []
+  // Back from saving a recipe imported from a link: log a portion straight away?
+  const imported = justImported ? (recipes.find((r) => r.id === justImported) ?? null) : null
 
   return (
     <div className="grid gap-4">
@@ -227,13 +231,24 @@ export function Recipes() {
         </Card>
       )}
 
-      <LogPortionSheet recipe={logging} onClose={() => setLogging(null)} />
+      <LogPortionSheet
+        recipe={logging ?? imported}
+        justSaved={!logging && Boolean(imported)}
+        onClose={() => {
+          setLogging(null)
+          // Asked once: not again when coming back to this page.
+          if (justImported) navigate(location.pathname, { replace: true, state: null })
+        }}
+      />
     </div>
   )
 }
 
-/** How much of the dish was eaten: portions, or grams. Opens the meal pre-filled, to save (or add more to). */
-function LogPortionSheet({ recipe, onClose }: { recipe: Recipe | null; onClose: () => void }) {
+/**
+ * How much of the dish was eaten: portions, or grams. Opens the meal pre-filled, to save (or add more to). Right
+ * after a recipe is imported it asks first whether it is being eaten now ("Not now" keeps it saved only).
+ */
+function LogPortionSheet({ recipe, onClose, justSaved = false }: { recipe: Recipe | null; onClose: () => void; justSaved?: boolean }) {
   const { t, num } = useI18n()
   const navigate = useNavigate()
   const [grams, setGrams] = useState<number | null>(null)
@@ -247,6 +262,11 @@ function LogPortionSheet({ recipe, onClose }: { recipe: Recipe | null; onClose: 
     <Sheet open={Boolean(recipe)} onClose={onClose} title={recipe?.name ?? ''}>
       {recipe && d ? (
         <div className="grid gap-4">
+          {justSaved ? (
+            <p className="rounded-2xl bg-leaf-soft p-3">
+              <Check className="mr-1 inline size-5 text-leaf" aria-hidden /> <b>{t('recipes.imported')}</b> {t('recipes.logNow')}
+            </p>
+          ) : null}
           <Segmented<number>
             value={grams ? Math.round((grams / d.portionG) * 2) / 2 : null}
             onChange={(k) => setGrams(Math.round(d.portionG * k))}
@@ -263,6 +283,11 @@ function LogPortionSheet({ recipe, onClose }: { recipe: Recipe | null; onClose: 
           <Button size="lg" block disabled={!item} onClick={() => item && navigate('/food/add', { state: { items: [item], meal: mealForNow() } })}>
             {t('recipes.log')}
           </Button>
+          {justSaved ? (
+            <Button variant="ghost" block onClick={onClose}>
+              {t('recipes.notNow')}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </Sheet>
@@ -343,7 +368,7 @@ export function RecipeEditor() {
     setSaving(true)
     setError(null)
     try {
-      await saveRecipe({
+      const saved = await saveRecipe({
         ...(id ? { id } : {}),
         name: name.trim(),
         servings: Math.max(1, Math.min(50, servings ?? 1)),
@@ -353,7 +378,8 @@ export function RecipeEditor() {
         source_url: draft?.source_url ?? null,
       })
       void loadFoodDb(true)
-      navigate('/food/recipes')
+      // A recipe just read from Cookidoo (or another site) is often cooked to be eaten now: the list asks.
+      navigate('/food/recipes', { state: !id && draft?.source === 'link' ? { justImported: saved } : null })
     } catch {
       setError(t('recipes.saveFailed'))
     } finally {

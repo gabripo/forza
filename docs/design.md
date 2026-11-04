@@ -322,12 +322,16 @@ the person's language (`food-search` mode `recipe_search`): in Italian, the resu
 community's own search page (ricettario-bimby.it), each read on a tap; Cookidoo's search loads its results
 through a private search service the app does not use, so "Search on Cookidoo" opens it in the browser and the
 link of the recipe chosen is pasted back. In English there is Cookidoo's English search only: the English
-recipe community does not answer requests from servers.
+recipe community does not answer requests from servers. A recipe saved from a link is often cooked to be eaten
+now: back on the list, it asks at once whether to log a portion today ("No, just save it" keeps it saved only).
 
 **A meal for more people.** One person cooked, more ate: right after saving ("Did someone eat the same?"), or
 from a meal's Details or a food's menu, the meal goes into the food logs of the people chosen, same time and
 part of the day, with their own portion (½, the same, ×1½, ×2), marked "Shared by …". `share_meal()` copies
-only the caller's own meals; the others can change or delete their copy.
+only the caller's own meals; the others can change or delete their copy. Meals from another app (Build With
+Science, Health Connect) are shared the same way: they cannot be changed here, but the copies are the family's
+own and no sync touches them. In Forza! Coach, the coach ticks meals of one person and copies them to another
+(**Copy to**), synced ones included.
 
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order

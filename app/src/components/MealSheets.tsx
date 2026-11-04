@@ -44,7 +44,6 @@ export function MealSheet({ meal, entries, targets, onClose, onShare }: { meal: 
   const { profile } = useApp()
   const totals = totalsOf(entries)
   const foods: FoodItem[] = entries.flatMap((e) => (e.items?.length ? e.items : [{ name: e.title, grams: 0, kcal: Number(e.kcal), protein_g: Number(e.protein_g), carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }]))
-  const own = entries.filter((e) => e.source !== 'health_connect' && !(e.source === 'import' && e.origin))
   return (
     <Sheet open={Boolean(meal)} onClose={onClose} title={meal ? t('mealSheet.title', { meal: t(`meal.${meal}`) }) : ''}>
       {meal ? (
@@ -66,8 +65,9 @@ export function MealSheet({ meal, entries, targets, onClose, onShare }: { meal: 
               ))}
             </ul>
           </div>
-          {own.length ? (
-            <Button variant="secondary" onClick={() => onShare(own.map((e) => e.id))}>
+          {/* Meals from another app too (Build With Science, Health Connect): the copies are the family's own. */}
+          {entries.length ? (
+            <Button variant="secondary" onClick={() => onShare(entries.map((e) => e.id))}>
               <Share2 className="size-5" aria-hidden /> {t('mealSheet.share')}
             </Button>
           ) : null}
