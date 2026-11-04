@@ -334,13 +334,16 @@ eaten again.
 
 **A meal for more people.** One person cooked, more ate: right after saving ("Did someone eat the same?"), or
 from a meal's Details or a food's menu, the meal goes into the food logs of the people chosen, same time and
-part of the day, with their own portion (½, the same, ×1½, ×2), marked "Shared by …". `share_meal()` copies
-only the caller's own meals; the others can change or delete their copy. Meals from another app (Build With
+part of the day, each with how much of it they had (25, 50, 75 or 100%, or another percentage from 5 to 300%),
+marked "Shared by …". The percentage is of the whole meal as logged: a Cookidoo dish logged whole and eaten
+only in part by the person sharing it counts whole (they start from the share they ate themselves), and each
+copy keeps its percentage as its share eaten, so its owner can change it later. `share_meal()` copies only the
+caller's own meals; the others can change or delete their copy. Meals from another app (Build With
 Science, Health Connect) are shared the same way: they cannot be changed here, but the copies are the family's
 own and no sync touches them. In Forza! Coach, the coach ticks meals of one person and copies them to another
 (**Copy to**), synced ones included. Each copy remembers who shared it and from which meal (`shared_by`,
 `shared_from`), so **the person who shared it can change the others' copies** afterwards: under their own meal
-("Shared with"), each person's portion of the whole meal, an amount per food (grams, or calories for foods
+("Shared with", each with their percentage of the meal), each person's share of the whole meal, an amount per food (grams, or calories for foods
 without grams), a food taken out or put back. `shared_copies()` lists only the copies the caller shared, and
 `update_shared_meal()` changes only those, working the totals out again from the foods (salt and saturated fat
 stay "not known" when no food says); the other person's app scores the meal again. A meal shared by mistake, or not

@@ -502,7 +502,7 @@ export function FoodHome() {
           setSharing(ids)
         }}
       />
-      <ShareMealSheet key={sharing?.join(',') ?? 'none'} ids={sharing} onClose={() => setSharing(null)} />
+      <ShareMealSheet key={sharing?.join(',') ?? 'none'} meals={sharing ? food.filter((f) => sharing.includes(f.id)) : null} onClose={() => setSharing(null)} />
       <Sheet open={history} onClose={() => setHistory(false)} title={t('targetHistory.title')}>
         {history ? <TargetHistory /> : null}
       </Sheet>

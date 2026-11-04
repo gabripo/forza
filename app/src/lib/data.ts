@@ -433,8 +433,9 @@ export async function getFamilyPeople(myId: string): Promise<{ id: string; displ
 }
 
 /** Copies these meals into the food logs of the people who ate the same (each portion × factor). */
-export async function shareMeals(ids: string[], people: string[], factor = 1): Promise<number> {
-  return check(await supabase.rpc('share_meal', { p_ids: ids, p_users: people, p_factor: factor })) as number
+/** Each person's share of the whole meal as logged (1 = all of it; a dish eaten only in part counts whole). */
+export async function shareMeals(ids: string[], people: { id: string; share: number }[]): Promise<number> {
+  return check(await supabase.rpc('share_meal', { p_ids: ids, p_users: people.map((p) => p.id), p_shares: people.map((p) => p.share) })) as number
 }
 
 /** The copies of one of this person's meals that they shared: whose log, and what each one had. */
