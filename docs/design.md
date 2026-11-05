@@ -193,11 +193,18 @@ The calorie target is built in five explainable steps, shown in the app with the
    70 kg, scaled by weight) + training (≈ 4 kcal per kg of body weight per hour above rest, averaged over the
    week); without steps, `BMR ×` the activity factor the person chose (1.2–1.9).
 3. **Reality check, more and more**: from the last 4 weeks (never today, never a day not all logged), the
-   measured need is `average intake − change of the weight trend × 7,700 kcal / days`. It counts from 7
-   complete days and 4 weigh-ins, with a share that grows as data adds up:
-   `share = 0.8 × min(1, complete days / 21) × min(1, weigh-ins / 8)`, and
+   measured need is `average intake − change of the weight trend × 7,700 kcal / days`. It counts from 14
+   complete days (two weekends) and 4 weigh-ins, with a share that grows as data adds up, up to 4 weeks:
+   `share = 0.8 × min(1, complete days / 28) × min(1, weigh-ins / 8)`, and
    `TDEE = formula × (1 − share) + measured × share` (only when the measurement is plausible; never more than
    80%, so one odd month does not move the target too far). The explainer shows the formulas and the share.
+   **Why 4 weeks**: water, salt and digestion move the scale by about 0.5 kg from day to day, and weight
+   follows a weekly rhythm (up at the weekend, down in the week); with daily weigh-ins, more than 28 days are
+   needed to measure the energy balance within about ±300 kcal a day (Hall & Chow, *Am J Clin Nutr* 2011), and
+   about a month of food records to know someone's usual intake within 10% (Basiotis et al., *J Nutr* 1987).
+   A 0.5 kg water swing on the last weigh-in moves a 1-week measurement by 550 kcal a day, a 4-week one by
+   138. Before 2 weeks the measurement is too noisy to help, so the formula stands alone. The
+   explainer links to the two lessons that tell this with examples (below).
 4. **Goal and pace**: a fixed daily difference from TDEE, chosen as a pace (*Food → Adjust*, Settings, or
    the coach): fat loss −250 / **−500** / −750 kcal (slow / **normal** / fast; 500 kcal a day is about
    0.45 kg a week, at 7,700 kcal per kg), muscle gain +150 / **+250** / +400 kcal, maintain = TDEE.
@@ -441,7 +448,17 @@ Two tracks of infographics, in English and Italian:
   ideas, **steady energy** (carbs spread over the day instead of one big pasta lunch) and **meal tricks**
   (protein at breakfast, vegetables first, the "carbs as a side" plate, a protein snack instead of a sweet
   one), moving more, sleep, ten small habits.
-- **Expert lessons** (6): glycogen, meal timing, creatine, progressive overload, protein timing, recovery.
+- **Expert lessons** (8): glycogen, meal timing, creatine, progressive overload, protein timing, recovery,
+  **why measuring your energy takes 4 weeks** (four weeks of weigh-ins against their trend, how far a salty
+  dinner moves the result after 1–4 weeks, what Forza! does each week) and **same weight, different energy**
+  (two people of 70 kg using 2,390 and 1,645 kcal: rest from fat-free mass, daily movement, training,
+  digestion; then muscle, NEAT, age, long diets and what stays unexplained).
+
+Lessons are made of blocks (`app/src/pages/learn/content.ts`): text, cards, steps, do/avoid, swaps, a
+timeline, bars, **stacked bars** (one bar per item split into the same parts, numbers inside the parts wide
+enough and all of them written below, so colour is never the only key), food groups, meals, the plate, hand
+portions and **the scale chart** (28 morning weigh-ins around a 4-week trend). Infographics use one fixed
+light palette, so they look the same on screen, as an image and on paper.
 
 Every lesson ends with a **two-question quiz**; each answer explains itself, right or wrong, and then its
 **references**: the studies, guidelines and food tables the lesson is based on (`LESSON_SOURCES` in

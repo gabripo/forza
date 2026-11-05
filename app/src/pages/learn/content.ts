@@ -18,6 +18,10 @@ export type Block =
   | { type: 'foods'; groups: { emoji: string; title: L10n; note?: L10n; tone: Tone; foods: L10n }[] }
   | { type: 'meals'; groups: { title: L10n; items: { emoji: string; name: L10n; protein: number }[] }[] }
   | { type: 'callout'; emoji: string; text: L10n }
+  /** Daily weigh-ins against the trend of 4 weeks: why one week says little. */
+  | { type: 'scale' }
+  /** One stacked bar per item (a person, a day…), split into the same parts, with its total. */
+  | { type: 'stack'; title: L10n; unit: string; parts: { label: L10n; tone: Tone }[]; items: { emoji: string; label: L10n; note?: L10n; values: number[] }[]; note?: L10n }
 
 /** A reference: the id of a known source (data/sources.ts) or one written out (lessons added in Coach). */
 export type LessonSource = string | { title: string; authors?: string; year?: number; journal?: string; url?: string }

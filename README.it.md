@@ -50,7 +50,8 @@ italiano: la lingua si cambia in qualsiasi momento.*
 - 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, il dettaglio di
   ogni pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
 - 🔥 **Un obiettivo che impara da te.** L'energia che il corpo consuma è misurata sempre di più dai tuoi pasti e
-  dalla tua bilancia; le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),
+  dalla tua bilancia, del tutto dopo circa 4 settimane di diario e pesate (due lezioni spiegano perché, e perché
+  due persone dello stesso peso possono avere bisogno di 750 kcal di differenza); le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),
   il digiuno intermittente è riconosciuto, le formule sono spiegate e lo storico è conservato.
 - 💪 **Allenamenti che progrediscono da soli**, e qualsiasi esercizio trovato da una descrizione ("alzo un
   ginocchio e lo tocco con il gomito opposto"), con le sue foto.

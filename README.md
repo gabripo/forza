@@ -48,7 +48,8 @@ and adjust their plan from your own computer.
 - 🧭 **The day and the week at a glance.** A kind score for the whole day, each meal's breakdown, one sentence of
   encouragement on Home, and every week "What happened last week".
 - 🔥 **A target that learns from you.** The energy your body uses is measured more and more from your own food
-  and scale; days not all logged are left out (you are asked, and can change it later), intermittent fasting
+  and scale, fully after about 4 weeks of logs and weigh-ins (two lessons explain why, and why two people of
+  the same weight can need 750 kcal apart); days not all logged are left out (you are asked, and can change it later), intermittent fasting
   is recognised, the formulas are shown and the history is kept.
 - 💪 **Workouts that progress by themselves**, and any exercise found from a description ("I raise a knee and
   touch it with the opposite elbow"), with its photos.

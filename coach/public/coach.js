@@ -1164,7 +1164,7 @@ function lessonEditor(l) {
       ${field('subtitle_it', 'Sottotitolo (italiano)', l.subtitle?.it)}
     </div>
     <label class="field">Content: blocks, in JSON (each block is shown as a card in the lesson)<textarea name="blocks" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">${esc(JSON.stringify(l.blocks ?? [], null, 2))}</textarea></label>
-    <details><summary class="small">Block types and an example</summary><p class="small muted">Types: intro, callout, steps, dodont, cards, swaps, timeline, bars, foods, meals, plate, hands. Every text has "en" and "it".</p><pre class="small">${esc(KB_BLOCK_EXAMPLE)}</pre></details>
+    <details><summary class="small">Block types and an example</summary><p class="small muted">Types: intro, callout, steps, dodont, cards, swaps, timeline, bars, stack, foods, meals, plate, hands, scale. Every text has "en" and "it".</p><pre class="small">${esc(KB_BLOCK_EXAMPLE)}</pre></details>
     <label class="field">Quiz: questions in JSON, at the end of the lesson and in the daily "Gain Family Points" quiz ("answer" is 0 for the first option)<textarea name="quiz" rows="8" style="font-family:ui-monospace,monospace;font-size:12px">${esc(JSON.stringify(l.quiz ?? [], null, 2))}</textarea></label>
     <details><summary class="small">A quiz question</summary><pre class="small">${esc(KB_QUIZ_EXAMPLE)}</pre></details>
     <label class="field">Sources, one per line: the id of a known source (${esc(state.kb.builtIn.sources.slice(0, 3).map((s) => s.id).join(', '))}…) or a reference with its link<textarea name="sources" rows="4">${esc(sources)}</textarea></label>

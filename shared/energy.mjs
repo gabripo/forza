@@ -364,10 +364,10 @@ function computeEnergy(profile, weights, steps, sessions, food, notes = [], now 
 	let adaptive = null;
 	let adaptiveWeight = 0;
 	const window = trend.filter((p) => new Date(p.day) >= since28);
-	if (goodDays.length >= 7 && window.length >= 4) {
+	if (goodDays.length >= 14 && window.length >= 4) {
 		const span = Math.max(7, (new Date(window.at(-1).day).getTime() - new Date(window[0].day).getTime()) / 864e5);
 		adaptive = adaptiveTdee(avg(goodDays.map(([, k]) => k)), window.at(-1).trend - window[0].trend, span);
-		adaptiveWeight = .8 * Math.min(1, goodDays.length / 21) * Math.min(1, window.length / 8);
+		adaptiveWeight = .8 * Math.min(1, goodDays.length / 28) * Math.min(1, window.length / 8);
 	}
 	const tdee = estimateTdee({
 		profile,

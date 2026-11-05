@@ -455,7 +455,156 @@ function BlockView({ block, lang, tone }: { block: Block; lang: Locale; tone: To
           </p>
         </div>
       )
+
+    case 'scale':
+      return <ScaleDiagram lang={lang} />
+
+    case 'stack':
+      return <StackBars block={block} lang={lang} />
   }
+}
+
+/** One bar per item, its parts side by side with a thin gap; numbers inside the parts wide enough and all of them below. */
+function StackBars({ block, lang }: { block: Extract<Block, { type: 'stack' }>; lang: Locale }) {
+  const L = (x: L10n) => x[lang]
+  // Grouped like the lesson text ("1.900"), also the four-digit numbers Italian leaves ungrouped by default.
+  const fmt = new Intl.NumberFormat(lang === 'it' ? 'it-IT' : 'en-GB', { useGrouping: 'always' }).format
+  const totals = block.items.map((it) => it.values.reduce((a, b) => a + b, 0))
+  const max = Math.max(...totals)
+  return (
+    <section>
+      <h2 className="mb-2 text-lg font-extrabold">{L(block.title)}</h2>
+      <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        {block.parts.map((p, i) => (
+          <li key={i} className="flex items-center gap-1.5">
+            <span className="size-3.5 shrink-0 rounded" style={{ background: TONES[p.tone].accent }} aria-hidden />
+            {L(p.label)}
+          </li>
+        ))}
+      </ul>
+      <ul className="grid gap-4">
+        {block.items.map((it, i) => {
+          const parts = it.values.map((v, j) => ({ v, part: block.parts[j] })).filter((x) => x.v > 0 && x.part)
+          const said = parts.map((x) => `${L(x.part.label)} ${fmt(x.v)}`).join(' · ')
+          return (
+            <li key={i}>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="leading-tight font-extrabold">
+                  <span aria-hidden>{it.emoji}</span> {L(it.label)}
+                </p>
+                <p className="shrink-0 font-extrabold whitespace-nowrap">
+                  {fmt(totals[i])} {block.unit}
+                </p>
+              </div>
+              {it.note ? (
+                <p className="text-sm leading-snug" style={{ color: INK2 }}>
+                  {L(it.note)}
+                </p>
+              ) : null}
+              <div className="mt-1.5 flex h-8 gap-0.5" style={{ width: `${(totals[i] / max) * 100}%` }} role="img" aria-label={`${L(it.label)}: ${said}`}>
+                {parts.map((x, j) => (
+                  <div
+                    key={j}
+                    title={`${L(x.part.label)}: ${fmt(x.v)} ${block.unit}`}
+                    className="grid min-w-0 place-items-center overflow-hidden text-xs font-bold text-white"
+                    style={{ flex: `${x.v} 1 0`, background: TONES[x.part.tone].accent, borderRadius: j === parts.length - 1 ? '0 4px 4px 0' : 0 }}
+                  >
+                    {x.v / max >= 0.12 ? fmt(x.v) : ''}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1 text-xs" style={{ color: INK2 }}>
+                {said}
+              </p>
+            </li>
+          )
+        })}
+      </ul>
+      {block.note ? (
+        <p className="mt-2 text-sm" style={{ color: INK2 }}>
+          {L(block.note)}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+// Four weeks of one person's morning weigh-ins (kg): water, salt and weekends around a real loss of 1 kg
+// (70 → 69 kg, the line), with a first week that alone looks like a gain of almost 1 kg.
+const SCALE_KG = [
+  69.52, 69.6, 69.78, 69.96, 70.13, 70.31, 70.49, 70.17, 69.74, 69.33, 69.1, 69.18, 69.57, 69.94, 69.82, 69.39, 69.08, 68.85, 69.13, 69.51, 69.89, 69.56,
+  69.15, 68.83, 68.9, 68.68, 69.06, 69.34,
+]
+
+function ScaleDiagram({ lang }: { lang: Locale }) {
+  const tr = (k: string, vars?: Record<string, string | number>) => translate(lang, `learn.scale.${k}`, vars)
+  const kgFmt = new Intl.NumberFormat(lang === 'it' ? 'it-IT' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format
+  const x = (day: number) => 40 + day * 10.5
+  const y = (kg: number) => 18 + (70.8 - kg) * 62
+  const blue = TONES.blue.accent
+  const orange = TONES.orange.accent
+  return (
+    <section>
+      <h2 className="mb-2 text-lg font-extrabold">{tr('title')}</h2>
+      <svg viewBox="0 0 340 196" className="mx-auto w-full max-w-md" role="img" aria-label={tr('aria')}>
+        {/* Week 1, the misleading one */}
+        <rect x={x(-0.5)} y={8} width={x(6.5) - x(-0.5)} height={y(68.5) - 8} rx={6} fill={TONES.orange.bg} />
+        {[69, 70].map((kg) => (
+          <g key={kg}>
+            <line x1={x(-0.5)} x2={x(27.5)} y1={y(kg)} y2={y(kg)} stroke="#E7E5E4" strokeWidth={1} />
+            <text x={34} y={y(kg) + 4} textAnchor="end" fontSize={11} fill={INK2}>
+              {kg} kg
+            </text>
+          </g>
+        ))}
+        {[6.5, 13.5, 20.5].map((d) => (
+          <line key={d} x1={x(d)} x2={x(d)} y1={8} y2={y(68.5)} stroke="#E7E5E4" strokeWidth={1} />
+        ))}
+        {[0, 1, 2, 3].map((w) => (
+          <text key={w} x={x(w * 7 + 3)} y={190} textAnchor="middle" fontSize={11} fontWeight={700} fill={INK2}>
+            {tr('week', { n: w + 1 })}
+          </text>
+        ))}
+        {/* The trend of the 4 weeks, and what week 1 alone seems to say */}
+        <line x1={x(0)} y1={y(70)} x2={x(27)} y2={y(69)} stroke={blue} strokeWidth={2.5} strokeLinecap="round" />
+        <line x1={x(0)} y1={y(SCALE_KG[0])} x2={x(6)} y2={y(SCALE_KG[6])} stroke={orange} strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round" />
+        {SCALE_KG.map((kg, d) => (
+          <circle key={d} cx={x(d)} cy={y(kg)} r={4} fill="#57534E" stroke="#fff" strokeWidth={1.5}>
+            <title>{tr('dot', { day: d + 1, kg: kgFmt(kg) })}</title>
+          </circle>
+        ))}
+        <text x={x(0)} y={20} fontSize={11} fontWeight={800} fill={TONES.orange.fg}>
+          {tr('week1')}
+        </text>
+        <text x={x(27)} y={20} textAnchor="end" fontSize={11} fontWeight={800} fill={TONES.blue.fg}>
+          {tr('month')}
+        </text>
+      </svg>
+      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <li className="flex items-center gap-1.5">
+          <svg width="14" height="14" aria-hidden>
+            <circle cx="7" cy="7" r="4.5" fill="#57534E" />
+          </svg>
+          {tr('daily')}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <svg width="22" height="14" aria-hidden>
+            <line x1="2" y1="7" x2="20" y2="7" stroke={blue} strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          {tr('trend')}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <svg width="22" height="14" aria-hidden>
+            <line x1="2" y1="7" x2="20" y2="7" stroke={orange} strokeWidth="2" strokeDasharray="5 4" />
+          </svg>
+          {tr('weekOne')}
+        </li>
+      </ul>
+      <p className="mt-2 text-sm" style={{ color: INK2 }}>
+        {tr('note')}
+      </p>
+    </section>
+  )
 }
 
 function PlateDiagram({ lang }: { lang: Locale }) {

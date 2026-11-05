@@ -1,6 +1,8 @@
+import { ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { ACTIVITY_FACTOR, ageFrom, kcalFloor, paceKcal } from '../lib/calc'
-import type { Energy } from '../lib/energy'
+import { MIN_DAYS, type Energy } from '../lib/energy'
 import { useI18n } from '../lib/i18n'
 import type { Profile } from '../lib/types'
 
@@ -22,6 +24,18 @@ function Row({ label, value, strong }: { label: ReactNode; value: ReactNode; str
       <span>{label}</span>
       <b className="shrink-0 tabular">{value}</b>
     </li>
+  )
+}
+
+function LessonLink({ to, emoji, label }: { to: string; emoji: string; label: string }) {
+  return (
+    <Link to={to} className="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5 font-semibold">
+      <span className="text-xl" aria-hidden>
+        {emoji}
+      </span>
+      <span className="flex-1">{label}</span>
+      <ChevronRight className="size-5 text-ink-3" aria-hidden />
+    </Link>
   )
 }
 
@@ -98,7 +112,7 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
             </ul>
           </>
         ) : (
-          <p className="text-ink-2">{t('food.explain.s3todo', { days: energy.loggedFoodDays, weighIns: energy.weighIns })}</p>
+          <p className="text-ink-2">{t('food.explain.s3todo', { min: MIN_DAYS, days: energy.loggedFoodDays, weighIns: energy.weighIns })}</p>
         )}
         {/* The formulas, for whoever wants them. */}
         <details className="rounded-2xl bg-card-2 p-3 text-sm">
@@ -112,6 +126,9 @@ export function EnergyExplainer({ energy, profile }: { energy: Energy; profile: 
         </details>
         {energy.leftOutDays ? <p className="text-sm text-ink-3">{t('food.explain.leftOut', { n: energy.leftOutDays })}</p> : null}
         <p className="text-sm text-ink-3">{t('food.explain.s3note')}</p>
+        {/* The lessons behind this step: why it takes weeks, and why the formula cannot know everyone. */}
+        <LessonLink to="/learn/tdee_weeks" emoji="📅" label={t('food.explain.whyWeeks')} />
+        <LessonLink to="/learn/tdee_people" emoji="👥" label={t('food.explain.sameWeight')} />
       </Step>
 
       <Step n={4} title={t('food.explain.s4', { goal: t(`goal.${goal}`) })}>
