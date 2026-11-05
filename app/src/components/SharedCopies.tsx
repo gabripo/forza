@@ -1,6 +1,6 @@
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { round1 } from '../lib/calc'
+import { round1, scaleItem } from '../lib/calc'
 import { deleteSharedCopies, getSharedCopies, updateSharedMeal } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 import type { FoodItem, FoodLog, SharedCopy } from '../lib/types'
@@ -8,22 +8,6 @@ import { Button, NumberInput } from './ui'
 
 // Shares of the whole meal as logged, as when sharing it.
 const PORTIONS = [0.25, 0.5, 0.75, 1, 1.5]
-
-/** A food with its amount, and every value with it, times k. */
-function scaleItem(it: FoodItem, k: number): FoodItem {
-  return {
-    ...it,
-    grams: Math.round(it.grams * k),
-    kcal: Math.round(it.kcal * k),
-    protein_g: round1(it.protein_g * k),
-    carbs_g: round1(it.carbs_g * k),
-    fat_g: round1(it.fat_g * k),
-    fiber_g: round1(it.fiber_g * k),
-    sugar_g: round1(it.sugar_g * k),
-    ...(it.salt_g != null ? { salt_g: Math.round(it.salt_g * k * 100) / 100 } : {}),
-    ...(it.satfat_g != null ? { satfat_g: round1(it.satfat_g * k) } : {}),
-  }
-}
 
 const sum = (items: FoodItem[], k: 'kcal' | 'protein_g') => items.reduce((s, i) => s + (Number(i[k]) || 0), 0)
 

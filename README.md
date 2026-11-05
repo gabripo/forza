@@ -38,7 +38,8 @@ and adjust their plan from your own computer.
 - 🍽️ **"What should I order?"** Photograph a restaurant menu, or say the dishes: a quick AI reads it, a stronger
   one picks the best dish for *your* day so far and says why in everyday words, with one small tweak to ask for.
 - 📷 **Snap, say or scan a meal**, and see first what to do ("add some protein"), judged together with the rest
-  of that meal and of the day.
+  of that meal and of the day. A meal that looks logged by mistake ("Taralli" saved as 3 g of breadsticks) is
+  asked about until it is corrected or confirmed.
 - 📖 **Family recipes, Thermomix included.** Write a dish once, then anyone logs a portion in one tap. Got a
   Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you, and a
   variant of your own (less butter, another vegetable) is one tap away.

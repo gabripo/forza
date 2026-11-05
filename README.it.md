@@ -40,7 +40,8 @@ italiano: la lingua si cambia in qualsiasi momento.*
   una più potente sceglie il piatto migliore per la *tua* giornata finora e spiega perché in parole semplici,
   con un piccolo accorgimento da chiedere.
 - 📷 **Fotografa, detta o scansiona un pasto**, e vedi prima cosa fare ("aggiungi un po' di proteine"),
-  valutato insieme al resto di quel pasto e della giornata.
+  valutato insieme al resto di quel pasto e della giornata. Un pasto che sembra registrato per sbaglio ("Taralli"
+  salvati come 3 g di grissini) viene chiesto finché non è corretto o confermato.
 - 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta, poi chiunque ne registra una porzione
   con un tocco. Hai un Bimby? Cerca la ricetta nell'app o incolla un link di Cookidoo: gli ingredienti
   vengono letti per te.
