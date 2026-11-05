@@ -31,6 +31,10 @@ function before(now: Date, n: number): Date {
   return d
 }
 
+/** Complete days of food before the measured energy counts at all, and before it counts its most (80%). */
+export const MIN_DAYS = 14
+export const FULL_DAYS = 28
+
 /** Under this share of the calorie target, a day counts as logged only in part, unless the person said it was all. */
 export const INCOMPLETE_SHARE = 0.7
 
@@ -90,7 +94,8 @@ export function computeEnergy(
   const skip = incompleteDays(food, (bwsTargets(profile, reference) ?? reference).kcal, notes, now)
 
   // Adaptive estimate: the complete days of the last 4 weeks (not today) against the weight trend of the same
-  // weeks. It counts from 7 such days and 4 weigh-ins, and more and more as the days and weigh-ins add up.
+  // weeks. It counts from 14 such days (two weekends) and 4 weigh-ins, and more and more up to 4 weeks: a reliable
+  // measurement needs about 28 days of food and weight (Hall & Chow 2011; Basiotis et al. 1987).
   const kcalByDay = new Map<string, number>()
   for (const f of food) {
     const when = new Date(f.eaten_at)
@@ -102,10 +107,10 @@ export function computeEnergy(
   let adaptive: number | null = null
   let adaptiveWeight = 0
   const window = trend.filter((p) => new Date(p.day) >= since28)
-  if (goodDays.length >= 7 && window.length >= 4) {
+  if (goodDays.length >= MIN_DAYS && window.length >= 4) {
     const span = Math.max(7, (new Date(window.at(-1)!.day).getTime() - new Date(window[0].day).getTime()) / 86_400_000)
     adaptive = adaptiveTdee(avg(goodDays.map(([, k]) => k)), window.at(-1)!.trend - window[0].trend, span)
-    adaptiveWeight = 0.8 * Math.min(1, goodDays.length / 21) * Math.min(1, window.length / 8)
+    adaptiveWeight = 0.8 * Math.min(1, goodDays.length / FULL_DAYS) * Math.min(1, window.length / 8)
   }
 
   const tdee = estimateTdee({ profile, weightKg, avgSteps, workoutsPerWeek, avgWorkoutMinutes, adaptive, adaptiveWeight })

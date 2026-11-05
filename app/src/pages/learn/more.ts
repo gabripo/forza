@@ -237,6 +237,112 @@ export const EXPERT_TOPICS: Topic[] = [
       },
     ],
   },
+  {
+    id: 'tdee_weeks',
+    emoji: '📅',
+    tone: 'blue',
+    title: L('Why measuring your energy takes 4 weeks', 'Perché misurare la tua energia richiede 4 settimane'),
+    subtitle: L('Food log + scale reveal your real need, with a little patience', 'Diario + bilancia rivelano il tuo fabbisogno reale, con un po’ di pazienza'),
+    blocks: [
+      { type: 'intro', text: L('The energy your body uses in a day (TDEE) can be measured at home: what you eat, minus what your weight stores or loses (about 7,700 kcal per kg). Simple, but only with good data: about 4 weeks of complete food logs and regular weigh-ins.', 'L’energia che il tuo corpo usa in un giorno (TDEE) si può misurare a casa: quello che mangi, meno quello che il peso accumula o perde (circa 7.700 kcal per kg). Semplice, ma solo con buoni dati: circa 4 settimane di diario completo e pesate regolari.') },
+      {
+        type: 'steps',
+        title: L('The calculation, with an example', 'Il calcolo, con un esempio'),
+        items: [
+          { title: L('What you ate, on average', 'Quanto hai mangiato, in media'), text: L('Only complete days count: say 1,900 kcal a day.', 'Contano solo le giornate complete: per esempio 1.900 kcal al giorno.') },
+          { title: L('What the weight trend did', 'Cosa ha fatto la tendenza del peso'), text: L('−1 kg in 4 weeks = 7,700 kcal taken from the body’s stores: 275 kcal a day.', '−1 kg in 4 settimane = 7.700 kcal prese dalle riserve del corpo: 275 kcal al giorno.') },
+          { title: L('Your energy', 'La tua energia'), text: L('1,900 + 275 = 2,175 kcal a day: what your body really used.', '1.900 + 275 = 2.175 kcal al giorno: quello che il tuo corpo ha usato davvero.') },
+        ],
+      },
+      { type: 'scale' },
+      {
+        type: 'bars',
+        title: L('A salty dinner (+0.5 kg of water at the last weigh-in) shifts the result by… (kcal a day)', 'Una cena salata (+0,5 kg d’acqua all’ultima pesata) sposta il risultato di… (kcal al giorno)'),
+        unit: 'kcal',
+        items: [
+          { label: L('After 1 week', 'Dopo 1 settimana'), value: 550 },
+          { label: L('After 2 weeks', 'Dopo 2 settimane'), value: 275 },
+          { label: L('After 3 weeks', 'Dopo 3 settimane'), value: 183 },
+          { label: L('After 4 weeks', 'Dopo 4 settimane'), value: 138 },
+        ],
+      },
+      {
+        type: 'cards',
+        title: L('Why 4 weeks', 'Perché 4 settimane'),
+        cols: 2,
+        items: [
+          { emoji: '💧', title: L('Water moves fast, fat slowly', 'L’acqua si muove in fretta, il grasso piano'), text: L('Salt, carbs and digestion move the scale by about half a kilo from day to day; a real change of 0.25 kg takes a week.', 'Sale, carboidrati e digestione spostano la bilancia di circa mezzo chilo da un giorno all’altro; un cambiamento vero di 0,25 kg richiede una settimana.'), tone: 'blue' },
+          { emoji: '📅', title: L('Weekends repeat', 'I fine settimana si ripetono'), text: L('Weight rises at the weekend and falls during the week, and Saturdays bring more food: only several whole weeks even it out.', 'Il peso sale nel fine settimana e scende in settimana, e il sabato si mangia di più: solo più settimane intere lo compensano.'), tone: 'orange' },
+          { emoji: '🍝', title: L('Food changes every day', 'Il cibo cambia ogni giorno'), text: L('One day 1,500 kcal, the next 2,600: about a month of records is needed to know someone’s usual intake within 10%.', 'Un giorno 1.500 kcal, il giorno dopo 2.600: serve circa un mese di diario per conoscere l’assunzione abituale di qualcuno entro il 10%.'), tone: 'green' },
+          { emoji: '🔬', title: L('What studies found', 'Cosa dicono gli studi'), text: L('With daily weigh-ins, more than 28 days are needed to measure the energy balance within about ±300 kcal a day.', 'Con pesate quotidiane servono più di 28 giorni per misurare il bilancio energetico entro circa ±300 kcal al giorno.'), tone: 'purple' },
+        ],
+      },
+      {
+        type: 'timeline',
+        title: L('What Forza! does', 'Cosa fa Forza!'),
+        items: [
+          { emoji: '📝', time: L('Week 1', 'Settimana 1'), text: L('The formula only (weight, height, age, steps, workouts). Your meals and weigh-ins are collected, not used yet.', 'Solo la formula (peso, altezza, età, passi, allenamenti). Pasti e pesate vengono raccolti, non ancora usati.') },
+          { emoji: '⚖️', time: L('After 2 weeks', 'Dopo 2 settimane'), text: L('With 14 complete days and 4 weigh-ins your own measurement starts to count: up to 40%.', 'Con 14 giornate complete e 4 pesate la tua misura inizia a contare: fino al 40%.') },
+          { emoji: '📈', time: L('After 3 weeks', 'Dopo 3 settimane'), text: L('60%: the target moves towards your real need.', '60%: l’obiettivo si avvicina al tuo fabbisogno reale.') },
+          { emoji: '🎯', time: L('After 4 weeks', 'Dopo 4 settimane'), text: L('80% with at least 8 weigh-ins, the most it ever counts: your own energy, measured. Always on the last 4 weeks, so it follows you as you change.', '80% con almeno 8 pesate, il massimo: la tua energia, misurata. Sempre sulle ultime 4 settimane, così ti segue mentre cambi.') },
+        ],
+      },
+      {
+        type: 'dodont',
+        dos: [
+          L('Log every meal, the pizza night and the glass of wine too', 'Registra ogni pasto, anche la pizza del sabato e il bicchiere di vino'),
+          L('Weigh yourself in the morning, after the bathroom and before eating: every day is best, at least 2–3 times a week', 'Pesati al mattino, dopo il bagno e prima di mangiare: ogni giorno è meglio, almeno 2–3 volte a settimana'),
+          L('Say when a day was not all logged: Forza! leaves it out', 'Segnala quando una giornata non è registrata per intero: Forza! la lascia fuori'),
+        ],
+        donts: [
+          L('Judge your energy, or a diet, after a few days', 'Giudicare la tua energia, o una dieta, dopo pochi giorni'),
+          L('Skip logging on the days off plan: they count too', 'Saltare il diario nei giorni fuori programma: contano anche quelli'),
+          L('Change scale, or weigh yourself at different times', 'Cambiare bilancia o pesarti a orari diversi'),
+        ],
+      },
+      { type: 'callout', emoji: '🎯', text: L('Consistent beats perfect: if you always forget the same spoon of oil, the measurement still works, because it learns your energy as you log it. Half-logged days are what spoil it.', 'Costante batte perfetto: se dimentichi sempre lo stesso cucchiaio d’olio, la misura funziona lo stesso, perché impara la tua energia così come la registri. Sono le giornate registrate a metà a rovinarla.') },
+    ],
+  },
+  {
+    id: 'tdee_people',
+    emoji: '👥',
+    tone: 'orange',
+    title: L('Same weight, different energy', 'Stesso peso, energia diversa'),
+    subtitle: L('Why two people of 70 kg can need 750 kcal apart', 'Perché due persone di 70 kg possono avere bisogno di 750 kcal di differenza'),
+    blocks: [
+      { type: 'intro', text: L('Two people weigh 70 kg and have the same height, age and sex. A formula gives both the same number, yet one can use 750 kcal a day more than the other: a whole meal. The scale tells how much you weigh, not what your body is made of or how much you move.', 'Due persone pesano 70 kg e hanno stessa altezza, età e sesso. Una formula dà a entrambe lo stesso numero, eppure una può usare 750 kcal al giorno più dell’altra: un pasto intero. La bilancia dice quanto pesi, non com’è fatto il tuo corpo o quanto ti muovi.') },
+      {
+        type: 'stack',
+        title: L('Energy used in a day', 'Energia usata in un giorno'),
+        unit: 'kcal',
+        parts: [
+          { label: L('At rest', 'A riposo'), tone: 'blue' },
+          { label: L('Daily movement', 'Movimento quotidiano'), tone: 'orange' },
+          { label: L('Training', 'Allenamento'), tone: 'purple' },
+          { label: L('Digesting', 'Digestione'), tone: 'green' },
+        ],
+        items: [
+          { emoji: '🏃', label: L('A: 70 kg, 25% body fat', 'A: 70 kg, 25% di grasso'), note: L('9,000 steps a day, a job on the move, strength training 3 times a week', '9.000 passi al giorno, un lavoro in movimento, forza 3 volte a settimana'), values: [1500, 550, 100, 240] },
+          { emoji: '🪑', label: L('B: 70 kg, 40% body fat', 'B: 70 kg, 40% di grasso'), note: L('3,000 steps a day, a desk job, no training', '3.000 passi al giorno, lavoro alla scrivania, nessun allenamento'), values: [1280, 200, 0, 165] },
+        ],
+        note: L('At rest: 370 + 21.6 × kg of fat-free mass (A has 52.5 kg, B 42 kg). Daily movement: steps, standing, chores. Training: about 4 kcal per kg per hour. Digesting: about 10% of the day. The difference, 745 kcal a day, is 0.7 kg a week if B ate like A.', 'A riposo: 370 + 21,6 × kg di massa magra (A ne ha 52,5 kg, B 42 kg). Movimento quotidiano: passi, stare in piedi, lavori di casa. Allenamento: circa 4 kcal per kg all’ora. Digestione: circa il 10% della giornata. La differenza, 745 kcal al giorno, fa 0,7 kg a settimana se B mangiasse come A.'),
+      },
+      {
+        type: 'cards',
+        title: L('What makes the difference', 'Cosa fa la differenza'),
+        cols: 2,
+        items: [
+          { emoji: '💪', title: L('Muscle, not weight', 'Muscolo, non peso'), text: L('Fat-free mass (muscles, organs, bones) explains about two-thirds of the differences in energy at rest. At rest, 1 kg of muscle uses about 13 kcal a day, 1 kg of fat about 4.5.', 'La massa magra (muscoli, organi, ossa) spiega circa due terzi delle differenze di energia a riposo. A riposo 1 kg di muscolo usa circa 13 kcal al giorno, 1 kg di grasso circa 4,5.'), tone: 'blue' },
+          { emoji: '🚶', title: L('Daily movement', 'Il movimento quotidiano'), text: L('Walking, standing, chores, even fidgeting: the part that differs most between people. About 2 hours a day less on a chair could be worth some 350 kcal.', 'Camminare, stare in piedi, i lavori di casa, perfino gesticolare: è la parte che cambia di più tra le persone. Circa 2 ore al giorno in meno sulla sedia possono valere circa 350 kcal.'), tone: 'orange' },
+          { emoji: '🏋️', title: L('Training', 'L’allenamento'), text: L('50 minutes of strength training use about 230 kcal at 70 kg: it helps, and it keeps the muscle that uses energy at rest.', '50 minuti di allenamento di forza usano circa 230 kcal a 70 kg: aiuta, e mantiene il muscolo che consuma energia a riposo.'), tone: 'purple' },
+          { emoji: '🍽️', title: L('Digesting', 'La digestione'), text: L('Digesting uses 5–15% of the day’s energy: more with protein, less with fat.', 'Digerire usa il 5–15% dell’energia della giornata: di più con le proteine, di meno con i grassi.'), tone: 'green' },
+          { emoji: '🎂', title: L('Age', 'L’età'), text: L('For the same body, energy stays stable from 20 to 60, then slowly falls; losing muscle with age lowers it further. Strength training slows this down.', 'A parità di corpo, l’energia resta stabile dai 20 ai 60 anni, poi cala piano; perdere muscolo con l’età la abbassa ancora. Allenare la forza rallenta il calo.'), tone: 'yellow' },
+          { emoji: '📉', title: L('Long diets', 'Le diete lunghe'), text: L('After losing weight the body saves some energy, more than its smaller size explains: one more reason to measure rather than guess.', 'Dopo aver perso peso il corpo risparmia un po’ di energia, più di quanto spieghi la taglia più piccola: un motivo in più per misurare invece di indovinare.'), tone: 'pink' },
+        ],
+      },
+      { type: 'callout', emoji: '🧬', text: L('Even with all of this, about a quarter of the differences at rest stays unexplained (genes, hormones): even the best formula can be wrong for one person. Your food log and your scale measure your energy, whatever your body is like.', 'Anche con tutto questo, circa un quarto delle differenze a riposo resta senza spiegazione (geni, ormoni): anche la formula migliore può sbagliare per una persona. Il tuo diario e la tua bilancia misurano la tua energia, comunque sia il tuo corpo.') },
+    ],
+  },
 ]
 
 export interface Question {
@@ -327,5 +433,13 @@ export const QUIZZES: Record<string, Question[]> = {
   recovery: [
     { q: L('When do muscles grow?', 'Quando crescono i muscoli?'), options: [L('During recovery, between workouts', 'Durante il recupero, tra un allenamento e l’altro'), L('During the workout', 'Durante l’allenamento')], answer: 0, why: L('Training is the signal; rest, sleep and food build the muscle.', 'L’allenamento è il segnale; riposo, sonno e cibo costruiscono il muscolo.') },
     { q: L('A deload week means…', 'Una settimana di scarico significa…'), options: [L('Halving the sets for a week', 'Dimezzare le serie per una settimana'), L('Stopping for a month', 'Fermarsi per un mese')], answer: 0, why: L('Every 6–10 weeks, lighter training lets joints and motivation recover.', 'Ogni 6–10 settimane un allenamento più leggero fa recuperare articolazioni e motivazione.') },
+  ],
+  tdee_weeks: [
+    { q: L('How long does a reliable measurement of your energy take?', 'Quanto serve per una misura affidabile della tua energia?'), options: [L('About 4 weeks of complete logs and weigh-ins', 'Circa 4 settimane di diario completo e pesate'), L('3 days', '3 giorni'), L('One weigh-in', 'Una pesata')], answer: 0, why: L('Water and weekends move the scale more than a week of real change: studies need about 28 days.', 'Acqua e fine settimana spostano la bilancia più di una settimana di cambiamento vero: gli studi indicano circa 28 giorni.') },
+    { q: L('Yesterday you logged only breakfast. What do you do?', 'Ieri hai registrato solo la colazione. Cosa fai?'), options: [L('Tell Forza! the day was not all logged', 'Segnali a Forza! che la giornata non è completa'), L('Nothing: it does not matter', 'Niente: non conta')], answer: 0, why: L('A half-logged day looks like a day of fasting and would make your energy look lower: Forza! leaves it out.', 'Una giornata registrata a metà sembra un digiuno e farebbe sembrare più bassa la tua energia: Forza! la lascia fuori.') },
+  ],
+  tdee_people: [
+    { q: L('Two people both weigh 70 kg. Do they use the same energy?', 'Due persone pesano entrambe 70 kg. Usano la stessa energia?'), options: [L('Not necessarily: muscle and daily movement change it a lot', 'Non per forza: muscolo e movimento quotidiano la cambiano molto'), L('Yes: weight decides', 'Sì: decide il peso')], answer: 0, why: L('In the example the difference is about 750 kcal a day, a whole meal.', 'Nell’esempio la differenza è di circa 750 kcal al giorno, un pasto intero.') },
+    { q: L('At rest, which uses more energy?', 'A riposo, cosa usa più energia?'), options: [L('1 kg of muscle', '1 kg di muscolo'), L('1 kg of fat', '1 kg di grasso')], answer: 0, why: L('About 13 kcal a day for muscle, against 4.5 for fat.', 'Circa 13 kcal al giorno per il muscolo, contro 4,5 per il grasso.') },
   ],
 }
