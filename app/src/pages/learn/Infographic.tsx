@@ -464,10 +464,11 @@ function BlockView({ block, lang, tone }: { block: Block; lang: Locale; tone: To
   }
 }
 
-/** One bar per item, its parts side by side with a thin gap; numbers inside the wide parts and all of them below. */
+/** One bar per item, its parts side by side with a thin gap; numbers inside the parts wide enough and all of them below. */
 function StackBars({ block, lang }: { block: Extract<Block, { type: 'stack' }>; lang: Locale }) {
   const L = (x: L10n) => x[lang]
-  const fmt = new Intl.NumberFormat(lang === 'it' ? 'it-IT' : 'en-GB').format
+  // Grouped like the lesson text ("1.900"), also the four-digit numbers Italian leaves ungrouped by default.
+  const fmt = new Intl.NumberFormat(lang === 'it' ? 'it-IT' : 'en-GB', { useGrouping: 'always' }).format
   const totals = block.items.map((it) => it.values.reduce((a, b) => a + b, 0))
   const max = Math.max(...totals)
   return (
@@ -508,7 +509,7 @@ function StackBars({ block, lang }: { block: Extract<Block, { type: 'stack' }>; 
                     className="grid min-w-0 place-items-center overflow-hidden text-xs font-bold text-white"
                     style={{ flex: `${x.v} 1 0`, background: TONES[x.part.tone].accent, borderRadius: j === parts.length - 1 ? '0 4px 4px 0' : 0 }}
                   >
-                    {x.v / totals[i] >= 0.12 ? fmt(x.v) : ''}
+                    {x.v / max >= 0.12 ? fmt(x.v) : ''}
                   </div>
                 ))}
               </div>
@@ -545,7 +546,7 @@ function ScaleDiagram({ lang }: { lang: Locale }) {
   return (
     <section>
       <h2 className="mb-2 text-lg font-extrabold">{tr('title')}</h2>
-      <svg viewBox="0 0 340 196" className="w-full" role="img" aria-label={tr('aria')}>
+      <svg viewBox="0 0 340 196" className="mx-auto w-full max-w-md" role="img" aria-label={tr('aria')}>
         {/* Week 1, the misleading one */}
         <rect x={x(-0.5)} y={8} width={x(6.5) - x(-0.5)} height={y(68.5) - 8} rx={6} fill={TONES.orange.bg} />
         {[69, 70].map((kg) => (
