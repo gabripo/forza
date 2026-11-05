@@ -47,8 +47,9 @@ italiano: la lingua si cambia in qualsiasi momento.*
   vengono letti per te.
 - 👨‍👩‍👧 **Cucini una volta, registri per tutti.** Condividi un pasto con chi l'ha mangiato, ognuno con la sua
   porzione; l'archivio degli alimenti di famiglia cresce con ogni pasto registrato.
-- 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, il dettaglio di
-  ogni pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
+- 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, un anello di
+  quanto porta ogni pasto all'obiettivo del giorno (calorie, proteine, carboidrati o grassi), il dettaglio di ogni
+  pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
 - 🔥 **Un obiettivo che impara da te.** L'energia che il corpo consuma è misurata sempre di più dai tuoi pasti e
   dalla tua bilancia, del tutto dopo circa 4 settimane di diario e pesate (due lezioni spiegano perché, e perché
   due persone dello stesso peso possono avere bisogno di 750 kcal di differenza); le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),
@@ -68,6 +69,7 @@ italiano: la lingua si cambia in qualsiasi momento.*
 | <img src="docs/screenshots/workout.jpg" width="200" alt="Allenamento"> | **Allenamenti per principianti.** Ogni esercizio ha foto, tre passi semplici e un video. I pesi sono **già compilati e salgono da soli** quando si diventa più forti. Serie di riscaldamento, superset, timer di recupero con suono e "quanto è stata dura?" per ogni serie. Funziona anche senza campo in palestra. Le idee principali rimandano agli studi che le sostengono. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progressi"> | **Progressi che tutti capiscono.** Tendenza del peso (smussata, così gli alti e bassi di ogni giorno non scoraggiano), forza guadagnata, costanza, passi, ognuno con un giudizio in parole e un consiglio concreto. Settimane di fila, record, foto dei progressi private e una scheda "condividi con la famiglia". |
 | <img src="docs/screenshots/voice.jpg" width="200" alt="Detta il pasto"> | **Oppure basta dirlo.** Tocca **Detta** e di' cosa hai mangiato («due uova, una fetta di pane e un caffè»): il riconoscimento vocale del telefono lo scrive, Forza! riconosce cibi e quantità sul telefono e chiede all'AI solo quelli che non conosce. Puoi correggere le parole, e i grammi solo se vuoi. |
+| <img src="docs/screenshots/meals.jpg" width="200" alt="Pasto per pasto"> | **Pasto per pasto.** Un anello è l'obiettivo dell'intera giornata: ogni colore è un pasto, il grigio è quello che manca. Passa da calorie a proteine, carboidrati e grassi per vedere cosa porta ogni pasto, oggi o in qualsiasi giorno passato. |
 | <img src="docs/screenshots/food.jpg" width="200" alt="Idea per il prossimo pasto"> | **Cosa mangiare dopo.** Dopo ogni pasto, un'idea per il successivo che porta quello che manca alla giornata (pollo e patate a pranzo? A cena grassi buoni), già dosata sulle calorie rimaste e registrabile con un tocco. |
 | <img src="docs/screenshots/barcode.jpg" width="200" alt="Codice a barre"> | **Il cibo in tre modi.** Una foto del piatto (l'AI stima ogni alimento), il **codice a barre** (Open Food Facts, milioni di prodotti) o a mano. Dopo una foto, Forza! dice prima **cosa fare** ("Aggiungi proteine!"), poi mostra i numeri; con un tocco rifai la foto o correggi a mano. Ogni piatto riceve un punteggio per perdere grasso e per aumentare i muscoli. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Obiettivo di calorie"> | **Un obiettivo di calorie che si spiega da solo.** Cinque passaggi con i propri numeri: energia a riposo, camminata e allenamento (dai passi del telefono), la verifica con la bilancia, l'obiettivo e come si dividono le calorie tra proteine, grassi e carboidrati. |
@@ -84,6 +86,7 @@ lezioni, passi, pasti registrati), mai per il peso: anche chi comincia può supe
 | | |
 |---|---|
 | <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** funziona sul tuo computer (Mac, Windows o Linux). Configura tutto per te, crea gli account e mostra di ognuno peso, forza, allenamenti, pasti e check-in. Modifichi la scheda da casa: compare sul telefono alla prossima apertura. Aggiungi chiavi AI di più servizi (Gemini, OpenRouter, …) e scegli in che ordine le foto del cibo le provano. |
+| <img src="docs/screenshots/coach-day.jpg" width="420" alt="Qualsiasi giorno, pasto per pasto"> | **Qualsiasi giorno, pasto per pasto.** Scegli un giorno (o torna indietro di uno alla volta) per vedere cosa ha mangiato rispetto agli obiettivi, con lo stesso anello del telefono e le calorie, le proteine, i carboidrati e i grassi di ogni pasto. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Accesso con codice QR"> | **Nessuna password da ricordare.** Crei un codice QR, la persona lo inquadra con la fotocamera e Forza! si apre già con l'accesso fatto. Puoi stamparlo su un biglietto di benvenuto con le istruzioni. |
 | <img src="docs/screenshots/coach-import.jpg" width="420" alt="Importazione da Build With Science"> | **Porta con te lo storico e tienilo aggiornato.** Collega il telefono Android (cavo o Wi-Fi) e Coach importa da Build With Science ogni allenamento con serie e sforzo, la scheda settimanale e l'obiettivo. Con la sincronizzazione automatica i nuovi allenamenti arrivano da soli. |
 

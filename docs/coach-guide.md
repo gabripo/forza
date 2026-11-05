@@ -195,7 +195,10 @@ Open Forza! Coach whenever you like:
 
 - **Overview**: weight trend, strength gained per exercise, workouts, steps, lessons read, calorie check-ins,
   and the **daily targets** (calories, protein, carbohydrates, fat, saturated fat, fibre, salt): the middle their
-  phone shows, the range around it, and what they ate today (in red past the saturated fat or salt limit).
+  phone shows, the range around it, and what they ate today (in red past the saturated fat or salt limit). Pick
+  another day with the date, **Day before** and **Day after**, or go back with **Today**. Under it, **Meal by meal**:
+  the same ring as on their phone (the whole ring is the day's target, each colour a meal, grey the rest) for
+  calories, protein, carbs or fat, and a table with every meal's values and their share of the target.
 - **Workout plan**: change exercises, sets, repetitions, rest, days of the week, supersets. Their phone gets
   the new plan the next time they open the app. Every save keeps the previous version (**Versions** → **Restore**).
   To give someone a workout that works for another person, pick the person next to the workout and click

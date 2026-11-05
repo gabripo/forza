@@ -502,6 +502,17 @@ export const en = {
     addMissing: 'Add what is missing',
     save: 'Save the correction',
   },
+  mealSplit: {
+    title: 'Meal by meal',
+    text: 'The whole ring is the day’s target: each colour is a meal, grey is the rest of the target.',
+    textOver: 'Each colour is a meal. Past the target, the whole ring is all that was eaten, and the line across it marks the target.',
+    what: 'What to show',
+    ofTarget: '{p}% of the target',
+    ofTargetShort: 'of the target',
+    rest: 'Rest of the target',
+    over: 'Over the target',
+    aria: '{what} by meal: {list}',
+  },
   mealSheet: {
     title: '{meal}: what it brings',
     details: 'Details',

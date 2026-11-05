@@ -9,6 +9,7 @@ import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
 import { MealAnomalyCards } from '../../components/MealAnomalies'
+import { MealBreakdown } from '../../components/MealBreakdown'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
 import { SharedCopies } from '../../components/SharedCopies'
 import { NextMealCard } from '../../components/NextMealCard'
@@ -301,6 +302,9 @@ export function FoodHome() {
           </p>
         ) : null}
       </Card>
+
+      {/* What each meal brings to the day's target. */}
+      {entries.length ? <MealBreakdown entries={entries} targets={tg} /> : null}
 
       {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}
 

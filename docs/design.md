@@ -300,7 +300,15 @@ dinner); Coach can do the same.
 
 **Each meal and the whole day.** Each logged food shows calories and protein, then the other values on a
 smaller second line (values a synced meal did not bring are left out, not shown as 0). Each meal shows its
-totals, and **Details** opens every value of the meal with its share of the day's target, food by food. Above
+totals, and **Details** opens every value of the meal with its share of the day's target, food by food. Under
+the day's numbers, **Meal by meal** draws the target as a ring: one arc per meal in the order of the day
+(breakfast, lunch, snack, dinner, clockwise from the top), the rest of the target in grey, and a list with each
+meal's value and share of the target; calories, protein, carbs or fat. Past the target the ring is all that was
+eaten, and a line across it marks the target. Pointing at an arc or a meal (or touching it) fades the others and
+reads it in the middle. The meal colours (yellow, magenta, green, violet) were checked as neighbours on the ring,
+dinner next to breakfast too, for colour-blind readers in light and dark mode; none is the red of warnings, and
+each meal is also named with its value. Coach's overview has the same ring under the daily targets, for any day
+the coach picks (days older than the month it loads come from `GET /api/users/:id/food-day`). Above
 the meals, **The whole day** (snacks included) gives a 0–100 score and what went well or could be added:
 energy in its range 30, protein 30, fibre 20, saturated fat under the limit 20; today is judged on the hours
 gone by (about 20% of the day by 9, all of it by 21), with gentler words while the day is not over. Home shows

@@ -209,6 +209,16 @@ function targetsOverTime(db, id, profile, energy, data) {
   }
 }
 
+/** One day's meals (in this computer's time zone), for a day older than the month the overview loads. */
+async function foodDay(id, query) {
+  const day = query.get('day') ?? ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw badRequest('Choose a day')
+  const start = new Date(`${day}T00:00:00`)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  return { day, food: check(await need().from('food_logs').select('id, meal, title, eaten_at, kcal, protein_g, carbs_g, fat_g, fiber_g, satfat_g, salt_g').eq('user_id', id).gte('eaten_at', start.toISOString()).lt('eaten_at', end.toISOString()).order('eaten_at')) }
+}
+
 async function userData(id) {
   const db = need()
   const year = new Date(Date.now() - 365 * 86_400_000).toISOString()
@@ -649,6 +659,7 @@ const routes = [
   ['POST', /^\/api\/users$/, (_m, body) => createUser(body)],
   ['GET', /^\/api\/users\/([\w-]+)$/, (m) => userData(m[1])],
   ['GET', /^\/api\/users\/([\w-]+)\/progress$/, (m, _body, query) => progressData(m[1], query)],
+  ['GET', /^\/api\/users\/([\w-]+)\/food-day$/, (m, _body, query) => foodDay(m[1], query)],
   ['PUT', /^\/api\/users\/([\w-]+)\/profile$/, (m, body) => saveProfile(m[1], body)],
   ['POST', /^\/api\/users\/([\w-]+)\/signin-code$/, (m) => signInCode(m[1])],
   [

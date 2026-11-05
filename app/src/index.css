@@ -37,6 +37,11 @@
   --macro-carbs: #eb6834;
   --macro-fat: #eda100;
   --macro-fiber: #1baf7a;
+  /* meals, in the order of the day (validated as neighbours on a ring, dinner next to breakfast too) */
+  --meal-breakfast: #eda100;
+  --meal-lunch: #e87ba4;
+  --meal-snack: #008300;
+  --meal-dinner: #6250d6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -70,6 +75,10 @@
     --macro-carbs: #d95926;
     --macro-fat: #c98500;
     --macro-fiber: #199e70;
+    --meal-breakfast: #c98500;
+    --meal-lunch: #d55181;
+    --meal-snack: #008300;
+    --meal-dinner: #9085e9;
   }
 }
 
