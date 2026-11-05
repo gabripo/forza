@@ -272,11 +272,15 @@ if (process.env.COACH_URL) {
   await page.waitForTimeout(600)
   await shot('coach', () => save(page, 'coach'))
   await shot('coach-day', async () => {
-    // Yesterday, meal by meal: any day can be picked.
+    // Yesterday, meal by meal: any day can be picked. A window tall enough for the whole card, so the sticky top
+    // bar never lands on it; then back to the usual one, at the top of the page.
+    await page.setViewportSize({ width: 1200, height: 1400 })
     const card = page.locator('.card', { has: page.getByRole('heading', { name: 'Daily targets', exact: true }) })
     await card.getByRole('button', { name: '‹ Day before' }).click()
     await card.getByRole('heading', { name: 'Meal by meal' }).waitFor()
     await card.screenshot({ path: join(OUT, 'coach-day.jpg'), type: 'jpeg', quality: 82 })
+    await page.setViewportSize({ width: 1200, height: 808 })
+    await page.evaluate(() => window.scrollTo(0, 0))
   })
   await shot('coach-signin', async () => {
     await page.getByRole('button', { name: 'Sign in a phone' }).click()
