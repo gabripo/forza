@@ -204,7 +204,10 @@ Apri Forza! Coach quando vuoi:
 - **Overview**: andamento del peso, forza guadagnata per esercizio, allenamenti, passi, lezioni lette,
   check-in delle calorie e gli **obiettivi del giorno** (calorie, proteine, carboidrati, grassi, grassi saturi,
   fibre, sale): il centro che vede sul telefono, l'intervallo attorno e quello che ha mangiato oggi (in rosso oltre
-  il limite di grassi saturi o di sale).
+  il limite di grassi saturi o di sale). Scegli un altro giorno con la data, **Day before** e **Day after**, o torna a
+  oggi con **Today**. Sotto, **Meal by meal**: lo stesso anello del telefono (l'anello intero è l'obiettivo del
+  giorno, ogni colore un pasto, il grigio quello che manca) per calorie, proteine, carboidrati o grassi, e una tabella
+  con i valori di ogni pasto e la loro quota dell'obiettivo.
 - **Workout plan**: cambia esercizi, serie, ripetizioni, recupero, giorni della settimana, superset. Il
   telefono riceve la nuova scheda alla prossima apertura dell'app. Ogni salvataggio conserva la versione
   precedente (**Versions** → **Restore**).

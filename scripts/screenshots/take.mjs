@@ -215,6 +215,19 @@ await shot('day', async () => {
   await close()
 })
 
+await shot('meals', async () => {
+  const { page, close } = await phone(px(1005))
+  await open(page, '/food')
+  // What each meal brings to the day's target, under the day's numbers.
+  await page.getByRole('heading', { name: 'Meal by meal' }).evaluate((el) => {
+    el.scrollIntoView({ block: 'start' })
+    window.scrollBy(0, -120)
+  })
+  await page.waitForTimeout(300)
+  await save(page, 'meals')
+  await close()
+})
+
 await shot('consistency', async () => {
   const { page, close } = await phone(px(1005))
   await open(page, '/food')
@@ -258,6 +271,13 @@ if (process.env.COACH_URL) {
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(600)
   await shot('coach', () => save(page, 'coach'))
+  await shot('coach-day', async () => {
+    // Yesterday, meal by meal: any day can be picked.
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'Daily targets', exact: true }) })
+    await card.getByRole('button', { name: '‹ Day before' }).click()
+    await card.getByRole('heading', { name: 'Meal by meal' }).waitFor()
+    await card.screenshot({ path: join(OUT, 'coach-day.jpg'), type: 'jpeg', quality: 82 })
+  })
   await shot('coach-signin', async () => {
     await page.getByRole('button', { name: 'Sign in a phone' }).click()
     await page.getByRole('button', { name: /sign-in code/ }).click()

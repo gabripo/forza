@@ -504,6 +504,17 @@ export const it: Dict = {
     addMissing: 'Aggiungi quello che manca',
     save: 'Salva la correzione',
   },
+  mealSplit: {
+    title: 'Pasto per pasto',
+    text: 'L’anello intero è l’obiettivo del giorno: ogni colore è un pasto, il grigio è quello che manca.',
+    textOver: 'Ogni colore è un pasto. Oltre l’obiettivo, l’anello intero è tutto quello che è stato mangiato e la linea di traverso segna l’obiettivo.',
+    what: 'Cosa mostrare',
+    ofTarget: '{p}% dell’obiettivo',
+    ofTargetShort: 'dell’obiettivo',
+    rest: 'Mancano',
+    over: 'Oltre l’obiettivo',
+    aria: '{what} per pasto: {list}',
+  },
   mealSheet: {
     title: '{meal}: cosa porta',
     details: 'Dettagli',

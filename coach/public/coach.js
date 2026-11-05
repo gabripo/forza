@@ -150,14 +150,36 @@ function detailView() {
     </div>${body}`
 }
 
-/** The daily targets as their phone shows them, and how they come about. */
+/**
+ * The day the targets card reads: today, or the one the coach picked. The overview has their last 30 days of meals;
+ * an older day is loaded when picked.
+ */
+function pickedDay(d) {
+  const today = dayKey(new Date())
+  const day = state.foodDay && state.foodDay < today ? state.foodDay : today
+  if (day >= dayKey(new Date(Date.now() - 29 * 86_400_000))) return { day, today, eaten: d.food.filter((f) => dayKey(new Date(f.eaten_at)) === day) }
+  const key = `${state.selected}:${day}`
+  if (state.foodDayData?.key === key) return { day, today, eaten: state.foodDayData.food ?? [], waiting: state.foodDayData.error ?? '' }
+  if (state.foodDayLoading !== key) {
+    state.foodDayLoading = key
+    api(`/api/users/${state.selected}/food-day?day=${day}`)
+      .then((x) => (state.foodDayData = { key, food: x.food }))
+      .catch((err) => (state.foodDayData = { key, error: err.message }))
+      .finally(() => {
+        state.foodDayLoading = null
+        render()
+      })
+  }
+  return { day, today, eaten: [], waiting: 'Loading…' }
+}
+
+/** The daily targets as their phone shows them, how they come about, and what they ate on a day. */
 function targetsView(d) {
   const e = d.energy
   if (!e) return ''
   const t = e.targets
   const pr = p(d)
-  const today = new Date().toDateString()
-  const eaten = d.food.filter((f) => new Date(f.eaten_at).toDateString() === today)
+  const { day, today, eaten, waiting } = pickedDay(d)
   const sum = (k) => eaten.reduce((s, f) => s + Number(f[k] ?? 0), 0)
   const pct = (g, kcalPerG) => (t.kcal ? Math.round(((g * kcalPerG) / t.kcal) * 100) : 0)
   const span = (r, unit) => (r ? `${fmtNum(r[0])}–${fmtNum(r[1])} ${unit}` : '')
@@ -179,10 +201,87 @@ function targetsView(d) {
         : `Forza!: ${fmtNum(e.tdee.tdee)} kcal used a day (${e.tdee.method === 'blended' ? 'formula and food log' : e.tdee.method === 'steps_and_workouts' ? 'from steps and workouts' : 'from the activity level'}), ${pr.goal === 'maintain' ? 'kept' : `${pr.goal_pace ?? 'normal'} pace`}${pr.kcal_adjust ? `, check-ins ${pr.kcal_adjust > 0 ? '+' : ''}${pr.kcal_adjust}` : ''}${pr.kcal_manual ? `, adjustment ${pr.kcal_manual > 0 ? '+' : ''}${pr.kcal_manual}` : ''}`
   return `<div class="card"><h2>Daily targets</h2>
     <p class="muted small">${esc(source)}. Each target is a range; their phone shows the middle. Change them in Profile; they can change them too in Food → Adjust.</p>
-    <table><thead><tr><th></th><th class="num">Middle</th><th class="num">Range</th><th></th><th class="num">Eaten today</th></tr></thead><tbody>
-      <tr><td><b>Calories</b></td><td class="num"><b>${fmtNum(t.kcal)} kcal</b></td><td class="num">${span(r.kcal, 'kcal')}</td><td class="small muted">${pr.kcal_source === 'manual' ? '' : `body uses about ${fmtNum(e.tdee.tdee)}`}</td><td class="num">${fmtNum(sum('kcal'))}</td></tr>
-      ${rows.map(([label, v, unit, range, note, today, over]) => `<tr><td>${label}</td><td class="num">${fmtNum(v)} ${unit}</td><td class="num small">${range}</td><td class="small muted">${note}</td><td class="num">${over ? '<span class="pill warn">' : ''}${fmtNum(today, 1)} ${unit}${over ? '</span>' : ''}</td></tr>`).join('')}
-    </tbody></table></div>`
+    <div class="row no-print" style="margin-bottom:8px">
+      <button class="btn small secondary" data-action="food-day" data-step="-1">‹ Day before</button>
+      <input type="date" id="food-day" value="${day}" max="${today}" aria-label="Day">
+      <button class="btn small secondary" data-action="food-day" data-step="1"${day === today ? ' disabled' : ''}>Day after ›</button>
+      ${day === today ? '' : '<button class="btn small secondary" data-action="food-day" data-step="0">Today</button>'}
+    </div>
+    <table><thead><tr><th></th><th class="num">Middle</th><th class="num">Range</th><th></th><th class="num">${day === today ? 'Eaten today' : `Eaten on ${fmtDate(`${day}T12:00:00`, { weekday: 'short', day: 'numeric', month: 'short' })}`}</th></tr></thead><tbody>
+      <tr><td><b>Calories</b></td><td class="num"><b>${fmtNum(t.kcal)} kcal</b></td><td class="num">${span(r.kcal, 'kcal')}</td><td class="small muted">${pr.kcal_source === 'manual' ? '' : `body uses about ${fmtNum(e.tdee.tdee)}`}</td><td class="num">${waiting ? '…' : fmtNum(sum('kcal'))}</td></tr>
+      ${rows.map(([label, v, unit, range, note, eatenThen, over]) => `<tr><td>${label}</td><td class="num">${fmtNum(v)} ${unit}</td><td class="num small">${range}</td><td class="small muted">${note}</td><td class="num">${waiting ? '…' : `${over ? '<span class="pill warn">' : ''}${fmtNum(eatenThen, 1)} ${unit}${over ? '</span>' : ''}`}</td></tr>`).join('')}
+    </tbody></table>
+    ${waiting ? `<p class="muted">${esc(waiting)}</p>` : mealSplitView(eaten, t)}
+  </div>`
+}
+
+// In the order of the day: the arcs follow it clockwise from the top.
+const DAY_MEALS = [
+  ['breakfast', 'Breakfast'],
+  ['lunch', 'Lunch'],
+  ['snack', 'Snack'],
+  ['dinner', 'Dinner'],
+]
+const SPLIT = [
+  ['kcal', 'Calories', 'kcal'],
+  ['protein_g', 'Protein', 'g'],
+  ['carbs_g', 'Carbs', 'g'],
+  ['fat_g', 'Fat', 'g'],
+]
+
+/**
+ * What each meal of the day brings to the day's target, as on their phone: the whole ring is the target (or all that
+ * was eaten, past it), one arc per meal, the rest of the target in grey. The table has every meal's numbers.
+ */
+function mealSplitView(eaten, t) {
+  const meals = DAY_MEALS.filter(([m]) => eaten.some((f) => f.meal === m))
+  if (!meals.length) return '<p class="muted">Nothing logged on this day.</p>'
+  const n = state.mealSplit ?? 'kcal'
+  const [, name, unit] = SPLIT.find(([k]) => k === n)
+  const of = (m, k) => eaten.filter((f) => f.meal === m).reduce((s, f) => s + (Number(f[k]) || 0), 0)
+  const pct = (v, k) => (t[k] > 0 ? Math.round((v / t[k]) * 100) : 0)
+  const target = t[n]
+  const parts = meals.map(([m, label]) => ({ m, label, v: of(m, n) }))
+  const total = parts.reduce((s, x) => s + x.v, 0)
+  const whole = Math.max(target, total, 1)
+  const S = 200
+  const W = 28
+  const R = (S - W) / 2
+  const C = 2 * Math.PI * R
+  const c = S / 2
+  // A line across the ring at fraction f of the way round, clockwise from the top.
+  const across = (f, out, stroke, width) => {
+    const [a, b] = [R - W / 2 - out, R + W / 2 + out].map((r) => [c + r * Math.sin(2 * Math.PI * f), c - r * Math.cos(2 * Math.PI * f)].map((v) => v.toFixed(2)))
+    return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round"/>`
+  }
+  const arcs = parts.map((x, i) => ({ ...x, start: parts.slice(0, i).reduce((s, y) => s + y.v, 0) / whole, len: x.v / whole })).filter((a) => a.len > 0)
+  const rest = Math.max(0, target - total)
+  // A 2px gap of the card's colour between neighbours: between meals, and between the meals and the grey rest.
+  const gaps = arcs.length > 1 || (arcs.length && rest > 0) ? [...arcs.map((a) => a.start), ...(rest > 0 ? [total / whole] : [])] : []
+  const said = (x) => `${x.label}: ${fmtNum(x.v)} ${unit}, ${pct(x.v, n)}% of the target`
+  const ring = `<svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="${esc(`${name} by meal. ${parts.map(said).join('; ')}`)}">
+    <circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="var(--card-2)" stroke-width="${W}"/>
+    ${arcs.map((a) => `<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="var(--meal-${a.m})" stroke-width="${W}" stroke-dasharray="${(a.len * C).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-a.start * C).toFixed(2)}" transform="rotate(-90 ${c} ${c})"><title>${esc(said(a))}</title></circle>`).join('')}
+    ${gaps.map((f) => across(f, 1, 'var(--card)', 2)).join('')}
+    ${total > target && target > 0 ? across(target / whole, 4, 'var(--card)', 6) + across(target / whole, 4, 'var(--ink)', 2) : ''}
+    <text x="${c}" y="${c + 6}" text-anchor="middle" font-size="30" font-weight="800" fill="var(--ink)">${pct(total, n)}%</text>
+    <text x="${c}" y="${c + 26}" text-anchor="middle" font-size="12" fill="var(--ink-2)">of the target</text>
+  </svg>`
+  const cell = (v, k, u) => `<td class="num${k === n ? ' on' : ''}">${fmtNum(v)} ${u} <span class="muted small">${pct(v, k)}%</span></td>`
+  const left = (k, u) => {
+    const v = meals.reduce((s, [m]) => s + of(m, k), 0) - t[k]
+    return `<td class="num${k === n ? ' on' : ''}">${v > 0 ? `<span class="pill warn">+${fmtNum(v)} ${u}</span>` : `${fmtNum(-v)} ${u}`}</td>`
+  }
+  return `<h3 style="margin-top:16px">Meal by meal</h3>
+    <p class="muted small">${total > target ? 'Each colour is a meal. Past the target, the whole ring is all that was eaten, and the line across it marks the target.' : "The whole ring is the day's target: each colour is a meal, grey is the rest of the target."} Point at a colour to read it.</p>
+    <div class="row no-print" style="margin-bottom:8px">${SPLIT.map(([k, label]) => `<button class="btn small ${k === n ? '' : 'secondary'}" data-action="split-nutrient" data-k="${k}">${label}</button>`).join('')}</div>
+    <div class="meal-split">${ring}
+      <table><thead><tr><th>Meal</th>${SPLIT.map(([k, label]) => `<th class="num${k === n ? ' on' : ''}">${label}</th>`).join('')}</tr></thead><tbody>
+        ${meals.map(([m, label]) => `<tr><td><span class="swatch" style="background:var(--meal-${m})"></span>${label}</td>${SPLIT.map(([k, , u]) => cell(of(m, k), k, u)).join('')}</tr>`).join('')}
+        <tr class="sum"><td>Whole day</td>${SPLIT.map(([k, , u]) => cell(meals.reduce((s, [m]) => s + of(m, k), 0), k, u)).join('')}</tr>
+        <tr><td class="muted"><span class="swatch rest"></span>Rest of the target</td>${SPLIT.map(([k, , u]) => left(k, u)).join('')}</tr>
+      </tbody></table>
+    </div>`
 }
 
 function overview(d) {
@@ -1913,6 +2012,10 @@ app.addEventListener('change', async (e) => {
     }
     return render()
   }
+  if (e.target.id === 'food-day') {
+    state.foodDay = e.target.value || null
+    return render()
+  }
   if (e.target.id === 'dash-exercise') {
     state.dash.exercise = e.target.value
     return render()
@@ -2192,6 +2295,17 @@ app.addEventListener('click', async (e) => {
     if (action.startsWith('kb-') || action.startsWith('tip-')) return knowledgeAction(action, btn)
     if (action.startsWith('meal-')) return mealAction(action, btn)
     if (action.startsWith('ses-')) return sessionAction(action, btn)
+    if (action === 'food-day') {
+      const step = Number(btn.dataset.step)
+      const at = new Date(`${pickedDay(state.data).day}T12:00:00`)
+      at.setDate(at.getDate() + step)
+      state.foodDay = step && dayKey(at) < dayKey(new Date()) ? dayKey(at) : null
+      return render()
+    }
+    if (action === 'split-nutrient') {
+      state.mealSplit = btn.dataset.k
+      return render()
+    }
     if (action === 'dash-metric' || action === 'dash-range') {
       state.dash = { ...state.dash, ...(action === 'dash-metric' ? { metric: btn.dataset.k } : { range: Number(btn.dataset.r) }) }
       return render()

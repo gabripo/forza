@@ -45,8 +45,9 @@ and adjust their plan from your own computer.
   variant of your own (less butter, another vegetable) is one tap away.
 - 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own percentage of it; the family's
   food database grows with every meal anyone logs.
-- 🧭 **The day and the week at a glance.** A kind score for the whole day, each meal's breakdown, one sentence of
-  encouragement on Home, and every week "What happened last week".
+- 🧭 **The day and the week at a glance.** A kind score for the whole day, a ring of what each meal brings to the
+  day's target (calories, protein, carbs or fat), each meal's breakdown, one sentence of encouragement on Home, and
+  every week "What happened last week".
 - 🔥 **A target that learns from you.** The energy your body uses is measured more and more from your own food
   and scale, fully after about 4 weeks of logs and weigh-ins (two lessons explain why, and why two people of
   the same weight can need 750 kcal apart); days not all logged are left out (you are asked, and can change it later), intermittent fasting
@@ -65,6 +66,7 @@ and adjust their plan from your own computer.
 | <img src="docs/screenshots/workout.jpg" width="200" alt="Workout"> | **Workouts for beginners.** Every exercise has photos, three simple steps and a video. Weights are **pre-filled and go up automatically** when they get stronger. Warm-up sets, supersets, a rest timer with sound, and "how hard was it?" for each set. Works without signal in the gym. The main ideas link to the studies behind them. |
 | <img src="docs/screenshots/progress.jpg" width="200" alt="Progress"> | **Progress anyone can understand.** Weight trend (smoothed, so daily ups and downs don't discourage), strength gained, consistency, steps, each with a verdict in words and one concrete tip. Streaks, records, private progress photos and a "share with family" card. |
 | <img src="docs/screenshots/voice.jpg" width="200" alt="Dictate a meal"> | **Or just say it.** Tap **Dictate** and say what you ate (“two eggs, a slice of bread and a coffee”): the phone's own speech recognition writes it down, Forza! recognises the foods and amounts on the phone, and asks the AI only about the ones it does not know. Fix the words, and the grams only if you want to. |
+| <img src="docs/screenshots/meals.jpg" width="200" alt="Meal by meal"> | **Meal by meal.** A ring is the whole day's target: each colour is a meal, grey is what is left. Switch between calories, protein, carbs and fat to see which meal brings what, today or any past day. |
 | <img src="docs/screenshots/food.jpg" width="200" alt="Next meal idea"> | **What to eat next.** After each meal, an idea for the next one that brings what the day is missing (chicken and potatoes for lunch? Dinner with healthy fats), already sized to the calories left and one tap away from logging. |
 | <img src="docs/screenshots/barcode.jpg" width="200" alt="Barcode"> | **Food in three ways.** Snap a photo of the plate (AI estimates every item), **scan a barcode** (Open Food Facts, millions of products), or add it by hand. After a photo, Forza! first says **what to do** ("Add some protein!"), then shows the numbers; one tap retakes the photo or fixes it by hand. Every plate gets a score for losing fat and for building muscle. |
 | <img src="docs/screenshots/calories.jpg" width="200" alt="Calorie target"> | **A calorie target that explains itself.** Five steps with their own numbers: energy at rest, walking and training (from the phone's steps), a reality check with the scale, the goal, and how calories split into protein, fat and carbs. |
@@ -81,6 +83,7 @@ never for weight, so a beginner can beat the family athlete.
 | | |
 |---|---|
 | <img src="docs/screenshots/coach.jpg" width="420" alt="Forza! Coach"> | **Forza! Coach** runs on your computer (Mac, Windows or Linux). It sets everything up for you, creates the accounts, and shows each person's weight, strength, workouts, meals and check-ins. Edit their workout plan from home: it appears on their phone at the next opening. Add AI keys from several services (Gemini, OpenRouter, …) and choose the order in which food photos try them. |
+| <img src="docs/screenshots/coach-day.jpg" width="420" alt="Any day, meal by meal"> | **Any day, meal by meal.** Pick a day (or step back one at a time) to see what they ate against their targets, with the same ring as their phone and every meal's calories, protein, carbs and fat. |
 | <img src="docs/screenshots/coach-signin.jpg" width="420" alt="Sign in with a QR code"> | **No passwords for them.** Make a QR code, they point the phone camera at it, and Forza! opens already signed in. Print it on a welcome card with simple instructions. |
 | <img src="docs/screenshots/coach-import.jpg" width="420" alt="Import from Build With Science"> | **Bring their history, and keep it in sync.** Connect their Android phone (cable or Wi-Fi) and Coach imports every workout, set and effort, the weekly plan and the goal from Build With Science. Turn on automatic sync and new workouts follow by themselves. |
 

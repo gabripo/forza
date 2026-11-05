@@ -15,6 +15,11 @@
   --series: #2a78d6;
   --muted-series: #b9b6ad;
   --grid: #e1e0d9;
+  /* meals, in the order of the day (as in the app) */
+  --meal-breakfast: #eda100;
+  --meal-lunch: #e87ba4;
+  --meal-snack: #008300;
+  --meal-dinner: #6250d6;
   color-scheme: light;
 }
 * {
@@ -487,4 +492,36 @@ details summary {
   background: #eaf7ee;
   color: #15803d;
   text-align: center;
+}
+/* What each meal brings to the day's target: the ring, then the table. */
+.meal-split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+.meal-split svg {
+  flex: none;
+}
+.meal-split table {
+  flex: 1;
+  min-width: 360px;
+}
+.meal-split .on {
+  font-weight: 700;
+}
+.meal-split .sum td {
+  border-top: 2px solid var(--line);
+  font-weight: 600;
+}
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+}
+.swatch.rest {
+  background: var(--card-2);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
