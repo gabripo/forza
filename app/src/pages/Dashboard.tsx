@@ -5,6 +5,7 @@ import { BarChart, MacroBar, Ring } from '../components/charts'
 import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
+import { MealAnomalyCards } from '../components/MealAnomalies'
 import { WeekSummaryCard } from '../components/WeekSummary'
 import { WeighInCard } from '../components/WeighInCard'
 import { LogWeightSheet } from '../components/LogWeightSheet'
@@ -446,6 +447,9 @@ export function Dashboard() {
 
       {/* The weigh-in of the day: in the morning, and on an iPhone one tap to bring it from Apple Health. */}
       <WeighInCard weighedToday={view.weighedToday} iphoneSync={view.iphoneSync} scaleSynced={view.scaleSynced} onLog={() => setLogOpen(true)} />
+
+      {/* A meal that looks logged by mistake: asked until it is corrected or said to be right. */}
+      <MealAnomalyCards food={view.food} onChanged={() => void reload()} limit={1} moreTo="/food" />
 
       {/* Once a week, for a week logged well enough: what happened, and how the target moved. */}
       {view.week ? <WeekSummaryCard summary={view.week} onChanged={() => void reload()} /> : null}

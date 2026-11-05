@@ -334,6 +334,22 @@ export interface PlateTotals {
   satfat_g?: number
 }
 
+/** A food with its amount, and every value with it, times k. */
+export function scaleItem(it: FoodItem, k: number): FoodItem {
+  return {
+    ...it,
+    grams: Math.round(it.grams * k),
+    kcal: Math.round(it.kcal * k),
+    protein_g: round1(it.protein_g * k),
+    carbs_g: round1(it.carbs_g * k),
+    fat_g: round1(it.fat_g * k),
+    fiber_g: round1(it.fiber_g * k),
+    sugar_g: round1(it.sugar_g * k),
+    ...(it.salt_g != null ? { salt_g: Math.round(it.salt_g * k * 100) / 100 } : {}),
+    ...(it.satfat_g != null ? { satfat_g: round1(it.satfat_g * k) } : {}),
+  }
+}
+
 export function sumItems(items: FoodItem[]): PlateTotals {
   const t = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
   let salt: number | null = null

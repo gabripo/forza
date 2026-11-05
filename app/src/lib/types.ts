@@ -161,6 +161,8 @@ export interface FoodLog {
   /** A shared copy: the person who shared it (who can change it) and the meal it was copied from. */
   shared_by?: string | null
   shared_from?: string | null
+  /** When the person looked at this meal after it was found odd (corrected or confirmed): not asked again. */
+  checked_at?: string | null
 }
 
 /** A copy of one of this person's meals, shared with someone in the family. */

@@ -267,6 +267,17 @@ label or typed in replace what the AI had guessed, never the other way round. Wh
 - **A meal that looks like a mistake is checked.** Over 1,000 kcal or 100 g of protein in a single meal (an
   extra zero, three scoops heard as 300 g, a product taken for another), a warning under **Save meal** lists
   the foods that weigh most on it; the first tap asks to check the amounts, the second saves (`mealCheck.ts`).
+- **Odd meals are asked about until answered.** Meals of the last week are looked at when they are logged and
+  again once each meal is over: breakfast at 10:00, lunch at 15:30, dinner (and the snacks) at 21:30, also
+  while the app stays open, so meals arriving from another app, a family member or Coach are looked at too
+  (`mealAnomaly.ts`). Odd is: a meal whose name says foods it holds none of, and under half as rich as they
+  would be ("Taralli classici" logged as 3 g of breadsticks; the foods of the name come ready as the fix);
+  a main meal under a quarter of the person's usual one (the middle of that meal over the 4 weeks before, or a
+  typical meal until 5 are logged, never against a usual under 200 kcal, so a coffee breakfast is no mistake);
+  a meal from elsewhere over 1,000 kcal or 100 g of protein and twice the usual. A card on Home (the first
+  one) and on the Food page asks "Shall we correct it?": **Yes** opens the meal's foods to change amounts or
+  take foods out (and, for today, to add what is missing); **No, it is right** keeps it. Either way the meal
+  is marked `checked_at` and never asked about again; a meal from another app is corrected there.
 - **A larger database.** "Search more online" looks the words up in **Open Food Facts** (millions of products,
   many Italian) through the `food-search` function, because its search service does not answer web pages
   directly; a product picked there joins the family database too.

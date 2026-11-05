@@ -8,6 +8,7 @@ import { CopiedNotice } from '../../components/CopyMeal'
 import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
+import { MealAnomalyCards } from '../../components/MealAnomalies'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
 import { SharedCopies } from '../../components/SharedCopies'
 import { NextMealCard } from '../../components/NextMealCard'
@@ -19,6 +20,7 @@ import { calorieCheckin, daysAgo, localDay, scoreBand, scorePlate, sodiumMg } fr
 import { copySuggestion, useMealCopy } from '../../lib/copyMeal'
 import { deleteFood, deleteSharedCopies, getSharedCopies, setFoodDay, updateFood } from '../../lib/data'
 import { INCOMPLETE_SHARE } from '../../lib/energy'
+import { isSynced } from '../../lib/mealAnomaly'
 import { stillSkipped, totalsOf } from '../../lib/dayCheck'
 import { useI18n } from '../../lib/i18n'
 import type { FoodLog, Meal, SharedCopy } from '../../lib/types'
@@ -26,9 +28,6 @@ import { balancedDays } from '../../lib/rewards'
 import { useEnergy } from '../../lib/useEnergy'
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
-
-/** From another app (Health Connect, or Build With Science read on the phone): changed there, not here. */
-const isSynced = (e: FoodLog) => e.source === 'health_connect' || (e.source === 'import' && Boolean(e.origin))
 
 export function FoodHome() {
   const { t, num, date, locale } = useI18n()
@@ -150,6 +149,8 @@ export function FoodHome() {
           <Share2 className="size-5" aria-hidden /> {t('share.ask')}
         </Button>
       ) : null}
+      {/* Meals that look logged by mistake: right after logging, and once each meal is over. */}
+      <MealAnomalyCards food={food} onChanged={() => void reload()} />
       {!justLogged && offset === 0 ? <DayQuestionCard food={food} notes={notes} targets={tg} onAnswered={() => void reload()} /> : null}
 
       <div className="grid grid-cols-2 gap-2">

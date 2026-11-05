@@ -1,7 +1,7 @@
 // All reads and writes to Supabase live here, so pages stay simple.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import catalogue from '../data/exercises.json'
-import { daysAgo, localDay } from './calc'
+import { daysAgo, localDay, sumItems } from './calc'
 import { supabase } from './supabase'
 import type { WorkoutMove } from './plan'
 import type { QuizAnswer } from './pointsQuiz'
@@ -412,6 +412,35 @@ export async function setEatenShare(log: FoodLog, share: number): Promise<FoodLo
     score_muscle_gain: null,
   }
   return check(await supabase.from('food_logs').update(patch).eq('id', log.id).select().single()) as FoodLog
+}
+
+/**
+ * A meal corrected after it was found odd: its foods are replaced, the totals follow, the score is worked out again
+ * by the page, and the meal counts as looked at.
+ */
+export async function fixFood(id: string, items: FoodItem[]): Promise<void> {
+  const t = sumItems(items)
+  const r1 = (n: number) => Math.round(n * 10) / 10
+  const patch = {
+    items,
+    kcal: Math.round(t.kcal),
+    protein_g: r1(t.protein_g),
+    carbs_g: r1(t.carbs_g),
+    fat_g: r1(t.fat_g),
+    fiber_g: r1(t.fiber_g),
+    sugar_g: r1(t.sugar_g),
+    salt_g: t.salt_g ?? null,
+    satfat_g: t.satfat_g ?? null,
+    score_fat_loss: null,
+    score_muscle_gain: null,
+    checked_at: new Date().toISOString(),
+  }
+  check(await supabase.from('food_logs').update(patch).eq('id', id))
+}
+
+/** Meals found odd that the person says are right: not asked about again. */
+export async function markFoodChecked(ids: string[]): Promise<void> {
+  check(await supabase.from('food_logs').update({ checked_at: new Date().toISOString() }).in('id', ids))
 }
 
 export async function deleteFoods(ids: string[]): Promise<void> {
