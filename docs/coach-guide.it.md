@@ -221,6 +221,9 @@ Apri Forza! Coach quando vuoi:
   da un pasto già registrato in famiglia (come "Caffè con zucchero", con tutti i suoi alimenti) o scritto a mano.
   Per dare gli stessi pasti a chi li ha mangiati, spuntali e scegli la persona accanto a **Copy to** (anche i
   pasti da Build With Science o Connessione Salute: la copia è sua, e la può cambiare).
+  **Copy foods** copia gli alimenti di un pasto (in **Change** se ne possono spuntare alcuni per copiare solo
+  quelli, poi **Copy**): incollali come nuovo pasto con **Paste as a new meal**, o in qualsiasi pasto con
+  **Change** → **Paste**, della stessa persona o di un'altra.
   **Meal** lo
   sposta in un altro momento della giornata, e **Salt** è facoltativo (vuoto vuol dire non noto). L'app
   ricalcola il punteggio del pasto cambiato. I pasti registrati in un'altra app (tramite Connessione Salute, o
