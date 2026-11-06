@@ -842,7 +842,7 @@ function foodView(d) {
   const clip = state.mealClip
   const paste = clip ? `<button class="btn secondary" data-action="meal-paste-new">Paste as a new meal</button>` : ''
   const copied = clip
-    ? `<div class="note small row no-print" style="margin-bottom:12px"><span style="flex:1">📋 Copied ${clipText(clip)}:${esc(clip.items.map((i) => (Number(i.grams) > 0 ? `${i.name} ${fmtNum(i.grams)} g` : i.name)).join(', '))}. Paste them as a new meal, or with Change into a meal.</span><button class="btn small secondary" data-action="meal-clip-clear">Clear</button></div>`
+    ? `<div class="note small row no-print" style="margin-bottom:12px"><span style="flex:1">📋 Copied ${clipText(clip)}: ${esc(clip.items.map((i) => (Number(i.grams) > 0 ? `${i.name} ${fmtNum(i.grams)} g` : i.name)).join(', '))}. Paste ${clip.items.length === 1 ? 'it' : 'them'} as a new meal, or with Change into a meal.</span><button class="btn small secondary" data-action="meal-clip-clear">Clear</button></div>`
     : ''
   const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button>${paste}${d.food.length ? copy : ''}</div>${copied}`
   const editor = state.mealEdit ? mealEditor(d) : ''
@@ -851,11 +851,11 @@ function foodView(d) {
     ${d.food
       .map(
         (f) => `<tr><td class="no-print"><input type="checkbox" data-meal-pick="${f.id}" aria-label="Tick to copy"></td><td>${f.photo_path ? `<img class="thumb" data-photo="${esc(f.photo_path)}" alt="">` : ''}</td>
-        <td>${fmtDate(f.eaten_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}<div class="muted small">${esc(f.meal)}</div></td>
+        <td style="white-space:nowrap">${fmtDate(f.eaten_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}<div class="muted small">${esc(f.meal)}</div></td>
         <td>${esc(f.title)}${Number(f.eaten_share ?? 1) !== 1 ? ` <span class="muted small">· ${Math.round(Number(f.eaten_share) * 100)}% eaten</span>` : ''}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
         <td class="num">${fmtNum(f.kcal)}</td><td class="num">${fmtNum(f.protein_g)} / ${fmtNum(f.carbs_g)} / ${fmtNum(f.fat_g)}</td>
         <td class="num">${f.score_fat_loss ?? '—'} · ${f.score_muscle_gain ?? '—'}</td>
-        <td class="no-print"><div class="row"><button class="btn small secondary" data-action="meal-copy-foods" data-id="${f.id}" title="Copy this meal's foods, to paste into another meal">Copy foods</button>${
+        <td class="no-print"><div class="row" style="flex-wrap:nowrap"><button class="btn small secondary" style="white-space:nowrap" data-action="meal-copy-foods" data-id="${f.id}" title="Copy this meal's foods, to paste into another meal">Copy foods</button>${
           syncedMeal(f)
             ? `<span class="muted small">From ${esc(f.origin || 'Health Connect')}: change it there</span>`
             : `<button class="btn small secondary" data-action="meal-edit" data-id="${f.id}">Change</button><button class="btn small danger" data-action="meal-del" data-id="${f.id}">Delete</button>`
@@ -968,7 +968,7 @@ const clipText = (c) => `${foodsText(c.items.length)} from ${esc(c.who)}’s ${c
 function copyFoods(items, { meal, at, title }) {
   const who = state.users.find((u) => u.id === state.selected)
   state.mealClip = { who: who?.profile?.display_name || who?.email || 'someone', meal, at, title: title?.trim() || null, items: items.map(({ per: _per, pick: _pick, ...i }) => ({ ...i })) }
-  toast(`Copied ${foodsText(items.length)}: paste them into any meal`)
+  toast(`Copied ${foodsText(items.length)}: paste ${items.length === 1 ? 'it' : 'them'} into any meal`)
 }
 
 /** A food with its amount (and its nutrients) times k. */
