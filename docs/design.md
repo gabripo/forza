@@ -384,6 +384,16 @@ eaten after all, can go too: a copy is taken out of one person's log from the sa
 meal asks whether it goes from everyone's food logs or only from the person's own (`delete_shared_copies()`,
 again only for copies the caller shared).
 
+**The family coach.** One person of the family, chosen in Forza! Coach (`family.coach_id`, a one-row table that
+only the service key writes; nobody by default), logs meals for the others in the app: the photo, voice and
+by-hand pages ask "Whose meal is it?" (only the coach sees it). A meal for someone else is written with their
+`user_id`, `logged_by` = the coach and `origin` = the coach's name ("Logged by …" on the person's meal), and no
+score: the person's app works it out against their own target. Its photo goes into the person's folder, and its
+foods count as used by the person (`remember_foods_for()`). Right after saving, the Food page says where the meal
+went, with **Undo**. One extra rule on `food_logs` lets the coach read, change and delete only the meals they
+logged for someone, and only while they are the coach (`is_family_coach()`): the others' own meals stay theirs.
+Because of it, the app asks for the person's own meals by `user_id` instead of relying on the rules alone.
+
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order
 first) reads the menu into dishes with rough values per portion; a stronger model (`FOOD_AI_REASONING_ORDER`,

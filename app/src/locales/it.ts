@@ -523,6 +523,15 @@ export const it: Dict = {
     items: 'Alimenti',
     share: 'Condividi questo pasto',
   },
+  logFor: {
+    question: 'Di chi è questo pasto?',
+    me: 'Mio',
+    note: 'Va nel diario alimentare di {name}, segnato come registrato da te. Il punteggio lo calcola la sua app.',
+    done: 'Registrato per {name}',
+    undo: 'Annulla',
+    undone: 'Tolto dal diario alimentare di {name}.',
+    undoError: 'Non è stato possibile annullare. Controlla la connessione e riprova.',
+  },
   share: {
     title: 'Chi ha mangiato lo stesso?',
     text: 'Il pasto va nel loro diario alla stessa ora: scegli quanto ne ha mangiato ogni persona (potranno modificarlo).',
@@ -810,6 +819,7 @@ export const it: Dict = {
     deleteMineOnly: 'Solo dal mio diario',
     syncedFrom: '↻ Da {app}: modificalo lì',
     sharedBy: 'Condiviso da {name}',
+    loggedBy: 'Registrato da {name}',
     recipes: 'Ricette',
     menu: 'Cosa prendo dal menu?',
     leftOut: 'Questa giornata resta fuori dalle tue medie: non è stato registrato tutto.',

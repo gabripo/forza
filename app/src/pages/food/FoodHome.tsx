@@ -8,6 +8,7 @@ import { CopiedNotice } from '../../components/CopyMeal'
 import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
 import { EnergyExplainer } from '../../components/EnergyExplainer'
+import { LoggedForCard, type LoggedFor } from '../../components/LogFor'
 import { MealAnomalyCards } from '../../components/MealAnomalies'
 import { MealBreakdown } from '../../components/MealBreakdown'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
@@ -34,7 +35,7 @@ export function FoodHome() {
   const { t, num, date, locale } = useI18n()
   const { profile, saveProfile } = useApp()
   const navigate = useNavigate()
-  const navState = useLocation().state as { logged?: boolean; loggedIds?: string[]; offset?: number } | null
+  const navState = useLocation().state as { logged?: boolean; loggedIds?: string[]; offset?: number; loggedFor?: LoggedFor } | null
   const justLogged = Boolean(navState?.logged)
   const { energy, food, weights, notes, loading, reload } = useEnergy()
   const [savingCheckin, setSavingCheckin] = useState(false)
@@ -143,6 +144,8 @@ export function FoodHome() {
     <div className="grid gap-4">
       <PageHeader title={t('food.title')} subtitle={t(`goal.${goal}`)} />
 
+      {/* The family coach logged a meal for someone: where it went, and a way back. */}
+      {navState?.loggedFor ? <LoggedForCard logged={navState.loggedFor} /> : null}
       {/* Right after logging: what the next meal could be, before anything else. */}
       {justLogged ? <NextMealCard food={food} targets={tg} justLogged /> : null}
       {justLogged && navState?.loggedIds?.length ? (
@@ -387,6 +390,7 @@ export function FoodHome() {
                         </p>
                         {synced ? <p className="text-xs text-ink-3">{t('food.syncedFrom', { app: e.origin || 'Health Connect' })}</p> : null}
                         {e.source === 'shared' ? <p className="text-xs text-ink-3">{t('food.sharedBy', { name: e.origin || '' })}</p> : null}
+                        {e.logged_by ? <p className="text-xs text-ink-3">{t('food.loggedBy', { name: e.origin || '' })}</p> : null}
                         {Number(e.eaten_share ?? 1) !== 1 ? <p className="text-xs text-ink-3">{t('eaten.badge', { pct: Math.round(Number(e.eaten_share) * 100) })}</p> : null}
                       </button>
                       {band ? (

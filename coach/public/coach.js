@@ -69,7 +69,7 @@ function exerciseName(id) {
 // ---------------------------------------------------------------------------
 
 async function loadUsers() {
-  state.users = await api('/api/users')
+  ;[state.users, state.family] = await Promise.all([api('/api/users'), api('/api/family').catch(() => null)])
   state.users.sort((a, b) => (a.profile?.display_name || a.email).localeCompare(b.profile?.display_name || b.email))
 }
 
@@ -111,7 +111,7 @@ function peopleView() {
       return `<li><button data-action="select" data-id="${esc(u.id)}" class="${u.id === state.selected ? 'active' : ''}">
         <div class="name">${esc(p?.display_name || '(no name yet)')}</div>
         <div class="muted small">${u.no_email ? 'signs in with a QR code' : esc(u.email)}</div>
-        <div class="small">${p?.onboarded_at ? `<span class="pill ${active}">${u.workouts_28d} workouts / 4 wk</span>` : '<span class="pill info">setup not done</span>'}
+        <div class="small">${u.id === state.family?.coach_id ? '<span class="pill good">family coach</span> ' : ''}${p?.onboarded_at ? `<span class="pill ${active}">${u.workouts_28d} workouts / 4 wk</span>` : '<span class="pill info">setup not done</span>'}
         ${u.last_weight ? `<span class="muted"> · ${fmtKg(u.last_weight.weight_kg)} kg</span>` : ''}</div>
       </button></li>`
     })
@@ -119,6 +119,7 @@ function peopleView() {
   return `<div class="layout">
     <aside class="no-print">
       <div class="card"><h2>People</h2><ul class="users">${list || '<li class="muted">No accounts yet.</li>'}</ul></div>
+      ${familyCoachCard()}
       <div class="card">
         <h2>Add a person</h2>
         <form class="stack" data-form="create-user">
@@ -132,6 +133,17 @@ function peopleView() {
     </aside>
     <section>${state.selected ? detailView() : '<div class="card muted">Select a person to see their progress and edit their plan.</div>'}</section>
   </div>`
+}
+
+/** The family coach: one person who logs meals in the app for the others too. */
+function familyCoachCard() {
+  const f = state.family
+  if (!f || state.users.length < 2) return ''
+  if (!f.supported) return '<div class="card"><h2>Family coach</h2><p class="muted small">Update the server first (Setup → Update the server) to choose one.</p></div>'
+  const people = state.users.filter((u) => u.profile)
+  return `<div class="card"><h2>Family coach</h2>
+    <label class="field">Logs meals in the app for the others too<select id="family-coach"><option value="">Nobody</option>${people.map((u) => `<option value="${esc(u.id)}"${u.id === f.coach_id ? ' selected' : ''}>${esc(u.profile.display_name || u.email)}</option>`).join('')}</select></label>
+    <p class="muted small">When they add a meal, the app asks whose it is. They can change or delete only the meals they logged for someone; the others see those meals as their own, marked "Logged by".</p></div>`
 }
 
 function detailView() {
@@ -2055,6 +2067,16 @@ app.addEventListener('change', async (e) => {
       // Each member goes to the person with the same name; a file without names goes to the person open here.
       const map = Object.fromEntries(members.map((m) => [m.member ?? '', m.person ?? (m.member ? '' : state.selected)]))
       state.weightsCsv = { text, members, map }
+    } catch (err) {
+      toast(`Error: ${err.message}`)
+    }
+    return render()
+  }
+  if (e.target.id === 'family-coach') {
+    try {
+      state.family = await api('/api/family', { method: 'PUT', body: { coach_id: e.target.value || null } })
+      const who = state.users.find((u) => u.id === state.family.coach_id)
+      toast(who ? `${who.profile?.display_name || who.email} is the family coach` : 'No family coach')
     } catch (err) {
       toast(`Error: ${err.message}`)
     }

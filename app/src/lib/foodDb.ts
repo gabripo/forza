@@ -274,9 +274,10 @@ function per100(it: FoodItem) {
 
 /**
  * After a meal is saved: new foods join the family database and every food counts as used once more by this
- * person. Runs in the background; a failure only means the foods are not remembered this time.
+ * person (`forUser`: the one the family coach logged the meal for). Runs in the background; a failure only means the
+ * foods are not remembered this time.
  */
-export function rememberItems(items: LoggedItem[], fallback: DbFood['source']): void {
+export function rememberItems(items: LoggedItem[], fallback: DbFood['source'], forUser?: string): void {
   const entries = items
     .map((it) => {
       if (it.foodId) return { builtin: it.foodId, grams: it.grams }
@@ -289,8 +290,7 @@ export function rememberItems(items: LoggedItem[], fallback: DbFood['source']): 
     })
     .filter(Boolean)
   if (!entries.length) return
-  void supabase
-    .rpc('remember_foods', { p_foods: entries })
+  void (forUser ? supabase.rpc('remember_foods_for', { p_user: forUser, p_foods: entries }) : supabase.rpc('remember_foods', { p_foods: entries }))
     .then(({ error }) => (error ? undefined : loadFoodDb(true)))
 }
 

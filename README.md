@@ -44,7 +44,8 @@ and adjust their plan from your own computer.
   Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you, and a
   variant of your own (less butter, another vegetable) is one tap away.
 - 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own percentage of it; the family's
-  food database grows with every meal anyone logs.
+  food database grows with every meal anyone logs. A family coach, chosen in Forza! Coach, can log meals for the
+  others too, straight into their food log.
 - 🧭 **The day and the week at a glance.** A kind score for the whole day, a ring of what each meal brings to the
   day's target (calories, protein, carbs or fat), each meal's breakdown, one sentence of encouragement on Home, and
   every week "What happened last week".

@@ -105,6 +105,13 @@ impostazioni di accesso. Quando compare **Forza! is ready**, la configurazione �
 Ogni codice funziona **una sola volta**, per **24 ore**. Creane uno nuovo quando serve (telefono nuovo,
 reset). L'accesso resta attivo: nessuna password da ricordare.
 
+**Coach di famiglia.** Chi cucina per tutti, o aiuta una persona che non registra i pasti, può registrarli per gli
+altri nell'app. La persona si sceglie in **People → Family coach** (una alla volta, oppure **Nobody**). Quando aggiunge
+un pasto (foto, voce o a mano), l'app chiede **Di chi è questo pasto?**: un pasto per un'altra persona va nel suo
+diario alimentare, segnato "Registrato da …", e la sua app calcola il punteggio sul suo obiettivo. Subito dopo il
+salvataggio, **Annulla** lo toglie. Chi fa da coach di famiglia può modificare o eliminare solo i pasti registrati
+per qualcun altro, e non vede i diari alimentari degli altri.
+
 ## 4. Passi, peso e bilance smart
 
 Forza! può leggere **passi**, **peso** e **pasti** dal telefono, così non bisogna mai scriverli.
