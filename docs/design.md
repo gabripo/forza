@@ -372,7 +372,9 @@ copy keeps its percentage as its share eaten, so its owner can change it later. 
 caller's own meals; the others can change or delete their copy. Meals from another app (Build With
 Science, Health Connect) are shared the same way: they cannot be changed here, but the copies are the family's
 own and no sync touches them. In Forza! Coach, the coach ticks meals of one person and copies them to another
-(**Copy to**), synced ones included. Each copy remembers who shared it and from which meal (`shared_by`,
+(**Copy to**), synced ones included; or copies a meal's foods, all or some, and pastes them into a new or an
+existing meal of anyone (a clipboard kept in the page while moving between people; the pasted foods are the
+meal's own, with no link back). Each copy remembers who shared it and from which meal (`shared_by`,
 `shared_from`), so **the person who shared it can change the others' copies** afterwards: under their own meal
 ("Shared with", each with their percentage of the meal), each person's share of the whole meal, an amount per food (grams, or calories for foods
 without grams), a food taken out or put back. `shared_copies()` lists only the copies the caller shared, and

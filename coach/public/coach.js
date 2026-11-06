@@ -838,7 +838,13 @@ function foodView(d) {
   const copy = others.length
     ? `<span style="flex:1"></span><span class="muted small">Ticked meals:</span><select id="meal-copy-to" title="Copy the ticked meals to">${others.map((u) => `<option value="${esc(u.id)}">${esc(u.profile?.display_name || u.email)}</option>`).join('')}</select><button class="btn secondary" data-action="meal-copy">Copy to</button>`
     : ''
-  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button>${d.food.length ? copy : ''}</div>`
+  // Foods copied from a meal (anyone's) go into a new meal, or into any meal with Change.
+  const clip = state.mealClip
+  const paste = clip ? `<button class="btn secondary" data-action="meal-paste-new">Paste as a new meal</button>` : ''
+  const copied = clip
+    ? `<div class="note small row no-print" style="margin-bottom:12px"><span style="flex:1">📋 Copied ${clipText(clip)}:${esc(clip.items.map((i) => (Number(i.grams) > 0 ? `${i.name} ${fmtNum(i.grams)} g` : i.name)).join(', '))}. Paste them as a new meal, or with Change into a meal.</span><button class="btn small secondary" data-action="meal-clip-clear">Clear</button></div>`
+    : ''
+  const add = `<div class="row no-print" style="margin-bottom:12px"><button class="btn" data-action="meal-new">Add a meal</button>${paste}${d.food.length ? copy : ''}</div>${copied}`
   const editor = state.mealEdit ? mealEditor(d) : ''
   if (!d.food.length) return `${editor}${state.mealEdit ? '' : add}<div class="card muted">No meals logged in the last 30 days.</div>`
   return `${editor}${state.mealEdit ? '' : add}<div class="card"><table><thead><tr><th class="no-print"></th><th></th><th>When</th><th>Meal</th><th class="num">kcal</th><th class="num">P / C / F</th><th class="num">Score (fat loss · muscle)</th><th></th></tr></thead><tbody>
@@ -849,11 +855,11 @@ function foodView(d) {
         <td>${esc(f.title)}${Number(f.eaten_share ?? 1) !== 1 ? ` <span class="muted small">· ${Math.round(Number(f.eaten_share) * 100)}% eaten</span>` : ''}${f.ai_notes ? `<div class="muted small">${esc(f.ai_notes)}</div>` : ''}</td>
         <td class="num">${fmtNum(f.kcal)}</td><td class="num">${fmtNum(f.protein_g)} / ${fmtNum(f.carbs_g)} / ${fmtNum(f.fat_g)}</td>
         <td class="num">${f.score_fat_loss ?? '—'} · ${f.score_muscle_gain ?? '—'}</td>
-        <td class="no-print">${
+        <td class="no-print"><div class="row"><button class="btn small secondary" data-action="meal-copy-foods" data-id="${f.id}" title="Copy this meal's foods, to paste into another meal">Copy foods</button>${
           syncedMeal(f)
             ? `<span class="muted small">From ${esc(f.origin || 'Health Connect')}: change it there</span>`
-            : `<div class="row"><button class="btn small secondary" data-action="meal-edit" data-id="${f.id}">Change</button><button class="btn small danger" data-action="meal-del" data-id="${f.id}">Delete</button></div>`
-        }</td></tr>`,
+            : `<button class="btn small secondary" data-action="meal-edit" data-id="${f.id}">Change</button><button class="btn small danger" data-action="meal-del" data-id="${f.id}">Delete</button>`
+        }</div></td></tr>`,
       )
       .join('')}
   </tbody></table></div>`
@@ -894,10 +900,10 @@ function mealEditor(d) {
       <label class="field">When <input type="datetime-local" data-meal-field="at" value="${esc(m.at)}"></label>
       <label class="field">Name <input data-meal-field="title" value="${esc(m.title)}" placeholder="The foods' names if empty"></label>
     </div>
-    <table style="margin-top:10px"><thead><tr><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th class="num">Sat. fat</th><th class="num">Salt</th><th></th></tr></thead><tbody>
+    <table style="margin-top:10px"><thead><tr><th></th><th>Food</th><th class="num">Grams</th><th class="num">kcal</th><th class="num">Protein</th><th class="num">Carbs</th><th class="num">Fat</th><th class="num">Fibre</th><th class="num">Sat. fat</th><th class="num">Salt</th><th></th></tr></thead><tbody>
       ${m.items
         .map(
-          (it, i) => `<tr><td><input data-meal-item="${i}" data-field="name" value="${esc(it.name)}" style="width:100%;min-width:180px"></td>
+          (it, i) => `<tr><td><input type="checkbox" data-meal-copy="${i}"${it.pick ? ' checked' : ''} aria-label="Tick to copy ${esc(it.name)}"></td><td><input data-meal-item="${i}" data-field="name" value="${esc(it.name)}" style="width:100%;min-width:180px"></td>
           ${cell(i, 'grams', 1)}${cell(i, 'kcal', 1)}${cell(i, 'protein_g', 0.1)}${cell(i, 'carbs_g', 0.1)}${cell(i, 'fat_g', 0.1)}${cell(i, 'fiber_g', 0.1)}${cell(i, 'satfat_g', 0.1)}${cell(i, 'salt_g', 0.01)}
           <td><button class="btn small danger" data-action="meal-item-del" data-i="${i}" aria-label="Remove">✕</button></td></tr>`,
         )
@@ -906,6 +912,9 @@ function mealEditor(d) {
     <p class="small" id="meal-totals">${mealTotalsText()}</p>
     <p class="small muted">Changing the grams changes the food's calories and nutrients with them.</p>
     <div class="row small">Whole meal: ${[0.5, 0.75, 1.25, 1.5, 2].map((f) => `<button class="btn small secondary" data-action="meal-scale" data-f="${f}">× ${fmtNum(f, 2)}</button>`).join('')}</div>
+    <div class="row small" style="margin-top:6px">Foods: <button class="btn small secondary" data-action="meal-copy-picked">Copy</button>${
+      state.mealClip ? `<button class="btn small secondary" data-action="meal-paste">Paste ${foodsText(state.mealClip.items.length)}</button>` : ''
+    }<span class="muted">Copy takes the ticked foods, or all of them, to paste into any meal of anyone.${state.mealClip ? ` Copied: ${clipText(state.mealClip)}.` : ''}</span></div>
     <div class="row" style="margin-top:10px">
       <input list="food-table" id="meal-food" placeholder="Add a food or a meal logged before (English or Italian)" style="flex:1;min-width:220px">
       <input class="n" type="number" min="1" id="meal-food-g" placeholder="g">
@@ -941,6 +950,27 @@ function foodChoices(lang) {
   return out
 }
 
+/** A meal's foods; a meal logged with its totals only is one food with those totals. */
+function mealFoods(f) {
+  if (f.items?.length) return f.items
+  return [{ name: f.title, grams: 0, ...Object.fromEntries(NUTRIENTS.map((k) => [k, Number(f[k]) || 0])), ...Object.fromEntries(OPTIONAL_NUTRIENTS.map((k) => [k, f[k] == null ? null : Number(f[k])])) }]
+}
+
+const foodsText = (n) => `${n} ${n === 1 ? 'food' : 'foods'}`
+
+/** What was copied: "3 foods from Gabriele's lunch on 5 Nov (“Pasta al pomodoro”)". */
+const clipText = (c) => `${foodsText(c.items.length)} from ${esc(c.who)}’s ${c.meal} on ${fmtDate(c.at, { day: 'numeric', month: 'short' })}${c.title ? ` (“${esc(c.title)}”)` : ''}`
+
+/**
+ * Foods copied from a meal, kept while the coach moves between people, to paste into any meal. The meal's name
+ * goes with them only when all of its foods do.
+ */
+function copyFoods(items, { meal, at, title }) {
+  const who = state.users.find((u) => u.id === state.selected)
+  state.mealClip = { who: who?.profile?.display_name || who?.email || 'someone', meal, at, title: title?.trim() || null, items: items.map(({ per: _per, pick: _pick, ...i }) => ({ ...i })) }
+  toast(`Copied ${foodsText(items.length)}: paste them into any meal`)
+}
+
 /** A food with its amount (and its nutrients) times k. */
 function scaledItem(it, k) {
   const out = { ...it, grams: Math.round((Number(it.grams) || 0) * k) }
@@ -952,16 +982,34 @@ function scaledItem(it, k) {
 
 async function mealAction(action, btn) {
   const m = state.mealEdit
-  if (action === 'meal-new' || action === 'meal-edit') {
+  if (action === 'meal-new' || action === 'meal-edit' || action === 'meal-paste-new') {
     state.foods ??= await api('/api/foods')
     // The family's foods and meals change with every meal logged: read again each time.
     state.picks = await api(`/api/users/${state.selected}/food-picks`).catch(() => state.picks ?? null)
     const f = action === 'meal-edit' ? state.data.food.find((x) => x.id === btn.dataset.id) : null
-    const items = f?.items?.length ? f.items : f ? [{ name: f.title, grams: 0, ...Object.fromEntries(NUTRIENTS.map((k) => [k, Number(f[k]) || 0])) }] : []
-    state.mealEdit = { id: f?.id ?? null, meal: f?.meal ?? 'snack', at: localInput(f?.eaten_at ?? new Date()), title: f?.title ?? '', items: items.map(withPer) }
+    // Pasted as a new meal: the copied foods, as the same meal of the day, now.
+    const clip = action === 'meal-paste-new' ? state.mealClip : null
+    const items = f ? mealFoods(f) : (clip?.items ?? [])
+    state.mealEdit = { id: f?.id ?? null, meal: f?.meal ?? clip?.meal ?? 'snack', at: localInput(f?.eaten_at ?? new Date()), title: f?.title ?? clip?.title ?? '', items: items.map(withPer) }
     render()
     return document.getElementById('meal-editor')?.scrollIntoView({ behavior: 'smooth' })
   }
+  if (action === 'meal-copy-foods') {
+    const f = state.data.food.find((x) => x.id === btn.dataset.id)
+    if (f) copyFoods(mealFoods(f), { meal: f.meal, at: f.eaten_at, title: f.title })
+  }
+  if (action === 'meal-copy-picked') {
+    const picked = m.items.filter((i) => i.pick)
+    if (!m.items.length) return toast('Add a food first')
+    copyFoods(picked.length ? picked : m.items, { meal: m.meal, at: m.at, title: picked.length && picked.length < m.items.length ? null : m.title })
+    for (const i of m.items) delete i.pick
+  }
+  if (action === 'meal-paste') {
+    // Into an empty meal, a whole meal brings its name too.
+    if (!m.items.length && !m.title.trim() && state.mealClip.title) m.title = state.mealClip.title
+    m.items.push(...state.mealClip.items.map(withPer))
+  }
+  if (action === 'meal-clip-clear') state.mealClip = null
   if (action === 'meal-cancel') state.mealEdit = null
   if (action === 'meal-item-del') m.items.splice(Number(btn.dataset.i), 1)
   if (action === 'meal-add-other') m.items.push(withPer({ name: '', grams: 100, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }))
@@ -995,7 +1043,7 @@ async function mealAction(action, btn) {
   }
   if (action === 'meal-save') {
     if (!m.items.length) return toast('Add at least one food')
-    const body = { meal: m.meal, eaten_at: new Date(m.at).toISOString(), title: m.title, items: m.items.map(({ per: _per, ...i }) => i) }
+    const body = { meal: m.meal, eaten_at: new Date(m.at).toISOString(), title: m.title, items: m.items.map(({ per: _per, pick: _pick, ...i }) => i) }
     if (m.id) await api(`/api/food/${m.id}`, { method: 'PUT', body })
     else await api(`/api/users/${state.selected}/food`, { method: 'POST', body })
     state.mealEdit = null
@@ -2037,6 +2085,11 @@ app.addEventListener('change', async (e) => {
       toast(`Error: ${err.message}`)
     }
     return selectUser(state.selected)
+  }
+  // A food ticked in the meal editor, to copy.
+  if (e.target.dataset?.mealCopy !== undefined) {
+    state.mealEdit.items[Number(e.target.dataset.mealCopy)].pick = e.target.checked
+    return
   }
   if (e.target.dataset?.wcsv !== undefined) {
     state.weightsCsv.map[e.target.dataset.wcsv] = e.target.value
