@@ -99,7 +99,7 @@ export function stepFromText(text: string): RecipeStep {
     const m = n.match(re)
     return m ? Number(m[1].replace(',', '.')) : null
   }
-  const minutes = num(/(\d+(?:[.,]\d+)?)\s*(?:min\b|minut[oi]|minutes?)/)
+  const minutes = num(/(\d+(?:[.,]\d+)?)\s*(?:mins?\b|minut[oi]|minutes?)/)
   const hours = num(/(\d+(?:[.,]\d+)?)\s*(?:h\b|or[ae]\b|hours?)/)
   const seconds = num(/(\d+)\s*(?:sec\b|second[oi]|seconds?)/)
   const temp = num(/(\d{2,3})\s*(?:°|gradi|degrees)/)
