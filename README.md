@@ -48,7 +48,8 @@ and adjust their plan from your own computer.
   others too, straight into their food log.
 - 🧭 **The day and the week at a glance.** A kind score for the whole day, a ring of what each meal brings to the
   day's target (calories, protein, carbs or fat), each meal's breakdown, one sentence of encouragement on Home, and
-  every week "What happened last week".
+  every week "What happened last week". After days short of protein (or of calories, when not losing fat), a few
+  foods that bring it back, one tap away.
 - 🔥 **A target that learns from you.** The energy your body uses is measured more and more from your own food
   and scale, fully after about 4 weeks of logs and weigh-ins (two lessons explain why, and why two people of
   the same weight can need 750 kcal apart); days not all logged are left out (you are asked, and can change it later), intermittent fasting

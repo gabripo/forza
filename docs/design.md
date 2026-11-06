@@ -445,6 +445,16 @@ made of foods from the built-in table and scaled to the calories left for that m
 opens it pre-filled. Snacks are suggested only to people who log snacks; "Another idea" shows the next best
 dish.
 
+**Catching up after short days** (`catchUp.ts`). Home and the food page look at the last three days logged in
+full (days left out of the averages do not count): when protein was 10 g or more under its range, or the calories
+under 90% of the target (and 150 kcal or more short), yesterday or on two of the three days, a suggestion card says
+by how much ("Protein was under target on each of the last 3 days: 93 g a day, out of 129 g") and offers three
+foods that bring it, each one tap away from being logged: the person's own usual foods first (their products with
+plenty of protein for their calories), then easy additions, each of another kind (a pot of Greek yogurt, a can of
+tuna, lentils; almonds, wholegrain bread, a banana; peanut butter, oats, whole milk for gaining muscle). While losing
+fat the calories are never asked for, since eating under the target is the plan, and the card says so: protein is
+what keeps the muscles. The card goes once today has caught up, or with **Got it** until tomorrow.
+
 The food page shows the last seven days as dots: a day is **balanced** when it has at least two meals,
 calories within ±15% of the target and at least 80% of the protein target.
 

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { ConsistencyLink } from '../../components/Consistency'
 import { BwsFoodSync } from '../../components/BwsFoodSync'
+import { CatchUpCard } from '../../components/CatchUp'
 import { CopiedNotice } from '../../components/CopyMeal'
 import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
@@ -156,6 +157,8 @@ export function FoodHome() {
       {/* Meals that look logged by mistake: right after logging, and once each meal is over. */}
       <MealAnomalyCards food={food} onChanged={() => void reload()} />
       {!justLogged && offset === 0 ? <DayQuestionCard food={food} notes={notes} targets={tg} onAnswered={() => void reload()} /> : null}
+      {/* After days short of protein (or of calories, when not losing fat): foods that bring it back today. */}
+      {offset === 0 ? <CatchUpCard food={food} notes={notes} targets={tg} /> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>

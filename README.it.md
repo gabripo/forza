@@ -50,7 +50,8 @@ italiano: la lingua si cambia in qualsiasi momento.*
   Coach come coach di famiglia può anche registrare i pasti per gli altri, direttamente nel loro diario.
 - 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, un anello di
   quanto porta ogni pasto all'obiettivo del giorno (calorie, proteine, carboidrati o grassi), il dettaglio di ogni
-  pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
+  pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana". Dopo giorni
+  con poche proteine (o poche calorie, se non stai perdendo peso), qualche alimento per recuperare, a un tocco.
 - 🔥 **Un obiettivo che impara da te.** L'energia che il corpo consuma è misurata sempre di più dai tuoi pasti e
   dalla tua bilancia, del tutto dopo circa 4 settimane di diario e pesate (due lezioni spiegano perché, e perché
   due persone dello stesso peso possono avere bisogno di 750 kcal di differenza); le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),
