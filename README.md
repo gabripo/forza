@@ -39,7 +39,11 @@ and adjust their plan from your own computer.
   one picks the best dish for *your* day so far and says why in everyday words, with one small tweak to ask for.
 - 📷 **Snap, say or scan a meal**, and see first what to do ("add some protein"), judged together with the rest
   of that meal and of the day. A meal that looks logged by mistake ("Taralli" saved as 3 g of breadsticks) is
-  asked about until it is corrected or confirmed.
+  asked about until it is corrected or confirmed, and any meal can be changed later: foods and amounts.
+- 🧑‍🍳 **No idea what to eat? Build your own recipe.** Type, say, scan or photograph what you have at home: up to
+  three recipes for your next meal, with amounts that fit what is left of your day.
+- 🍦 **Fewer processed foods, kindly.** Whoever often logs ice cream, biscuits or snacks is asked whether they know
+  these fill you up less and bring fewer nutrients, with many alternatives just as pleasant, one tap away.
 - 📖 **Family recipes, Thermomix included.** Write a dish once, then anyone logs a portion in one tap. Got a
   Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you, and a
   variant of your own (less butter, another vegetable) is one tap away.

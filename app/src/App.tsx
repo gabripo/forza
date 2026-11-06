@@ -8,6 +8,7 @@ import { useUpdateOnSafePage } from './lib/updates'
 import { Challenge } from './pages/Challenge'
 import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
+import { FoodBuild } from './pages/food/FoodBuild'
 import { FoodHome } from './pages/food/FoodHome'
 import { FoodManual } from './pages/food/FoodManual'
 import { MenuPick } from './pages/food/MenuPick'
@@ -75,10 +76,12 @@ function Gate() {
         <Route path="food/snap" element={<FoodSnap />} />
         <Route path="food/voice" element={<FoodVoice />} />
         <Route path="food/add" element={<FoodManual />} />
+        <Route path="food/edit/:id" element={<FoodManual key="edit" />} />
         <Route path="food/recipes" element={<Recipes />} />
         <Route path="food/recipes/new" element={<RecipeEditor />} />
         <Route path="food/recipes/:id" element={<RecipeEditor />} />
         <Route path="food/menu" element={<MenuPick />} />
+        <Route path="food/build" element={<FoodBuild />} />
         <Route path="learn" element={<LearnHome />} />
         <Route path="learn/points-quiz" element={<PointsQuiz />} />
         <Route path="learn/:id" element={<Infographic />} />

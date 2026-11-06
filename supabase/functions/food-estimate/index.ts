@@ -521,6 +521,94 @@ async function menuPick(b: MenuBody & { image?: string; mime?: string; text?: st
 }
 
 // ---------------------------------------------------------------------------
+// "No idea what to eat? Build your own recipe!": the foods someone has at home become up to three different recipes
+// for their next meal. The app works the amounts out again from its own values, to fit what is left of their day;
+// the AI names the dishes, chooses the foods that go together, and writes the steps.
+// ---------------------------------------------------------------------------
+
+const recipeItemSchema: Schema = {
+  type: 'OBJECT',
+  properties: { ref: { type: 'INTEGER' }, name: { type: 'STRING' }, grams: { type: 'NUMBER' }, ...Object.fromEntries(NUTRIENTS.map((k) => [k, { type: 'NUMBER' }])) },
+  required: ['ref', 'name', 'grams', ...NUTRIENTS],
+}
+const recipeSchema: Schema = {
+  type: 'OBJECT',
+  properties: {
+    recipes: list({
+      type: 'OBJECT',
+      properties: { name: { type: 'STRING' }, emoji: { type: 'STRING' }, minutes: { type: 'INTEGER' }, items: list(recipeItemSchema), steps: list({ type: 'STRING' }), why: { type: 'STRING' } },
+      required: ['name', 'emoji', 'minutes', 'items', 'steps', 'why'],
+    }),
+  },
+  required: ['recipes'],
+}
+
+interface RecipeBody {
+  foods?: { name?: string; per100?: Record<string, number> | null }[]
+  goal?: string
+  meal?: string
+  locale?: string
+  eaten?: string[]
+  target?: Record<string, number>
+}
+
+function recipePrompt(language: string, b: RecipeBody, foods: { name: string; per100: Record<string, number> | null }[]): string {
+  const tg = b.target ?? {}
+  const r = (k: string) => Math.round(Number(tg[k] ?? 0))
+  const lines = foods.map((f, i) =>
+    f.per100
+      ? `${i}. ${f.name} — per 100 g: ${Math.round(Number(f.per100.kcal))} kcal, protein ${f.per100.protein_g} g, carbs ${f.per100.carbs_g} g, fat ${f.per100.fat_g} g`
+      : `${i}. ${f.name}`,
+  )
+  return [
+    'You are a home cook and a nutritionist. Someone does not know what to eat and lists the foods they have at home.',
+    `Suggest 3 clearly different recipes for their ${b.meal ?? 'meal'}, for one person, made mainly with these foods (number. name):`,
+    ...lines,
+    'Besides these, use only common pantry staples (olive oil, salt, pepper, garlic, onion, herbs, spices, lemon, vinegar, stock), with ref -1.',
+    'Each recipe uses the foods that go well together (not necessarily all of them), as a real dish people cook at home in Italy.',
+    `This meal should bring about ${r('kcal')} kcal and at least ${r('protein_g')} g of protein (roughly ${r('carbs_g')} g carbs, ${r('fat_g')} g fat, ${r('fiber_g')} g fibre): what is left of their day.`,
+    (b.eaten ?? []).length ? `Already eaten today: ${(b.eaten ?? []).slice(0, 12).join('; ')}.` : 'Nothing eaten yet today.',
+    `Their goal: ${GOAL_TEXT[b.goal ?? 'maintain'] ?? GOAL_TEXT.maintain}.`,
+    '"items": every food of the recipe: ref (its number above, or -1 for a pantry staple), name, grams (weighed raw, or as the values above are given) and its nutrients for those grams (standard tables).',
+    '"steps": 3 to 6 short steps anyone can follow. "minutes": the total time. "emoji": one emoji for the dish.',
+    '"why": one or two short sentences, warm and without jargon, on why this dish fits their day.',
+    `Write names, steps and "why" in ${language}.`,
+  ].join('\n')
+}
+
+async function recipeIdeas(b: RecipeBody, coachTest: boolean) {
+  const language = b.locale === 'it' ? 'Italian' : 'English'
+  const foods = (Array.isArray(b.foods) ? b.foods : [])
+    .slice(0, 20)
+    .map((f) => ({ name: str(f?.name, 80), per100: f?.per100 && typeof f.per100 === 'object' ? Object.fromEntries(['kcal', 'protein_g', 'carbs_g', 'fat_g'].map((k) => [k, num(f.per100?.[k], k === 'kcal' ? 950 : 100)])) : null }))
+    .filter((f) => f.name)
+  if (!foods.length) return json({ error: 'bad_request' }, 400)
+  const started = Date.now()
+  try {
+    const { answer, model, tried } = await ask({ prompt: recipePrompt(language, b, foods), schema: recipeSchema, image: '', mime: 'text/plain' }, chain())
+    const a = answer as Record<string, unknown>
+    const recipes = (Array.isArray(a.recipes) ? a.recipes : []).slice(0, 3).map((x: Record<string, unknown>) => ({
+      name: str(x.name),
+      emoji: str(x.emoji, 8),
+      minutes: Math.round(num(x.minutes, 600)),
+      steps: (Array.isArray(x.steps) ? x.steps : []).slice(0, 8).map((s) => str(s, 300)).filter(Boolean),
+      why: str(x.why, 300),
+      items: (Array.isArray(x.items) ? x.items : []).slice(0, 15).map((i: Record<string, unknown>) => ({
+        ref: Number.isInteger(Number(i.ref)) && Number(i.ref) >= 0 && Number(i.ref) < foods.length ? Number(i.ref) : -1,
+        name: str(i.name, 80),
+        grams: num(i.grams, 1500),
+        ...Object.fromEntries(NUTRIENTS.map((k) => [k, num(i[k], k === 'kcal' ? 3000 : 300)])),
+      })).filter((i) => i.name),
+    })).filter((x) => x.name && x.items.length)
+    if (!recipes.length) return json({ error: 'ai_failed' }, 502)
+    return json(coachTest ? { recipes, model, ms: Date.now() - started, tried } : { recipes })
+  } catch (e) {
+    const tried = (e as { tried?: string[] }).tried ?? []
+    return json(coachTest ? { error: 'ai_failed', detail: tried.join('\n') || (e as Error).message } : { error: 'ai_failed' }, 502)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Exercises from the free exercise database (github.com/yuhonas/free-exercise-db, public domain: 870+ exercises
 // with photos), found from a description in everyday words ("I raise a knee and touch it with the opposite elbow").
 // ---------------------------------------------------------------------------
@@ -666,14 +754,14 @@ Deno.serve(async (req) => {
   const userId = coachTest ? null : await userIdFromRequest(req, admin)
   if (!coachTest && !userId) return json({ error: 'unauthorized' }, 401)
 
-  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number; topic?: string; sources?: { id: string; title: string }[] } & MenuBody & { query?: string; id?: string }
+  let body: { image?: string; audio?: string; mime?: string; note?: string; text?: string; locale?: string; goal?: string; meal?: string; mode?: string; only?: number; topic?: string; sources?: { id: string; title: string }[] } & MenuBody & RecipeBody & { query?: string; id?: string }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
-  // The menu, the exercise search and adding an exercise: each counts as one use of the day.
-  if (body.mode === 'menu' || body.mode === 'exercise' || body.mode === 'exercise_add') {
+  // The menu, the recipe ideas, the exercise search and adding an exercise: each counts as one use of the day.
+  if (body.mode === 'menu' || body.mode === 'recipe' || body.mode === 'exercise' || body.mode === 'exercise_add') {
     if (userId) {
       const { error: limitError } = await admin.rpc('bump_ai_usage', { p_user: userId, p_limit: DAILY_LIMIT })
       if (limitError) {
@@ -681,7 +769,13 @@ Deno.serve(async (req) => {
         return json({ error: reached ? 'daily_limit_reached' : 'usage_error' }, reached ? 429 : 500)
       }
     }
-    return body.mode === 'menu' ? menuPick(body, coachTest) : body.mode === 'exercise' ? exerciseSearch(body, coachTest) : exerciseAdd(body, admin, coachTest)
+    return body.mode === 'menu'
+      ? menuPick(body, coachTest)
+      : body.mode === 'recipe'
+        ? recipeIdeas(body, coachTest)
+        : body.mode === 'exercise'
+          ? exerciseSearch(body, coachTest)
+          : exerciseAdd(body, admin, coachTest)
   }
   const mode: Mode = (['label', 'text', 'transcribe', 'tidy', 'lesson'] as const).find((m) => m === body.mode) ?? 'plate'
   // Lessons are drafted for the family coach only (Forza! Coach, with the project's secret key).
