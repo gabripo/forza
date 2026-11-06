@@ -103,6 +103,13 @@ sign-in settings. When it says **Forza! is ready**, the set-up is over.
 Each code works **once**, for **24 hours**. Make a new one whenever needed (a new phone, a reset).
 They stay signed in: no password to remember.
 
+**Family coach.** Someone who cooks for everyone, or helps a person who does not log, can log meals for the others
+in the app. Choose them in **People → Family coach** (one person at a time, or **Nobody**). When they add a meal
+(photo, voice or by hand), the app asks **Whose meal is it?**: a meal for someone else goes into that person's food
+log, marked "Logged by …", and their app scores it against their own target. Right after saving, **Undo** takes it
+back out. The family coach can change or delete only the meals they logged for someone, and does not see the
+others' food logs.
+
 ## 4. Steps, weight and smart scales
 
 Forza! can read their daily **steps**, **weight** and **meals** from the phone, so they never have to type them.

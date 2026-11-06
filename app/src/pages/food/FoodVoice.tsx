@@ -1,6 +1,7 @@
 import { Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
@@ -56,6 +57,7 @@ export function FoodVoice() {
   const { profile } = useApp()
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
+  const logFor = useLogFor()
   const [meal, setMeal] = useState<Meal>(mealForNow())
   const [text, setText] = useState('')
   const [listening, setListening] = useState(false)
@@ -243,10 +245,11 @@ export function FoodVoice() {
       const now = new Date()
       const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
       const said = text.trim()
+      const title = (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120)
       const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
-        title: (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120),
+        title,
         items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
@@ -254,9 +257,10 @@ export function FoodVoice() {
         photo_path: null,
         source: 'voice',
         ai_notes: tip,
+        ...logFor.fields(),
       })
-      rememberItems(items, 'ai')
-      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
+      rememberItems(items, 'ai', logFor.person?.id)
+      navigate('/food', { state: logFor.saved(loggedId, title, totals.kcal) })
     } finally {
       setSaving(false)
     }
@@ -282,6 +286,7 @@ export function FoodVoice() {
         />
       ) : null}
 
+      <LogForPicker logFor={logFor} />
       <Segmented<Meal>
         value={meal}
         onChange={setMeal}

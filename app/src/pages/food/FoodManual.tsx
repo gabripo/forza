@@ -1,6 +1,7 @@
 import { Barcode, Camera, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
@@ -25,6 +26,7 @@ export function FoodManual() {
   const { profile } = useApp()
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
+  const logFor = useLogFor()
   const [params] = useSearchParams()
   // Coming from a photo ("adjust by hand"): start from what the AI saw.
   const from = useLocation().state as { items?: FoodItem[]; meal?: Meal } | null
@@ -151,10 +153,11 @@ export function FoodManual() {
     try {
       const now = new Date()
       const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
+      const title = items.map((i) => i.name).join(', ').slice(0, 120)
       const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
-        title: items.map((i) => i.name).join(', ').slice(0, 120),
+        title,
         items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
@@ -162,9 +165,10 @@ export function FoodManual() {
         photo_path: null,
         source: items.some((i) => i.barcode) ? 'barcode' : 'manual',
         ai_notes: null,
+        ...logFor.fields(),
       })
-      rememberItems(items, 'manual')
-      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
+      rememberItems(items, 'manual', logFor.person?.id)
+      navigate('/food', { state: logFor.saved(loggedId, title, totals.kcal) })
     } finally {
       setBusy(false)
     }
@@ -178,6 +182,7 @@ export function FoodManual() {
       </PageHeader>
       {/* A meal that looks like a mistake: the amounts to check, right under the button. */}
       <MealCheckWarning check={check} />
+      <LogForPicker logFor={logFor} />
       {/* The search first: the quickest way to a food. While typing, the results come right under it. */}
       <div className="relative">
         <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />

@@ -1,6 +1,7 @@
 import { Camera, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
@@ -20,6 +21,7 @@ export function FoodSnap() {
   const { profile, session } = useApp()
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
+  const logFor = useLogFor()
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<{ blob: Blob; base64: string; url: string } | null>(null)
@@ -94,14 +96,16 @@ export function FoodSnap() {
       const s = scorePlate(totals, meal, energy.targets.kcal, result.ultra_processed, now)
       let photo_path: string | null = null
       try {
-        if (photo) photo_path = await uploadFoodPhoto(session.user.id, photo.blob)
+        // A meal logged for someone: the photo goes into their folder, for their app to show.
+        if (photo) photo_path = await uploadFoodPhoto(logFor.person?.id ?? session.user.id, photo.blob)
       } catch {
         photo_path = null // the log matters more than the picture
       }
+      const name = title.trim() || result.title
       const loggedId = await addFood({
         eaten_at: now.toISOString(),
         meal,
-        title: title.trim() || result.title,
+        title: name,
         items: items.map(plainItem),
         ...totals,
         score_fat_loss: s.fatLoss,
@@ -109,9 +113,10 @@ export function FoodSnap() {
         photo_path,
         source: 'ai',
         ai_notes: result.tip,
+        ...logFor.fields(),
       })
-      rememberItems(items, 'ai')
-      navigate('/food', { state: { logged: true, loggedIds: [loggedId] } })
+      rememberItems(items, 'ai', logFor.person?.id)
+      navigate('/food', { state: logFor.saved(loggedId, name, totals.kcal) })
     } finally {
       setSaving(false)
     }
@@ -127,6 +132,7 @@ export function FoodSnap() {
       </PageHeader>
       {/* A plate that looks too big: the amounts to check, right under the button. */}
       {result && energy ? <MealCheckWarning check={check} onFix={() => setDetails(true)} /> : null}
+      <LogForPicker logFor={logFor} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
 

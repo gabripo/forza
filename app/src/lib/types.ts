@@ -163,6 +163,10 @@ export interface FoodLog {
   shared_from?: string | null
   /** When the person looked at this meal after it was found odd (corrected or confirmed): not asked again. */
   checked_at?: string | null
+  /** Logged for this person by the family coach (whose name is then in `origin`); null when they logged it. */
+  logged_by?: string | null
+  /** Whose meal it is: set only when the family coach logs it for someone else. */
+  user_id?: string
 }
 
 /** A copy of one of this person's meals, shared with someone in the family. */

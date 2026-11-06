@@ -141,6 +141,25 @@ async function listUsers() {
   }))
 }
 
+/** Who the family coach is (null: nobody); a database not updated yet has no family coach to choose. */
+async function family() {
+  const { data, error } = await need().from('family').select('coach_id').maybeSingle()
+  if (error) return { supported: false, coach_id: null }
+  return { supported: true, coach_id: data?.coach_id ?? null }
+}
+
+/** Makes someone the family coach (one at a time), or nobody. */
+async function setFamilyCoach({ coach_id }) {
+  const db = need()
+  const id = coach_id || null
+  if (id) {
+    const { data } = await db.from('profiles').select('id').eq('id', id).maybeSingle()
+    if (!data) throw Object.assign(new Error('That person is gone'), { status: 404 })
+  }
+  check(await db.from('family').upsert({ id: true, coach_id: id, updated_at: new Date().toISOString() }))
+  return family()
+}
+
 /** Calories and protein per day, in this computer's time zone. */
 function dailyFood(rows) {
   const days = new Map()
@@ -657,6 +676,9 @@ const routes = [
 
   ['GET', /^\/api\/users$/, () => listUsers()],
   ['POST', /^\/api\/users$/, (_m, body) => createUser(body)],
+  // The family coach, who logs meals in the app for the others too.
+  ['GET', /^\/api\/family$/, () => family()],
+  ['PUT', /^\/api\/family$/, (_m, body) => setFamilyCoach(body)],
   ['GET', /^\/api\/users\/([\w-]+)$/, (m) => userData(m[1])],
   ['GET', /^\/api\/users\/([\w-]+)\/progress$/, (m, _body, query) => progressData(m[1], query)],
   ['GET', /^\/api\/users\/([\w-]+)\/food-day$/, (m, _body, query) => foodDay(m[1], query)],

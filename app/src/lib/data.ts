@@ -338,16 +338,28 @@ export async function getLastSets(exerciseIds: string[]): Promise<Map<string, Se
 // Food
 // ---------------------------------------------------------------------------
 
+/**
+ * The person signed in. Reads of the food log ask for their own meals by name: the family coach may also see the
+ * meals they logged for the others, which are not theirs.
+ */
+async function myId(): Promise<string> {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) throw new Error('not_signed_in')
+  return data.session.user.id
+}
+
 /** Only when and how much, for charts: light enough for years of meals (paged, so none are cut off). */
 export async function getFoodTotals(sinceDays: number): Promise<Pick<FoodLog, 'eaten_at' | 'kcal' | 'protein_g'>[]> {
+  const me = await myId()
   return fetchAll<Pick<FoodLog, 'eaten_at' | 'kcal' | 'protein_g'>>((from, to) =>
-    supabase.from('food_logs').select('eaten_at, kcal, protein_g').gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at').order('id').range(from, to),
+    supabase.from('food_logs').select('eaten_at, kcal, protein_g').eq('user_id', me).gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at').order('id').range(from, to),
   )
 }
 
 export async function getFood(sinceDays = 0): Promise<FoodLog[]> {
+  const me = await myId()
   return check(
-    await supabase.from('food_logs').select('*').gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at'),
+    await supabase.from('food_logs').select('*').eq('user_id', me).gte('eaten_at', daysAgo(sinceDays).toISOString()).order('eaten_at'),
   )
 }
 
@@ -454,6 +466,12 @@ export async function deleteFood(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 // The family's food: people, shared meals, recipes
 // ---------------------------------------------------------------------------
+
+/** The family coach, who logs meals for the others too (chosen in Forza! Coach); null when there is none. */
+export async function getFamilyCoach(): Promise<string | null> {
+  const { data, error } = await supabase.from('family').select('coach_id').maybeSingle()
+  return error ? null : ((data as { coach_id: string | null } | null)?.coach_id ?? null)
+}
 
 /** Everyone in the family but this person, by name. */
 export async function getFamilyPeople(myId: string): Promise<{ id: string; display_name: string }[]> {

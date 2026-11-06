@@ -521,6 +521,15 @@ export const en = {
     items: 'Foods',
     share: 'Share this meal',
   },
+  logFor: {
+    question: 'Whose meal is it?',
+    me: 'Mine',
+    note: 'It goes into {name}’s food log, marked as logged by you. Their app works out its score.',
+    done: 'Logged for {name}',
+    undo: 'Undo',
+    undone: 'Taken out of {name}’s food log.',
+    undoError: 'Could not undo. Check your connection and try again.',
+  },
   share: {
     title: 'Who ate the same?',
     text: 'The meal goes into their food log at the same time: choose how much each person had (they can change it).',
@@ -809,6 +818,7 @@ export const en = {
     deleteMineOnly: 'Only from mine',
     syncedFrom: '↻ From {app}: change it there',
     sharedBy: 'Shared by {name}',
+    loggedBy: 'Logged by {name}',
     recipes: 'Recipes',
     menu: 'What should I order?',
     leftOut: 'This day is left out of your averages: not everything was logged.',
