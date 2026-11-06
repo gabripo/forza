@@ -21,6 +21,10 @@ export interface Food {
   satfat: number
   /** Optional unit name for the portion, e.g. "1 egg". */
   unit?: L10n
+  /** One piece in grams, for foods whose portion is not one piece ("2 mandorle" is 2 almonds, not 2 handfuls). */
+  piece?: number
+  /** One slice in grams, for foods sliced thinner than their portion ("3 fette di prosciutto"). */
+  slice?: number
 }
 
 type Row = [string, string, string, Food['group'], number, number, number, number, number, number, number, string?, string?]
@@ -36,6 +40,7 @@ const ROWS: Row[] = [
   ['tuna_oil', 'Tuna in oil (drained)', "Tonno sott'olio (sgocciolato)", 'protein', 198, 29, 0, 8, 0, 0, 80, '1 can', '1 scatoletta'],
   ['egg', 'Egg', 'Uovo', 'protein', 143, 12.6, 0.7, 9.5, 0, 0.4, 55, '1 egg', '1 uovo'],
   ['egg_white', 'Egg whites', 'Albume', 'protein', 52, 11, 0.7, 0.2, 0, 0.7, 100],
+  ['egg_yolk', 'Egg yolk', 'Tuorlo d’uovo', 'protein', 322, 16, 3.6, 27, 0, 0.6, 17, '1 yolk', '1 tuorlo'],
   ['bresaola', 'Bresaola', 'Bresaola', 'protein', 151, 32, 0, 2.6, 0, 0, 50],
   ['prosciutto', 'Cured ham (prosciutto crudo)', 'Prosciutto crudo', 'protein', 224, 26, 0, 13, 0, 0, 50],
   ['cooked_ham', 'Cooked ham', 'Prosciutto cotto', 'protein', 132, 20, 1, 5, 0, 1, 50],
@@ -73,6 +78,7 @@ const ROWS: Row[] = [
   ['broccoli', 'Broccoli', 'Broccoli', 'veg', 34, 2.8, 7, 0.4, 2.6, 1.7, 200],
   ['salad', 'Salad greens', 'Insalata', 'veg', 15, 1.4, 2.9, 0.2, 1.3, 1, 80],
   ['tomatoes', 'Tomatoes', 'Pomodori', 'veg', 18, 0.9, 3.9, 0.2, 1.2, 2.6, 150],
+  ['cherry_tomatoes', 'Cherry tomatoes', 'Pomodorini', 'veg', 18, 0.9, 3.9, 0.2, 1.2, 2.6, 150, '10 cherry tomatoes', '10 pomodorini'],
   ['zucchini', 'Courgette', 'Zucchine', 'veg', 17, 1.2, 3.1, 0.3, 1, 2.5, 200],
   ['carrots', 'Carrots', 'Carote', 'veg', 41, 0.9, 10, 0.2, 2.8, 4.7, 100],
   ['spinach', 'Spinach', 'Spinaci', 'veg', 23, 2.9, 3.6, 0.4, 2.2, 0.4, 150],
@@ -310,7 +316,7 @@ const SALT: Record<string, number> = {
 
 /** Saturated fat in grams per 100 g, typical values (CREA and USDA tables; dishes as cooked at home). Foods not listed have almost none. */
 const SATFAT: Record<string, number> = {
-  chicken_breast: 1, turkey_breast: 0.3, lean_beef: 2.8, salmon: 2.5, white_fish: 0.2, tuna_water: 0.3, tuna_oil: 1.5, egg: 3.1, bresaola: 1,
+  chicken_breast: 1, turkey_breast: 0.3, lean_beef: 2.8, salmon: 2.5, white_fish: 0.2, tuna_water: 0.3, tuna_oil: 1.5, egg: 3.1, egg_yolk: 9.6, bresaola: 1,
   prosciutto: 6, cooked_ham: 1.5, tofu: 0.7, whey: 1, turkey_burger: 2.5, chicken_burger: 2.5, beef_burger: 6, chicken_thigh: 3, pork_loin: 2,
   sausage: 9, veal: 1.5, rabbit: 1.5, lamb: 7, roast_beef: 2.5, salami: 12, mortadella: 10, speck: 7, frankfurter: 9, deli_turkey: 0.5,
   tuna_fresh: 0.4, swordfish: 1.2, sea_bream: 1, trout: 1.2, mackerel: 3.5, sardines: 2.5, sardines_oil: 2.5, mackerel_oil: 3.5, smoked_salmon: 1,
@@ -333,6 +339,25 @@ const SATFAT: Record<string, number> = {
   kebab: 5, sushi: 0.5, arancino: 3, ragu: 3,
 }
 
+/**
+ * One piece as eaten, in grams, for foods counted in pieces whose portion is a handful, a pack or a weight
+ * (typical weights, USDA FoodData Central portions): "2 mandorle" is 2.4 g, not two handfuls. Foods whose unit
+ * already counts pieces ("3 biscuits", "8 olives") need none.
+ */
+const PIECE: Record<string, number> = {
+  almonds: 1.2, hazelnuts: 1.4, walnuts: 4, pistachios: 0.6, peanuts: 1, raisins: 0.5,
+  grapes: 5, strawberries: 12, cherries: 8, berries: 1.5,
+  tomatoes: 120, carrots: 70, potatoes: 170, onion: 110, mushrooms: 15, asparagus: 15,
+  egg_white: 33, prawns: 10, mussels: 5, sardines: 25,
+  crackers: 4, tortellini: 3, ravioli: 12,
+}
+
+/** One slice, in grams, for foods sliced thinner than their portion: cold cuts, cheese, a tomato. */
+const SLICE: Record<string, number> = {
+  prosciutto: 12, cooked_ham: 20, bresaola: 8, speck: 10, deli_turkey: 15, roast_beef: 20, smoked_salmon: 15,
+  mozzarella: 25, emmental: 20, scamorza: 20, tomatoes: 20,
+}
+
 export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs, fat, fiber, sugar, portion, uen, uit]) => ({
   id,
   name: { en, it },
@@ -347,6 +372,8 @@ export const FOODS: Food[] = ROWS.map(([id, en, it, group, kcal, protein, carbs,
   salt: SALT[id] ?? (group === 'fruit' || group === 'drinks' || group === 'fats' ? 0 : 0.05),
   satfat: SATFAT[id] ?? (group === 'fruit' || group === 'veg' || group === 'drinks' ? 0 : 0.1),
   unit: uen ? { en: uen, it: uit ?? uen } : undefined,
+  ...(PIECE[id] ? { piece: PIECE[id] } : {}),
+  ...(SLICE[id] ? { slice: SLICE[id] } : {}),
 }))
 
 /** Foods that count as ultra-processed when scoring a plate. */

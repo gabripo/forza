@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "export-knowledge": "node scripts/export-knowledge.mjs",
+    "check-amounts": "node scripts/check-amounts.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

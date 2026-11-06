@@ -42,8 +42,9 @@ const ALIASES: Record<string, string[]> = {
   clams: ['vongola', 'clam'],
   squid: ['calamaro', 'seppia', 'totano', 'squid', 'cuttlefish'],
   octopus: ['polpo', 'polipo', 'octopus'],
-  egg: ['uovo', 'egg', 'uovo sodo', 'uovo all occhio di bue', 'boiled egg', 'fried egg'],
-  egg_white: ['albume', 'chiara d uovo', 'egg white'],
+  egg: ['uovo', 'egg', 'uovo sodo', 'uovo all occhio di bue', 'uova strapazzate', 'boiled egg', 'fried egg', 'scrambled eggs'],
+  egg_white: ['albume', 'albume d uovo', 'chiara d uovo', 'egg white'],
+  egg_yolk: ['tuorlo', 'tuorlo d uovo', 'rosso d uovo', 'egg yolk', 'yolk'],
   whey: ['proteine', 'proteine in polvere', 'shake proteico', 'frullato proteico', 'whey', 'protein shake'],
   protein_bar: ['barretta proteica', 'protein bar'],
   greek_yogurt_0: ['yogurt greco', 'greek yogurt'],
@@ -105,7 +106,7 @@ const ALIASES: Record<string, string[]> = {
   minestrone: ['minestrone', 'minestra', 'zuppa di verdure', 'vegetable soup'],
   veg_cream_soup: ['vellutata', 'passato di verdure', 'crema di verdure', 'cream soup'],
   parmigiana: ['parmigiana', 'parmigiana di melanzane'],
-  frittata: ['frittata', 'omelette', 'omelet', 'uova strapazzate', 'scrambled eggs'],
+  frittata: ['frittata', 'omelette', 'omelet'],
   caprese: ['caprese', 'insalata caprese'],
   meatballs: ['polpette', 'polpettine', 'meatballs'],
   chicken_cutlet: ['cotoletta', 'cotoletta di pollo', 'cotoletta alla milanese', 'milanese', 'schnitzel', 'chicken nuggets', 'nuggets'],
@@ -139,7 +140,8 @@ const ALIASES: Record<string, string[]> = {
   fruit_salad: ['macedonia', 'fruit salad'],
   salad: ['insalata', 'insalata verde', 'lattuga', 'insalata mista', 'salad', 'lettuce'],
   rocket: ['rucola', 'rocket', 'arugula'],
-  tomatoes: ['pomodoro', 'pomodorini', 'pomodoro fresco', 'tomato', 'cherry tomatoes'],
+  tomatoes: ['pomodoro', 'pomodoro fresco', 'tomato'],
+  cherry_tomatoes: ['pomodorino', 'datterino', 'datterini', 'ciliegino', 'ciliegini', 'cherry tomato'],
   zucchini: ['zucchina', 'zucchine', 'courgette', 'zucchini'],
   carrots: ['carota', 'carrot'],
   spinach: ['spinaci', 'spinach'],
@@ -216,6 +218,11 @@ const JOINED: RegExp[] = [...Object.values(ALIASES).flat(), ...FOODS.flatMap((f)
  * When there is no dish for that pair, the second food counts, in the portion of the form.
  */
 const FORMS = new Set(['beef_burger', 'meatballs', 'chicken_cutlet'])
+/** Breads that can be "ai cereali": the cereals say what bread it is, not a bowl of corn flakes. */
+const BREADS = new Set(['bread', 'bread_wholegrain', 'sandwich_bread', 'rusks', 'crackers', 'breadsticks'])
+const MULTIGRAIN = FOODS.find((f) => f.id === 'bread_wholegrain')!
+/** Eggs listed one by one: a frittata with them is how they were cooked, not one more dish. */
+const EGGS = new Set(['egg', 'egg_white', 'egg_yolk'])
 
 /** Plated pasta and rice dishes: an amount in grams usually means the dry pasta or rice in the dish. */
 const DRY_REF: Record<string, number> = { pasta_tomato: 80, pasta_ragu: 80, pasta_pesto: 80, carbonara: 80, pasta_clams: 80, risotto: 70 }
@@ -251,11 +258,13 @@ const TEASPOONS = new Set(['cucchiaino', 'cucchiaini', 'teaspoon', 'teaspoons', 
 /** Units that mean "one serving" of whatever follows. */
 const SERVINGS = new Set([
   'piatto', 'piatti', 'porzione', 'porzioni', 'ciotola', 'tazza', 'bicchiere', 'bicchieri', 'vasetto', 'vasetti',
-  'scatoletta', 'scatolette', 'lattina', 'bottiglia', 'manciata', 'tazzina', 'tazzine', 'calice', 'calici', 'bicchierino', 'ciotolina', 'plate', 'plates', 'portion', 'portions', 'bowl',
-  'cup', 'glass', 'glasses', 'pot', 'can', 'bottle', 'handful', 'serving', 'servings',
+  'scatoletta', 'scatolette', 'lattina', 'bottiglia', 'manciata', 'tazzina', 'tazzine', 'calice', 'calici', 'bicchierino', 'ciotolina', 'pacchetto', 'pacchetti',
+  'pacchettino', 'pacchettini', 'confezione', 'confezioni', 'bustina', 'bustine', 'plate', 'plates', 'portion', 'portions', 'bowl',
+  'cup', 'glass', 'glasses', 'pot', 'can', 'bottle', 'handful', 'pack', 'packs', 'packet', 'packets', 'serving', 'servings',
 ])
-/** Units that count pieces. */
+/** Units that count pieces; slices among them. */
 const PIECES = new Set(['fetta', 'fette', 'pezzo', 'pezzi', 'quadretto', 'quadretti', 'slice', 'slices', 'piece', 'pieces', 'square', 'squares'])
+const SLICES = new Set(['fetta', 'fette', 'slice', 'slices'])
 
 
 interface Alias {
@@ -323,6 +332,14 @@ export function parseMeal(text: string, locale: Locale): VoiceResult {
         hits.splice(k, 2, { food: made.food, start: form.start, end: made.end, portion: form.food.portion })
       }
     }
+    // "Pane ai 5 cereali", "pan bauletto ai cereali": the cereals, and their number, are the kind of bread.
+    for (let k = 0; k < hits.length - 1; k++) {
+      const [bread, grains] = [hits[k], hits[k + 1]]
+      const between = ws.slice(bread.end, grains.start)
+      if (BREADS.has(bread.food.id) && grains.food.id === 'cornflakes' && between.every((w) => !Number.isNaN(Number(w)) || Object.hasOwn(NUMBERS, w))) {
+        hits.splice(k, 2, { food: bread.food.id === 'bread' ? MULTIGRAIN : bread.food, start: bread.start, end: grains.end })
+      }
+    }
     // Words that are neither food, amount nor description ("lasagne" when it is not in the table): the AI gets them.
     const leftover = ws.filter((w, i) => !hits.some((h) => i >= h.start && i < h.end) && meaningful(w) && !DESCRIPTIONS.has(stem(w)))
     if (!hits.length) {
@@ -340,7 +357,8 @@ export function parseMeal(text: string, locale: Locale): VoiceResult {
       items.push({ foodId: h.food.id, said: ws.slice(h.start, h.end).join(' '), amountSaid: given !== null, name: h.food.name[locale], grams, ...foodAt(h.food, grams) })
     })
   }
-  return { items, unknown }
+  // "Albumi a frittata", "frittata con 2 uova": the eggs are counted already.
+  return { items: items.some((i) => EGGS.has(i.foodId)) ? items.filter((i) => i.foodId !== 'frittata') : items, unknown }
 }
 
 const meaningful = (w: string) => !FILLER.has(w) && !Object.hasOwn(NUMBERS, w) && Number.isNaN(Number(w)) && !isUnit(w)
@@ -362,15 +380,24 @@ function amount(ws: string[], food: Food, portion = food.portion): number | null
     else if (SPOONS.has(w)) return (n ?? 1) * (/tbsp|tablespoon/.test(food.unit?.en ?? '') ? food.portion : 15)
     else if (TEASPOONS.has(w)) return (n ?? 1) * (/teaspoon/.test(food.unit?.en ?? '') ? food.portion : 5)
     else if (SERVINGS.has(w)) return (n ?? 1) * portion
-    else if (PIECES.has(w)) return (n ?? 1) * pieceGrams(food, portion)
+    else if (PIECES.has(w)) return (n ?? 1) * pieceGrams(food, portion, SLICES.has(w))
   }
   if (n === null) return null
-  // A bare number: grams when large ("200 pollo"), pieces or portions when small ("2 uova", "una pizza").
-  return n >= 20 ? asGrams(n) : n * pieceGrams(food, portion)
+  // A bare number: grams when large ("200 pollo"), pieces or portions when small ("2 uova", "una pizza"). Small
+  // pieces stay pieces while that is a believable amount ("30 pistacchi"; "100 mandorle" is grams).
+  const pieces = n * pieceGrams(food, portion)
+  return n < 20 || (food.piece && portion === food.portion && pieces <= 3 * portion) ? pieces : asGrams(n)
 }
 
-/** One piece: an egg, a slice, a biscuit. Units such as "3 biscuits" share the portion between the pieces. */
-function pieceGrams(food: Food, portion = food.portion): number {
+/**
+ * One piece: an egg, an almond, a slice of ham (`slice`). The food table weighs one where the portion is not one
+ * piece (a handful of almonds, 50 g of prosciutto); otherwise units such as "3 biscuits" share the portion between
+ * the pieces. A dish form ("polpette di tacchino") brings its own portion, and its own pieces.
+ */
+function pieceGrams(food: Food, portion = food.portion, slice = false): number {
+  const own = portion === food.portion
+  if (own && slice && food.slice) return food.slice
+  if (own && !slice && food.piece) return food.piece
   const unit = food.unit?.en ?? ''
   const count = unit.startsWith('½') ? 0.5 : Number(/^(\d+)/.exec(unit)?.[1] ?? 1)
   return portion / count
