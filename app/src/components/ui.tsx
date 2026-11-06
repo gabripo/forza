@@ -69,15 +69,18 @@ export function Card({
   )
 }
 
-/** The page title, kept at the top while scrolling; `children` (e.g. the button that saves the page) stays with it. */
-export function PageHeader({ title, subtitle, back, action, children }: { title: string; subtitle?: string; back?: boolean | string; action?: ReactNode; children?: ReactNode }) {
+/**
+ * The page title, kept at the top while scrolling; `children` (e.g. the button that saves the page) stays with it.
+ * `back`: a page to go back to (with `backState`, e.g. the day it showed), or true for the page before.
+ */
+export function PageHeader({ title, subtitle, back, backState, action, children }: { title: string; subtitle?: string; back?: boolean | string; backState?: unknown; action?: ReactNode; children?: ReactNode }) {
   const navigate = useNavigate()
   return (
     <header className="pt-safe sticky top-0 z-20 -mx-4 mb-3 bg-bg/90 px-4 backdrop-blur">
       <div className="flex min-h-14 items-center gap-2 py-2">
         {back ? (
           <button
-            onClick={() => (typeof back === 'string' ? navigate(back) : navigate(-1))}
+            onClick={() => (typeof back === 'string' ? navigate(back, { state: backState }) : navigate(-1))}
             className="-ml-2 grid size-11 place-items-center rounded-full active:bg-card-2"
             aria-label="Back"
           >

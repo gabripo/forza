@@ -1,9 +1,10 @@
-import { Barcode, BookOpen, CalendarCheck, Camera, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, CalendarCheck, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
 import { ConsistencyLink } from '../../components/Consistency'
 import { BwsFoodSync } from '../../components/BwsFoodSync'
+import { CatchUpCard } from '../../components/CatchUp'
 import { CopiedNotice } from '../../components/CopyMeal'
 import { EatenShare } from '../../components/EatenShare'
 import { DayEvaluationCard, DayQuestionCard } from '../../components/DayCards'
@@ -14,6 +15,7 @@ import { MealBreakdown } from '../../components/MealBreakdown'
 import { MealSheet, ShareMealSheet } from '../../components/MealSheets'
 import { SharedCopies } from '../../components/SharedCopies'
 import { NextMealCard } from '../../components/NextMealCard'
+import { ProcessedCard } from '../../components/Processed'
 import { TargetHistory } from '../../components/TargetHistory'
 import { TargetSheet } from '../../components/TargetSheet'
 import { Button, Card, Empty, Loading, PageHeader, Segmented, Sheet } from '../../components/ui'
@@ -156,6 +158,10 @@ export function FoodHome() {
       {/* Meals that look logged by mistake: right after logging, and once each meal is over. */}
       <MealAnomalyCards food={food} onChanged={() => void reload()} />
       {!justLogged && offset === 0 ? <DayQuestionCard food={food} notes={notes} targets={tg} onAnswered={() => void reload()} /> : null}
+      {/* After days short of protein (or of calories, when not losing fat): foods that bring it back today. */}
+      {offset === 0 ? <CatchUpCard food={food} notes={notes} targets={tg} /> : null}
+      {/* Processed foods logged often (ice cream, biscuits, snacks…): alternatives that fill up more. */}
+      {offset === 0 ? <ProcessedCard food={food} /> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>
@@ -177,6 +183,14 @@ export function FoodHome() {
           <ScrollText className="size-5 text-brand" aria-hidden /> {t('food.menu')}
         </Button>
       </div>
+      {/* Nothing in mind: the foods at home become a recipe that fits what is left of the day. */}
+      <button onClick={() => navigate('/food/build')} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-brand bg-card p-3 text-left active:bg-card-2">
+        <ChefHat className="size-8 shrink-0 text-brand" aria-hidden />
+        <span>
+          <span className="block font-bold">{t('food.buildAsk')}</span>
+          <span className="block text-brand-ink">{t('food.buildCta')}</span>
+        </span>
+      </button>
 
       {/* Meals from Build With Science: brought now, instead of at the next hourly sync. */}
       <BwsFoodSync food={food} onSynced={() => void reload()} />
@@ -398,11 +412,16 @@ export function FoodHome() {
                           {score}
                         </span>
                       ) : null}
-                      {/* Synced meals are changed in the app that logged them: a delete here would come back. */}
+                      {/* Synced meals are changed in the app that logged them: a change or delete here would come back. */}
                       {synced ? null : (
-                        <button onClick={() => void remove(e)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
-                          <Trash2 className="size-5" />
-                        </button>
+                        <>
+                          <button onClick={() => navigate(`/food/edit/${e.id}`)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('food.change', { name: e.title })}>
+                            <Pencil className="size-5" />
+                          </button>
+                          <button onClick={() => void remove(e)} className="grid size-10 place-items-center rounded-full text-ink-3 active:bg-card-2" aria-label={t('common.delete')}>
+                            <Trash2 className="size-5" />
+                          </button>
+                        </>
                       )}
                     </li>
                   )
@@ -443,6 +462,10 @@ export function FoodHome() {
               <p className="text-ink-2">{t('food.syncedFrom', { app: moving.origin || 'Health Connect' })}</p>
             ) : (
               <>
+                {/* Its foods and their amounts, as when it was logged. */}
+                <Button variant="secondary" onClick={() => navigate(`/food/edit/${moving.id}`)}>
+                  <Pencil className="size-5" aria-hidden /> {t('food.changeFoods')}
+                </Button>
                 {/* Eaten only in part (a portion of a Cookidoo recipe, a plate not finished): the meal follows. */}
                 <EatenShare
                   key={`${moving.id}:${moving.eaten_share ?? 1}`}

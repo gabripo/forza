@@ -403,6 +403,39 @@ targets, picks the one that fits the rest of the day best, and says why in two o
 jargon, linked to the day), with one small tweak, up to two other good dishes and up to two to keep for another
 time. It counts as one use of the daily AI limit; the chosen dish opens pre-filled to log.
 
+**Build your own recipe** ("Nessuna idea su cosa mangiare? Costruisci la tua ricetta!", `FoodBuild.tsx`,
+`recipeIdea.ts`): the foods someone has at home, typed or said (read like a dictated meal: the app's table, then
+their own and the family's foods, the rest kept as said), scanned (Open Food Facts) or photographed (the plate AI,
+told they are ingredients), plus one tap on their usual foods. The meal chosen gets its share of what is left of
+the day: today's targets minus what was eaten, shared among this meal and the main meals not logged yet by their
+usual size (breakfast 25%, lunch 35%, dinner 30%, snack 10%), never under a small meal, with at least a fifth of
+the calories from protein. `food-estimate` (mode `recipe`, one use of the daily AI limit) writes up to three
+different recipes from those foods and pantry staples, each with its steps and why it fits the day; the amounts are
+then always the app's: from its own values for the foods it knows (the AI's for the others), a small search moves
+each food within sensible amounts for one person (oil 3–15 g, vegetables up to a big portion, never under half or
+over double what the AI wrote) towards the meal's calories, enough protein, and the carbs and fat left, rounded as
+weighed (whole eggs, oil by 5 g). Each recipe says how it fits ("a little more than what is left for your lunch")
+and opens pre-filled to log. A list without protein (or vegetables, for lunch and dinner, or without anything
+filling) gets a few foods to add. Without the AI (not set up, the daily limit, offline) the app puts together one
+simple dish of its own, shaped by its main food (pasta, rice, bread, eggs, legumes, a salad…) with plain steps.
+
+**Changing a meal after logging it**: the pencil on each meal (or "Change foods and amounts" when it is opened)
+opens it in "Add a meal": each food's grams (or the calories of a food logged without them), foods out, foods
+added from the search, the scanner or by hand, the part of the day. The totals and the score follow; the time it
+was eaten, its photo and its name (unless the name was just its foods) stay. Meals synced from another app are
+changed there.
+
+**Processed foods, often** (`processed.ts`): meals keep only food names, so processed foods are known by name, in
+Italian, English and German (ice cream and puddings, biscuits, pastries and snack cakes, spreads and milk
+chocolate, sweets, salty snacks, sugary drinks, frankfurters and salami, fried and fast food, sugary cereals and
+bars; not foods made to bring protein, sugar-free ones, dark chocolate or home-made ones). Whoever had them in four
+meals or more over the last two weeks, on three days or more, sees on Home and the food page: "Did you know that
+processed foods fill you up less and bring fewer nutrients?", kind by kind, what they logged, why it fills up little,
+and six to eight alternatives (for ice cream: home-made frozen yogurt, banana "nice cream", skyr with strawberries,
+ricotta cream, frozen grapes…, and one scoop with fruit if it must be ice cream), each with its calories and protein
+and one tap away from being logged. **I'll give it a try** puts the card away for a week. While a plate with one of
+them is being logged, a line suggests what to try instead next time.
+
 **Not obsessed with numbers.** Next to the numbers (Food, Home), "Why one day's numbers matter little" opens an
 infographic: a week of uneven days whose average sits on the target, what helps more than any number (a
 kitchen that helps, planned meals, sleep, doing it together), and three thought traps with a kinder thought
@@ -448,6 +481,16 @@ that nutrient (salmon and vegetables, a tuna and bean salad, lentils, chicken sa
 made of foods from the built-in table and scaled to the calories left for that meal, so "Log this meal"
 opens it pre-filled. Snacks are suggested only to people who log snacks; "Another idea" shows the next best
 dish.
+
+**Catching up after short days** (`catchUp.ts`). Home and the food page look at the last three days logged in
+full (days left out of the averages do not count): when protein was 10 g or more under its range, or the calories
+under 90% of the target (and 150 kcal or more short), yesterday or on two of the three days, a suggestion card says
+by how much ("Protein was under target on each of the last 3 days: 93 g a day, out of 129 g") and offers three
+foods that bring it, each one tap away from being logged: the person's own usual foods first (their products with
+plenty of protein for their calories), then easy additions, each of another kind (a pot of Greek yogurt, a can of
+tuna, lentils; almonds, wholegrain bread, a banana; peanut butter, oats, whole milk for gaining muscle). While losing
+fat the calories are never asked for, since eating under the target is the plan, and the card says so: protein is
+what keeps the muscles. The card goes once today has caught up, or with **Got it** until tomorrow.
 
 The food page shows the last seven days as dots: a day is **balanced** when it has at least two meals,
 calories within ±15% of the target and at least 80% of the protein target.

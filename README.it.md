@@ -41,7 +41,12 @@ italiano: la lingua si cambia in qualsiasi momento.*
   con un piccolo accorgimento da chiedere.
 - 📷 **Fotografa, detta o scansiona un pasto**, e vedi prima cosa fare ("aggiungi un po' di proteine"),
   valutato insieme al resto di quel pasto e della giornata. Un pasto che sembra registrato per sbaglio ("Taralli"
-  salvati come 3 g di grissini) viene chiesto finché non è corretto o confermato.
+  salvati come 3 g di grissini) viene chiesto finché non è corretto o confermato, e ogni pasto si può modificare
+  anche dopo: alimenti e quantità.
+- 🧑‍🍳 **Nessuna idea su cosa mangiare? Costruisci la tua ricetta.** Scrivi, detta, scansiona o fotografa quello
+  che hai in casa: fino a tre ricette per il prossimo pasto, con quantità che stanno in quello che ti resta oggi.
+- 🍦 **Meno cibi processati, con gentilezza.** A chi registra spesso gelato, biscotti o snack viene chiesto se sa
+  che saziano di meno e sono meno nutrienti, con tante alternative altrettanto buone, a un tocco.
 - 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta, poi chiunque ne registra una porzione
   con un tocco. Hai un Bimby? Cerca la ricetta nell'app o incolla un link di Cookidoo: gli ingredienti
   vengono letti per te.
@@ -50,7 +55,8 @@ italiano: la lingua si cambia in qualsiasi momento.*
   Coach come coach di famiglia può anche registrare i pasti per gli altri, direttamente nel loro diario.
 - 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, un anello di
   quanto porta ogni pasto all'obiettivo del giorno (calorie, proteine, carboidrati o grassi), il dettaglio di ogni
-  pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana".
+  pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana". Dopo giorni
+  con poche proteine (o poche calorie, se non stai perdendo peso), qualche alimento per recuperare, a un tocco.
 - 🔥 **Un obiettivo che impara da te.** L'energia che il corpo consuma è misurata sempre di più dai tuoi pasti e
   dalla tua bilancia, del tutto dopo circa 4 settimane di diario e pesate (due lezioni spiegano perché, e perché
   due persone dello stesso peso possono avere bisogno di 750 kcal di differenza); le giornate non registrate per intero restano fuori (te lo chiede, e puoi cambiarlo dopo),

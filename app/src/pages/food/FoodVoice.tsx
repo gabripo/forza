@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
+import { ProcessedSwapHint } from '../../components/Processed'
 import { mealForNow } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
 import { useMealCheck } from '../../lib/mealCheck'
@@ -384,6 +385,7 @@ export function FoodVoice() {
               context={{ food, targets: energy.targets }}
             />
             <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
+            <ProcessedSwapHint items={items} />
             <Card>
               <p className="text-2xl font-extrabold tabular">
                 {num(totals.kcal)} kcal <span className="text-base font-semibold text-ink-2">· {t('macro.protein')} {num(totals.protein_g)} g</span>

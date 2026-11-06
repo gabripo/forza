@@ -1,8 +1,9 @@
 import { Barcode, Camera, Globe, PenLine, Plus, Search, Star, Trash2 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar } from '../../components/PlateAdvice'
+import { ProcessedSwapHint } from '../../components/Processed'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
 import { useMealCheck } from '../../lib/mealCheck'
@@ -11,18 +12,34 @@ import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented
 import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
 import { dbProduct, familyFavourites, frequentFoods, plainItem, rememberItems, searchAll, searchOnline, useFoodDb, type LoggedItem, type Pick } from '../../lib/foodDb'
 import { useApp } from '../../lib/auth'
-import { scorePlate, sumItems } from '../../lib/calc'
-import { addFood, readLabel } from '../../lib/data'
+import { localDay, scaleItem, scorePlate, sumItems } from '../../lib/calc'
+import { addFood, changeFood, getFoodLog, readLabel } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import { compressPhoto } from '../../lib/image'
 import { lookupBarcode, productAt, rememberProduct, type Product } from '../../lib/products'
 import { FOOD_FORMATS, validGtin } from '../../lib/scan'
-import type { FoodItem, Meal } from '../../lib/types'
+import type { FoodItem, FoodLog, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 
+/**
+ * A food on the plate. `base`: the food as first added, so a new amount scales it without rounding drift; `kept`:
+ * already in the meal being changed (it counts as used once, when the meal was logged).
+ */
+type PlateItem = LoggedItem & { processed?: boolean; base?: FoodItem; kept?: boolean }
 
+/** A meal's foods; one logged with its totals only is one food with those totals (its amount is then its calories). */
+const foodsOf = (log: FoodLog): PlateItem[] =>
+  (log.items?.length ? log.items : [{ name: log.title, grams: 0, kcal: Number(log.kcal), protein_g: Number(log.protein_g), carbs_g: Number(log.carbs_g), fat_g: Number(log.fat_g), fiber_g: Number(log.fiber_g), sugar_g: Number(log.sugar_g), ...(log.salt_g != null ? { salt_g: Number(log.salt_g) } : {}), ...(log.satfat_g != null ? { satfat_g: Number(log.satfat_g) } : {}) }]).map((it) => ({ ...it, kept: true }))
+
+/** How many days back a meal is, for the food page to open on its day. */
+const offsetOf = (log: FoodLog) => Math.max(0, Math.round((new Date(localDay(new Date())).getTime() - new Date(localDay(new Date(log.eaten_at))).getTime()) / 86_400_000))
+
+/**
+ * Add a meal by hand, or (at food/edit/:id) change one logged before: its foods, their amounts, the part of the day.
+ * The totals and the score follow; the time it was eaten stays.
+ */
 export function FoodManual() {
-  const { t, l, locale } = useI18n()
+  const { t, l, locale, num, date } = useI18n()
   const { profile } = useApp()
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
@@ -31,7 +48,22 @@ export function FoodManual() {
   // Coming from a photo ("adjust by hand"): start from what the AI saw.
   const from = useLocation().state as { items?: FoodItem[]; meal?: Meal } | null
   const [meal, setMeal] = useState<Meal>(from?.meal ?? mealForNow())
-  const [items, setItems] = useState<(LoggedItem & { processed?: boolean })[]>(from?.items ?? [])
+  const [items, setItems] = useState<PlateItem[]>(from?.items ?? [])
+  // A meal logged before, being changed: found among the last weeks' meals, or read on its own.
+  const editId = useParams().id
+  const [editing, setEditing] = useState<FoodLog | null | undefined>(editId ? undefined : null)
+  useEffect(() => {
+    if (!editId || editing !== undefined) return
+    const found = food.find((f) => f.id === editId)
+    const start = (log: FoodLog | null) => {
+      setEditing(log)
+      if (!log) return
+      setItems(foodsOf(log))
+      setMeal(log.meal)
+    }
+    if (found) start(found)
+    else if (energy) void getFoodLog(editId).then(start, () => start(null))
+  }, [editId, editing, food, energy])
   const [scanning, setScanning] = useState(params.get('scan') === '1')
   const [looking, setLooking] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
@@ -74,7 +106,29 @@ export function FoodManual() {
     }
   }
 
-  if (!profile || !energy) return <Loading />
+  /** A new amount for one food: grams when it has them, otherwise its calories; the rest follows. */
+  function setAmount(i: number, v: number | null) {
+    if (!v) return
+    setItems((xs) =>
+      xs.map((it, j) => {
+        const base = it.base ?? it
+        const from = base.grams > 0 ? base.grams : base.kcal
+        return j === i && from > 0 ? { ...it, ...scaleItem(base, v / from), base } : it
+      }),
+    )
+  }
+
+  if (!profile || !energy || editing === undefined) return <Loading />
+  if (editId && !editing) {
+    return (
+      <div className="grid gap-4">
+        <PageHeader title={t('manual.editTitle')} back="/food" />
+        <Card>
+          <p>{t('manual.editMissing')}</p>
+        </Card>
+      </div>
+    )
+  }
   const totals = sumItems(items)
   const processed = items.some((i) => i.processed || (i.foodId && PROCESSED_FOODS.has(i.foodId)))
 
@@ -147,8 +201,30 @@ export function FoodManual() {
     setQ('')
   }
 
+  /** The meal changed: same time and photo, new foods and amounts; a name made of its foods follows them. */
+  async function saveChanges(log: FoodLog) {
+    if (!energy) return
+    setBusy(true)
+    try {
+      const s = scorePlate(totals, meal, energy.targets.kcal, processed, new Date(log.eaten_at))
+      const before = foodsOf(log)
+      const named = log.title.trim() && log.title !== before.map((i) => i.name).join(', ').slice(0, 120)
+      const title = named ? log.title : items.map((i) => i.name).join(', ').slice(0, 120)
+      await changeFood(log.id, { items: items.map(plainItem), ...totals, meal, title, score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain })
+      // Foods added now count as used; those already in the meal were counted when it was logged.
+      rememberItems(
+        items.filter((i) => !i.kept),
+        'manual',
+      )
+      navigate('/food', { state: { offset: offsetOf(log), changed: true } })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function save() {
     if (!energy) return
+    if (editing) return saveChanges(editing)
     setBusy(true)
     try {
       const now = new Date()
@@ -176,13 +252,13 @@ export function FoodManual() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t('manual.title')} back="/food">
+      <PageHeader title={t(editing ? 'manual.editTitle' : 'manual.title')} back="/food" backState={editing ? { offset: offsetOf(editing) } : undefined}>
         {/* At the top as soon as the plate has a food (scanned, searched or typed), not below the search. */}
         {items.length ? <SaveMealButton check={check} onSave={save} loading={busy} /> : null}
       </PageHeader>
       {/* A meal that looks like a mistake: the amounts to check, right under the button. */}
       <MealCheckWarning check={check} />
-      <LogForPicker logFor={logFor} />
+      {editing ? <p className="text-ink-2">{t('manual.editHint', { when: date(editing.eaten_at, { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</p> : <LogForPicker logFor={logFor} />}
       {/* The search first: the quickest way to a food. While typing, the results come right under it. */}
       <div className="relative">
         <Search className="absolute top-3.5 left-3 size-5 text-ink-3" aria-hidden />
@@ -244,14 +320,19 @@ export function FoodManual() {
       <Card title={t('manual.yourPlate')}>
         {items.length === 0 ? <p className="text-ink-2">{t('manual.emptyPlate')}</p> : null}
         <ul className="grid gap-2">
+          {/* Each amount can be changed here: grams (or the calories of a food logged without them). */}
           {items.map((it, i) => (
             <li key={i} className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">{it.name}</p>
+                <p className="leading-tight font-semibold">{it.name}</p>
                 <p className="text-sm text-ink-2">
-                  {it.grams} g · {it.kcal} kcal · P {it.protein_g} g
+                  {num(it.kcal)} kcal · P {num(it.protein_g)} g
                 </p>
               </div>
+              <div className="w-20">
+                <NumberInput decimals={false} value={it.grams > 0 ? it.grams : it.kcal} onChange={(v) => setAmount(i, v)} aria-label={t('manual.amountOf', { name: it.name })} />
+              </div>
+              <span className="w-8 text-sm text-ink-2">{it.grams > 0 ? 'g' : 'kcal'}</span>
               <button onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
                 <Trash2 className="size-5" />
               </button>
@@ -290,10 +371,15 @@ export function FoodManual() {
         </Button>
       </Card>
 
-      {items.length ? <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} /> : null}
+      {/* A meal being changed is not counted twice; one of another day has no "so far" of today. */}
+      {items.length && (!editing || offsetOf(editing) === 0) ? (
+        <MealSoFar totals={totals} meal={meal} context={{ food: editing ? food.filter((f) => f.id !== editing.id) : food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
+      ) : null}
+      {/* A processed food on the plate: what to have instead next time. */}
+      <ProcessedSwapHint items={items} />
       {items.length ? (
         <Card>
-          <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={new Date()} />
+          <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={editing ? new Date(editing.eaten_at) : new Date()} />
         </Card>
       ) : null}
 

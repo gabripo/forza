@@ -5,6 +5,7 @@ import { daysAgo, localDay, sumItems } from './calc'
 import { supabase } from './supabase'
 import type { WorkoutMove } from './plan'
 import type { QuizAnswer } from './pointsQuiz'
+import type { AiRecipe, Per100 } from './recipeIdea'
 import type { LessonRow } from './rewards'
 import type {
   Activity,
@@ -389,6 +390,16 @@ export async function updateFood(id: string, patch: Partial<Pick<FoodLog, 'meal'
   check(await supabase.from('food_logs').update(patch).eq('id', id))
 }
 
+/** One meal, wherever in time it is (the food pages load only the last weeks). */
+export async function getFoodLog(id: string): Promise<FoodLog | null> {
+  return check(await supabase.from('food_logs').select('*').eq('id', id).maybeSingle()) as FoodLog | null
+}
+
+/** A meal changed after it was logged: its foods and amounts, the totals with them, its name, part of the day and score. */
+export async function changeFood(id: string, patch: Pick<FoodLog, 'items' | 'meal' | 'title' | 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g' | 'sugar_g' | 'score_fat_loss' | 'score_muscle_gain'> & Partial<Pick<FoodLog, 'salt_g' | 'satfat_g'>>): Promise<void> {
+  check(await supabase.from('food_logs').update({ salt_g: null, satfat_g: null, ...patch }).eq('id', id))
+}
+
 /**
  * How much of a logged meal was eaten (a share of it as logged: ½, ¾…): every food and total follows, worked out
  * from the meal as logged, so the share can be changed again later. The score is worked out again by the page.
@@ -632,6 +643,14 @@ export interface MenuPick {
 /** "What should I order?": a menu (photo or words) and the person's day so far; read by a quick AI, chosen by a stronger one. */
 export function pickFromMenu(input: { image?: string; text?: string; locale: string; goal: string; meal: string; hour: number; eaten: string[]; day: Record<string, number>; targets: Record<string, number> }): Promise<MenuPick> {
   return invokeFoodAi<MenuPick>({ ...input, mode: 'menu' })
+}
+
+/**
+ * "Build your own recipe": the foods someone has (with their values, when known) and what is left of their day; up to
+ * three recipes for the meal, the amounts to be fitted by the app.
+ */
+export function recipesFromAi(input: { foods: { name: string; per100: Per100 | null }[]; locale: string; goal: string; meal: string; eaten: string[]; target: Record<string, number> }): Promise<{ recipes: AiRecipe[] }> {
+  return invokeFoodAi<{ recipes: AiRecipe[] }>({ ...input, mode: 'recipe' })
 }
 
 /** An exercise of the free exercise database that may be the one described. */

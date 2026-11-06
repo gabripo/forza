@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
+import { ProcessedSwapHint } from '../../components/Processed'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
 import { useMealCheck } from '../../lib/mealCheck'
@@ -195,6 +196,7 @@ export function FoodSnap() {
             context={{ food, targets: energy.targets }}
           />
           <MealSoFar totals={sumItems(items)} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
+          <ProcessedSwapHint items={items} />
           <Card>
             <button onClick={() => setDetails(!details)} className="flex w-full items-center gap-2 text-left" aria-expanded={details}>
               <span className="flex-1">

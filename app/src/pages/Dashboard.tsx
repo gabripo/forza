@@ -7,6 +7,8 @@ import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
 import { MealAnomalyCards } from '../components/MealAnomalies'
 import { WeekSummaryCard } from '../components/WeekSummary'
+import { CatchUpCard } from '../components/CatchUp'
+import { ProcessedCard } from '../components/Processed'
 import { WeighInCard } from '../components/WeighInCard'
 import { LogWeightSheet } from '../components/LogWeightSheet'
 import { PointsQuizCard } from '../components/PointsQuizCard'
@@ -323,6 +325,10 @@ export function Dashboard() {
       <>
         {/* Once a day is over: was everything logged, was a meal skipped? */}
         <DayQuestionCard food={view.food} notes={view.notes} targets={view.energy.targets} onAnswered={() => void reload()} />
+        {/* After days short of protein (or of calories, when not losing fat): foods that bring it back today. */}
+        <CatchUpCard food={view.food} notes={view.notes} targets={view.energy.targets} />
+        {/* Processed foods logged often: alternatives that fill up more ("Got it" puts it away for a week). */}
+        <ProcessedCard food={view.food} />
         {/* Food today */}
         <Card
           title={t('dash.foodToday')}
