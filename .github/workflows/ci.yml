@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - run: npx tsc -b
       - run: npm run lint
+      - run: npm run check-amounts
       - run: npm run build
         env:
           VITE_SUPABASE_URL: https://example.supabase.co

@@ -416,8 +416,12 @@ text field for corrections, and **Tidy up with AI** rewrites them as a clean lis
 line, recognition mistakes fixed, nothing added), with **Undo**. The sentence is then read
 **on the phone**: it is split at "and", "with" and commas, each part is matched to the built-in food table
 (with everyday names: "pollo", "spaghetti", "caffè"; singular and plural; longest name first) and its
-amount understood (grams, kilos, spoons, slices, glasses, pots, "two", "half"; a bare small number counts
-pieces, a large one grams). Only the words it does not recognise ("lasagne") go to the food AI, as text; if
+amount understood (grams, kilos, spoons, slices, glasses, pots, packs, "two", "half"; a bare small number counts
+pieces, a large one grams). A piece is one piece: foods whose portion is a handful, a pack or a weight carry the
+weight of one piece or slice in the food table ("2 mandorle" is 2.4 g, not two handfuls; "3 fette di prosciutto"
+36 g), and small pieces stay pieces while that is a believable amount ("30 pistacchi"). "Pane ai 5 cereali" is a
+bread, not five bowls of corn flakes; eggs listed "a frittata" are not one more dish. `npm run check-amounts`
+(run by CI) reads a list of such phrases and fails when one comes out wrong. Only the words it does not recognise ("lasagne") go to the food AI, as text; if
 the AI is not set up, the rest still counts and the person is told what was left out. The words can be
 corrected before going on; grams appear as inputs only after **Adjust quantities**, to keep the screen
 simple. "Not right? Ask the AI" sends the whole sentence instead.
