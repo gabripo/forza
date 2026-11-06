@@ -1,17 +1,25 @@
-import { BookOpen, Check, ChefHat, Copy, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
+import { BarcodeAdd } from '../../components/ProductAdd'
 import { Button, Card, Empty, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { sumItems } from '../../lib/calc'
-import { deleteRecipe, estimateText, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
-import { loadFoodDb, plainItem, withUsual, type LoggedItem } from '../../lib/foodDb'
+import { deleteRecipe, estimatePlate, estimateText, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
+import { loadFoodDb, plainItem, rememberItems, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
+import { compressPhoto } from '../../lib/image'
 import type { FoodItem, Recipe } from '../../lib/types'
 import { parseMeal } from '../../lib/voice'
 
 const round1 = (n: number) => Math.round(n * 10) / 10
+
+/** Told to the food AI with a photo of a recipe's ingredients: the whole dish, and amounts as written when written. */
+const PHOTO_NOTE =
+  'These are the ingredients of a recipe, for the whole dish (not one plate). If the photo shows a written recipe or a list of ingredients, ' +
+  'read each ingredient with its amount exactly as written, in grams. If it shows the foods themselves, list each one with its likely amount. ' +
+  'Add nothing that is not written or shown.'
 
 /** A food for another amount: every value follows the grams. */
 function scaled(it: FoodItem, grams: number): FoodItem {
@@ -344,6 +352,11 @@ export function RecipeEditor() {
   const [totalG, setTotalG] = useState<number | null>(draft?.total_g ?? null)
   const [text, setText] = useState(draft?.text ?? '')
   const [items, setItems] = useState<LoggedItem[] | null>(draft?.items ?? null)
+  // Foods scanned or read from a photo: exact values, kept apart from the lines typed (which can be worked out again).
+  const [added, setAdded] = useState<LoggedItem[]>([])
+  const [scanning, setScanning] = useState(false)
+  const [looking, setLooking] = useState<'scan' | 'photo' | null>(null)
+  const photoRef = useRef<HTMLInputElement>(null)
   const [missing, setMissing] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -392,8 +405,29 @@ export function RecipeEditor() {
     }
   }
 
+  /** A photo of the ingredients, or of the recipe written down: the food AI reads each food and its amount. */
+  async function onPhoto(file: File | undefined) {
+    if (!file || !profile) return
+    setLooking('photo')
+    setError(null)
+    try {
+      // Written recipes are small print: a larger photo than for a plate.
+      const photo = await compressPhoto(file, 1600)
+      const r = await estimatePlate({ image: photo.base64, note: PHOTO_NOTE, locale, goal: profile.goal ?? 'maintain', meal: 'a recipe' })
+      const found = (r.is_food ? r.items : []).filter((i) => i.name && i.grams > 0).map((i) => withUsual({ ...i, grams: Math.round(i.grams), origin: 'ai' as const }, i.name))
+      if (!found.length) setError(t('recipes.photoNone'))
+      else setAdded((xs) => [...xs, ...found])
+    } catch (e) {
+      const code = (e as Error).message
+      setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+    } finally {
+      setLooking(null)
+      if (photoRef.current) photoRef.current.value = ''
+    }
+  }
+
   async function save() {
-    if (!items?.length || !name.trim()) return
+    if (!all.length || !name.trim() || !ready) return
     setSaving(true)
     setError(null)
     try {
@@ -402,11 +436,13 @@ export function RecipeEditor() {
         name: name.trim(),
         servings: Math.max(1, Math.min(50, servings ?? 1)),
         total_g: weight,
-        items: items.map(plainItem),
+        items: all.map(plainItem),
         source: draft?.source ?? 'manual',
         source_url: draft?.source_url ?? null,
       })
-      void loadFoodDb(true)
+      // Products scanned and foods read from a photo join the family's foods (and count as used once).
+      if (added.length) rememberItems(added, 'barcode')
+      else void loadFoodDb(true)
       // A recipe just read from Cookidoo (or another site), or a variant of one, is often cooked to be eaten now:
       // the list asks.
       const ask = !id && (draft?.source === 'link' || Boolean(draft?.variantOf))
@@ -425,11 +461,20 @@ export function RecipeEditor() {
     navigate('/food/recipes')
   }
 
+  // The lines typed, worked out (or none), and the foods scanned or photographed.
+  const all = [...(items ?? []), ...added]
+  const ready = items !== null || !text.trim()
   // Without the weight when ready: the ingredients' weight, as written (water and salt included).
-  const stated = statedWeight(text)
-  const counted = (items ?? []).reduce((s, i) => s + i.grams, 0)
+  const stated = statedWeight(text) + added.reduce((s, i) => s + i.grams, 0)
+  const counted = all.reduce((s, i) => s + i.grams, 0)
   const weight = totalG || (stated > counted ? stated : null)
-  const d = items?.length ? dish(items, servings ?? 1, weight) : null
+  const d = ready && all.length ? dish(all, servings ?? 1, weight) : null
+  /** A change to one food of the list, the typed ones first. */
+  const change = (i: number, f: (xs: LoggedItem[], j: number) => LoggedItem[]) => {
+    const n = items?.length ?? 0
+    if (i < n) setItems((xs) => f(xs ?? [], i))
+    else setAdded((xs) => f(xs, i - n))
+  }
 
   return (
     <div className="grid gap-4">
@@ -468,8 +513,19 @@ export function RecipeEditor() {
               className="w-full rounded-2xl border border-line bg-card px-4 py-3 text-lg outline-none focus:border-sky"
             />
           </Field>
-          {!items ? (
-            <Button size="lg" block onClick={() => void workOut()} loading={busy} disabled={!text.trim()}>
+          {/* Packaged foods by their barcode; a photo of the foods, or of the recipe written down. */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setScanning(true)} loading={looking === 'scan'} disabled={Boolean(looking)}>
+              <Barcode className="size-5 text-brand" aria-hidden /> {t('recipes.scan')}
+            </Button>
+            <Button variant="secondary" onClick={() => photoRef.current?.click()} loading={looking === 'photo'} disabled={Boolean(looking)}>
+              <Camera className="size-5 text-brand" aria-hidden /> {t('recipes.photo')}
+            </Button>
+            <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
+          </div>
+          <p className="-mt-2 text-xs text-ink-3">{t('recipes.scanHint')}</p>
+          {!items && text.trim() ? (
+            <Button size="lg" block onClick={() => void workOut()} loading={busy}>
               <Sparkles className="size-5" aria-hidden /> {t('recipes.workOut')}
             </Button>
           ) : null}
@@ -480,10 +536,10 @@ export function RecipeEditor() {
         <p className="rounded-2xl bg-card-2 p-3 text-sm">{t('recipes.pageSays', { kcal: num(draft.nutrition.kcal), p: num(draft.nutrition.protein_g ?? 0) })}</p>
       ) : null}
 
-      {items ? (
+      {all.length ? (
         <Card title={t('recipes.ingredientsFound')}>
           <ul className="grid gap-2">
-            {items.map((it, i) => (
+            {all.map((it, i) => (
               <li key={i} className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold leading-tight">{it.name}</p>
@@ -492,21 +548,23 @@ export function RecipeEditor() {
                   </p>
                 </div>
                 <div className="w-20">
-                  <NumberInput decimals={false} value={it.grams} onChange={(g) => g && setItems((xs) => (xs ?? []).map((x, j) => (j === i ? { ...x, ...scaled(x, g) } : x)))} aria-label={t('snap.grams', { name: it.name })} />
+                  <NumberInput decimals={false} value={it.grams} onChange={(g) => g && change(i, (xs, k) => xs.map((x, j) => (j === k ? { ...x, ...scaled(x, g) } : x)))} aria-label={t('snap.grams', { name: it.name })} />
                 </div>
                 <span className="text-sm text-ink-2">g</span>
-                <button onClick={() => setItems((xs) => (xs ?? []).filter((_, j) => j !== i))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
+                <button onClick={() => change(i, (xs, k) => xs.filter((_, j) => j !== k))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
                   <Trash2 className="size-5" />
                 </button>
               </li>
             ))}
           </ul>
           {missing.length ? <p className="mt-3 rounded-2xl bg-sun-soft p-3 text-sm">{t('voice.missing', { words: missing.join(', ') })}</p> : null}
+          {!ready ? <p className="mt-3 rounded-2xl bg-card-2 p-3 text-sm">{t('recipes.textPending')}</p> : null}
           {d ? <p className="mt-3 font-semibold">{t('recipes.summary', { g: num(d.weight), kcal: num(d.kcal), pg: num(d.portionG), pkcal: num(d.portionKcal), pp: num(d.portionProtein) })}</p> : null}
         </Card>
       ) : null}
 
       {error ? <p className="rounded-2xl bg-danger-soft p-3">{error}</p> : null}
+      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={(b) => setLooking(b ? 'scan' : null)} onAdd={(it) => setAdded((xs) => [...xs, it])} addLabel={t('recipes.addToRecipe')} />
       {id && mine ? (
         <Button variant="danger" onClick={() => void remove()}>
           <Trash2 className="size-5" aria-hidden /> {t('recipes.delete')}

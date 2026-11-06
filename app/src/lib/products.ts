@@ -1,6 +1,7 @@
 // Packaged foods by barcode, from Open Food Facts (https://world.openfoodfacts.org):
 // a free, open database (ODbL licence) with millions of products, very good for Italy and Europe.
 // It is the same source Build With Science falls back to for barcodes. No key is needed.
+import type { LoggedItem } from './foodDb'
 import type { FoodItem, Locale } from './types'
 
 export interface Product {
@@ -105,4 +106,15 @@ export function rememberProduct(p: Product): void {
   } catch {
     // storage full or unavailable: nothing to remember
   }
+}
+
+/** A product's food for an amount, with where it came from (to be remembered once saved). */
+export type ProductItem = LoggedItem & { processed?: boolean }
+
+/** A product chosen for an amount: scanned or read from a label, it is kept on this phone for next time. */
+export function productItem(p: Product, grams: number): ProductItem {
+  if (p.source === 'openfoodfacts' || p.source === 'label') rememberProduct(p)
+  const origin = p.source === 'openfoodfacts' ? 'barcode' : p.source === 'family' ? undefined : p.source
+  const barcode = /^\d{6,14}$/.test(p.code) ? p.code : undefined
+  return { ...productAt(p, grams), processed: p.ultraProcessed, barcode, brand: p.brand, origin, dbId: p.dbId }
 }

@@ -336,7 +336,11 @@ proposal is answered right there (apply or keep), so the Food page does not ask 
 **Recipes.** Food → Recipes: a dish written once (name, portions, ingredients one per line, weight when ready),
 then anyone in the family logs a portion in one tap. Ingredients are read like a dictated meal (built-in foods,
 the person's usual products, the AI for the rest); the weight comes from the grams written on each line, water
-and salt included, unless the weight when ready is given (pasta takes up water, a roast loses it). Saving goes
+and salt included, unless the weight when ready is given (pasta takes up water, a roast loses it). Ingredients can
+also be scanned (the same flow as "Add a meal": Open Food Facts, or the nutrition label read from a photo when the
+product is unknown, then how much goes in) or photographed: a photo of the foods, or of the recipe written down,
+whose amounts the plate AI reads as written. Those keep their exact values next to the lines typed, which are worked
+out again whenever they change; on saving they join the family's foods. Saving goes
 through `save_recipe()`, which also keeps the dish as a food of the family database (source `recipe`, values per
 100 g, a portion = the dish ÷ its portions), so it is found by the search and by name when dictated. **From a
 link**: Cookidoo (the Thermomix/Bimby site) puts a schema.org Recipe in its public pages (name, portions,

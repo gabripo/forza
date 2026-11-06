@@ -47,7 +47,8 @@ italiano: la lingua si cambia in qualsiasi momento.*
   che hai in casa: fino a tre ricette per il prossimo pasto, con quantità che stanno in quello che ti resta oggi.
 - 🍦 **Meno cibi processati, con gentilezza.** A chi registra spesso gelato, biscotti o snack viene chiesto se sa
   che saziano di meno e sono meno nutrienti, con tante alternative altrettanto buone, a un tocco.
-- 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta, poi chiunque ne registra una porzione
+- 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta (scrivi gli ingredienti, scansiona i loro
+  codici a barre o fotografali, o fotografa la ricetta scritta), poi chiunque ne registra una porzione
   con un tocco. Hai un Bimby? Cerca la ricetta nell'app o incolla un link di Cookidoo: gli ingredienti
   vengono letti per te.
 - 👨‍👩‍👧 **Cucini una volta, registri per tutti.** Condividi un pasto con chi l'ha mangiato, ognuno con la sua
