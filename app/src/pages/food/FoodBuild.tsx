@@ -1,4 +1,4 @@
-import { Barcode, Camera, ChefHat, Mic, Plus, Sparkles, Square, X } from 'lucide-react'
+import { Barcode, BookPlus, Camera, ChefHat, Mic, Plus, Sparkles, Square, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
@@ -14,6 +14,7 @@ import { useI18n } from '../../lib/i18n'
 import { compressPhoto } from '../../lib/image'
 import { lookupBarcode, productAt, type Product } from '../../lib/products'
 import { appRecipe, fromAi, fromBuiltin, mealGoal, missing, type Ingredient, type RecipeIdea } from '../../lib/recipeIdea'
+import { stepFromText } from '../../lib/recipeSteps'
 import { FOOD_FORMATS, validGtin } from '../../lib/scan'
 import type { Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
@@ -341,7 +342,14 @@ export function FoodBuild() {
             </p>
           ) : null}
           {result.recipes.map((r, i) => (
-            <RecipeCard key={`${r.name}-${i}`} recipe={r} goalKcal={goal.kcal} meal={meal} onLog={() => navigate('/food/add', { state: { items: r.items, meal } })} />
+            <RecipeCard
+              key={`${r.name}-${i}`}
+              recipe={r}
+              goalKcal={goal.kcal}
+              meal={meal}
+              onLog={() => navigate('/food/add', { state: { items: r.items, meal } })}
+              onSave={() => navigate('/food/recipes/new', { state: { draft: { name: r.name, servings: 1, added: r.items, steps: r.steps.map(stepFromText) } } })}
+            />
           ))}
           {!result.recipes.length ? <p className="rounded-2xl bg-sun-soft p-3">{t('build.none')}</p> : null}
         </>
@@ -353,7 +361,7 @@ export function FoodBuild() {
 }
 
 /** One recipe: what it is, why it fits, the foods in their amounts, the steps, and a tap to log it. */
-function RecipeCard({ recipe: r, goalKcal, meal, onLog }: { recipe: RecipeIdea; goalKcal: number; meal: Meal; onLog: () => void }) {
+function RecipeCard({ recipe: r, goalKcal, meal, onLog, onSave }: { recipe: RecipeIdea; goalKcal: number; meal: Meal; onLog: () => void; onSave: () => void }) {
   const { t, num } = useI18n()
   return (
     <Card>
@@ -394,6 +402,10 @@ function RecipeCard({ recipe: r, goalKcal, meal, onLog }: { recipe: RecipeIdea; 
       </ol>
       <Button block className="mt-4" onClick={onLog}>
         <ChefHat className="size-5" aria-hidden /> {t('build.log')}
+      </Button>
+      {/* Liked it: kept with the family's recipes, its steps too, to cook and log again. */}
+      <Button block variant="secondary" className="mt-2" onClick={onSave}>
+        <BookPlus className="size-5" aria-hidden /> {t('build.saveRecipe')}
       </Button>
     </Card>
   )

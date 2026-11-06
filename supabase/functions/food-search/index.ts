@@ -123,12 +123,14 @@ async function readRecipe(raw: string) {
   }
   let name = ''
   let ingredients: string[] = []
+  let steps: string[] = []
   let servings: number | null = null
   let nutrition: Record<string, number | undefined> | null = null
   let image: string | null = meta('image')
   if (recipe) {
     name = plainText(String(recipe.name ?? ''))
     ingredients = (Array.isArray(recipe.recipeIngredient) ? recipe.recipeIngredient : []).map((x) => ingredientLine(String(x)))
+    steps = instructionLines(recipe.recipeInstructions)
     const y = Array.isArray(recipe.recipeYield) ? recipe.recipeYield[0] : recipe.recipeYield
     servings = amount(y) ?? null
     const n = recipe.nutrition as Record<string, unknown> | undefined
@@ -145,7 +147,28 @@ async function readRecipe(raw: string) {
   }
   ingredients = ingredients.filter(Boolean).slice(0, 60)
   if (!ingredients.length) return json({ error: 'no_recipe' }, 422)
-  return json({ name: name.slice(0, 120), servings: servings && servings >= 1 && servings <= 50 ? Math.round(servings) : null, ingredients, nutrition, image: image && /^https:\/\//.test(image) ? image : null })
+  return json({ name: name.slice(0, 120), servings: servings && servings >= 1 && servings <= 50 ? Math.round(servings) : null, ingredients, steps, nutrition, image: image && /^https:\/\//.test(image) ? image : null })
+}
+
+/**
+ * The preparation as lines: schema.org recipeInstructions is words, a list of words, steps ({ text }) or sections of
+ * steps ({ itemListElement }). At most 30 steps of 500 characters.
+ */
+function instructionLines(v: unknown): string[] {
+  const out: string[] = []
+  const walk = (x: unknown) => {
+    if (out.length >= 30 || x == null) return
+    if (typeof x === 'string') {
+      for (const line of x.split(/\n+/)) if (plainText(line)) out.push(plainText(line).slice(0, 500))
+    } else if (Array.isArray(x)) x.forEach(walk)
+    else if (typeof x === 'object') {
+      const o = x as Record<string, unknown>
+      if (o.itemListElement) walk(o.itemListElement)
+      else walk(o.text ?? o.name)
+    }
+  }
+  walk(v)
+  return out.slice(0, 30)
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import { supabase } from './supabase'
 import type { WorkoutMove } from './plan'
 import type { QuizAnswer } from './pointsQuiz'
 import type { AiRecipe, Per100 } from './recipeIdea'
+import type { RecipeStep } from './recipeSteps'
 import type { LessonRow } from './rewards'
 import type {
   Activity,
@@ -516,7 +517,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 }
 
 /** Saves a recipe (and its food in the family database, per 100 g of the dish); returns its id. */
-export async function saveRecipe(r: { id?: string; name: string; servings: number; total_g: number | null; items: FoodItem[]; source?: Recipe['source']; source_url?: string | null }): Promise<string> {
+export async function saveRecipe(r: { id?: string; name: string; servings: number; total_g: number | null; items: FoodItem[]; steps: RecipeStep[]; source?: Recipe['source']; source_url?: string | null }): Promise<string> {
   return check(await supabase.rpc('save_recipe', { p_recipe: r })) as string
 }
 
@@ -525,7 +526,7 @@ export async function deleteRecipe(id: string): Promise<void> {
 }
 
 /** Reads a recipe page (Cookidoo, the Bimby recipe site, any page with a recipe in it) on the server. */
-export async function importRecipe(url: string): Promise<{ name: string; servings: number | null; ingredients: string[]; nutrition: { kcal?: number; protein_g?: number; carbs_g?: number; fat_g?: number } | null; image: string | null }> {
+export async function importRecipe(url: string): Promise<{ name: string; servings: number | null; ingredients: string[]; steps?: string[]; nutrition: { kcal?: number; protein_g?: number; carbs_g?: number; fat_g?: number } | null; image: string | null }> {
   const { data, error } = await supabase.functions.invoke('food-search', { body: { mode: 'recipe', url } })
   if (error) throw new Error(((await (error as { context?: Response }).context?.json?.().catch(() => null)) as { error?: string } | null)?.error ?? 'recipe_failed')
   return data

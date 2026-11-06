@@ -1,4 +1,4 @@
-import { Barcode, BookOpen, CalendarCheck, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, BookPlus, CalendarCheck, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
@@ -26,6 +26,8 @@ import { deleteFood, deleteSharedCopies, getSharedCopies, setFoodDay, updateFood
 import { INCOMPLETE_SHARE } from '../../lib/energy'
 import { isSynced } from '../../lib/mealAnomaly'
 import { stillSkipped, totalsOf } from '../../lib/dayCheck'
+import { useFoodDb } from '../../lib/foodDb'
+import { recipeDraftFromLogs } from '../../lib/recipeFromLogs'
 import { useI18n } from '../../lib/i18n'
 import type { FoodLog, Meal, SharedCopy } from '../../lib/types'
 import { balancedDays } from '../../lib/rewards'
@@ -44,6 +46,9 @@ export function FoodHome() {
   // Home's "Copy a meal" opens yesterday, where every meal can be copied to today.
   const [offset, setOffset] = useState(navState?.offset ?? 0)
   const copying = useMealCopy(() => void reload())
+  const db = useFoodDb()
+  /** Logged meals as the start of a family recipe: their foods, one portion. */
+  const toRecipe = (logs: FoodLog[]) => navigate('/food/recipes/new', { state: { draft: recipeDraftFromLogs(logs, db) } })
 
   // Meals that arrive without a score (synced from another app, or changed in Forza! Coach) get theirs here,
   // and keep it: the family challenge counts good meals.
@@ -499,6 +504,10 @@ export function FoodHome() {
             >
               <Share2 className="size-5" aria-hidden /> {t('share.this')}
             </Button>
+            {/* A meal (from Build With Science too) kept as a family recipe, to log again in one tap. */}
+            <Button variant="secondary" onClick={() => toRecipe([moving])}>
+              <BookPlus className="size-5" aria-hidden /> {t('food.makeRecipe')}
+            </Button>
             {/* Shared before: the copies in the others' logs, which this person can change. */}
             <SharedCopies key={moving.id} meal={moving} />
           </div>
@@ -533,6 +542,7 @@ export function FoodHome() {
           setOpenMeal(null)
           setSharing(ids)
         }}
+        onRecipe={(logs) => toRecipe(logs)}
       />
       <ShareMealSheet key={sharing?.join(',') ?? 'none'} meals={sharing ? food.filter((f) => sharing.includes(f.id)) : null} onClose={() => setSharing(null)} />
       <Sheet open={history} onClose={() => setHistory(false)} title={t('targetHistory.title')}>

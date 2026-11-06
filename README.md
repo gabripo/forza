@@ -45,7 +45,8 @@ and adjust their plan from your own computer.
 - 🍦 **Fewer processed foods, kindly.** Whoever often logs ice cream, biscuits or snacks is asked whether they know
   these fill you up less and bring fewer nutrients, with many alternatives just as pleasant, one tap away.
 - 📖 **Family recipes, Thermomix included.** Write a dish once (type the ingredients, scan their barcodes or
-  photograph them, or the recipe written down), then anyone logs a portion in one tap. Got a
+  photograph them, or the recipe written down; or make it from a meal you logged, Build With Science's too), with
+  its method step by step (baking brings its temperature, oven mode and time), then anyone logs a portion in one tap. Got a
   Thermomix (Bimby)? Find the recipe in the app or paste a Cookidoo link: the ingredients are read for you, and a
   variant of your own (less butter, another vegetable) is one tap away.
 - 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own percentage of it; the family's

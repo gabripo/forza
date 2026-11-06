@@ -16,6 +16,7 @@ import { localDay, scaleItem, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, changeFood, getFoodLog } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import { productItem, type Product } from '../../lib/products'
+import { foodsOfLog } from '../../lib/recipeFromLogs'
 import type { FoodItem, FoodLog, Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 
@@ -25,9 +26,8 @@ import { useEnergy } from '../../lib/useEnergy'
  */
 type PlateItem = LoggedItem & { processed?: boolean; base?: FoodItem; kept?: boolean }
 
-/** A meal's foods; one logged with its totals only is one food with those totals (its amount is then its calories). */
-const foodsOf = (log: FoodLog): PlateItem[] =>
-  (log.items?.length ? log.items : [{ name: log.title, grams: 0, kcal: Number(log.kcal), protein_g: Number(log.protein_g), carbs_g: Number(log.carbs_g), fat_g: Number(log.fat_g), fiber_g: Number(log.fiber_g), sugar_g: Number(log.sugar_g), ...(log.salt_g != null ? { salt_g: Number(log.salt_g) } : {}), ...(log.satfat_g != null ? { satfat_g: Number(log.satfat_g) } : {}) }]).map((it) => ({ ...it, kept: true }))
+/** A meal's foods, already counted as used (one logged with its totals only: its amount is then its calories). */
+const foodsOf = (log: FoodLog): PlateItem[] => foodsOfLog(log).map((it) => ({ ...it, kept: true }))
 
 /** How many days back a meal is, for the food page to open on its day. */
 const offsetOf = (log: FoodLog) => Math.max(0, Math.round((new Date(localDay(new Date())).getTime() - new Date(localDay(new Date(log.eaten_at))).getTime()) / 86_400_000))

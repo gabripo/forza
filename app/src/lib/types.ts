@@ -1,3 +1,4 @@
+import type { RecipeStep } from './recipeSteps'
 export type Locale = 'en' | 'it'
 export type Goal = 'fat_loss' | 'muscle_gain' | 'maintain'
 /** How fast to go towards the goal. */
@@ -196,6 +197,8 @@ export interface Recipe {
   servings: number
   total_g: number | null
   items: FoodItem[]
+  /** The preparation, step by step (none for recipes saved before steps existed). */
+  steps?: RecipeStep[]
   source: 'manual' | 'link' | 'text'
   source_url: string | null
   created_by: string | null

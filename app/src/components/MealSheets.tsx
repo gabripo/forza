@@ -1,4 +1,4 @@
-import { Check, Share2, Users } from 'lucide-react'
+import { BookPlus, Check, Share2, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../lib/auth'
 import type { Targets } from '../lib/calc'
@@ -38,8 +38,8 @@ export function MealNumbers({ totals, targets, salt = false }: { totals: Totals;
   )
 }
 
-/** A meal of the day opened: what it brings, food by food, and sharing it with whoever ate the same. */
-export function MealSheet({ meal, entries, targets, onClose, onShare }: { meal: Meal | null; entries: FoodLog[]; targets: Targets; onClose: () => void; onShare: (ids: string[]) => void }) {
+/** A meal of the day opened: what it brings, food by food, sharing it with whoever ate the same, or keeping it as a recipe. */
+export function MealSheet({ meal, entries, targets, onClose, onShare, onRecipe }: { meal: Meal | null; entries: FoodLog[]; targets: Targets; onClose: () => void; onShare: (ids: string[]) => void; onRecipe?: (logs: FoodLog[]) => void }) {
   const { t, num } = useI18n()
   const { profile } = useApp()
   const totals = totalsOf(entries)
@@ -69,6 +69,11 @@ export function MealSheet({ meal, entries, targets, onClose, onShare }: { meal: 
           {entries.length ? (
             <Button variant="secondary" onClick={() => onShare(entries.map((e) => e.id))}>
               <Share2 className="size-5" aria-hidden /> {t('mealSheet.share')}
+            </Button>
+          ) : null}
+          {entries.length && onRecipe ? (
+            <Button variant="secondary" onClick={() => onRecipe(entries)}>
+              <BookPlus className="size-5" aria-hidden /> {t('mealSheet.makeRecipe')}
             </Button>
           ) : null}
         </div>

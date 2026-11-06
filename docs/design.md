@@ -340,7 +340,21 @@ and salt included, unless the weight when ready is given (pasta takes up water, 
 also be scanned (the same flow as "Add a meal": Open Food Facts, or the nutrition label read from a photo when the
 product is unknown, then how much goes in) or photographed: a photo of the foods, or of the recipe written down,
 whose amounts the plate AI reads as written. Those keep their exact values next to the lines typed, which are worked
-out again whenever they change; on saving they join the family's foods. Saving goes
+out again whenever they change; on saving they join the family's foods. **The method**, step by step
+(`recipeSteps.ts`, stored in `recipes.steps`): steps are added by kind, moved up and down and removed, each with
+what to do and the settings its kind has: baking brings 180 °C, a conventional oven, 30 minutes and "preheated"
+(all changeable, with fan, grill or both), the hob its heat, frying its temperature, the Thermomix (Bimby) its
+minutes and seconds, temperature, speed and reverse, resting and the fridge their time. Steps written as words (on a
+Cookidoo page, whose schema.org instructions `food-search` now brings too, or by "Build your own recipe") are read
+into the same shape ("10 sec/vel. 5" is the Thermomix; "inforna a 200° ventilato per 30 minuti" is baking). A
+recipe opened shows its ingredients and its steps, each with its settings in a line. **From the food log**: a meal
+(from its Details), one food of it (synced from Build With Science too), or several picked from the last two weeks
+in the editor become a recipe, one portion being what was eaten. Other apps send no weights: each food's weight is
+worked out from its calories and those of a food with the same name (the family's own product, or the one food the
+name says), marked ≈ to check; changing it never changes the food's values. A food left without a weight needs one,
+or the weight of the dish, before saving; foods from the log never join the family's foods again, since their values
+per 100 g would rest on a guessed weight. A recipe idea of "Build your own recipe" can be saved as a family recipe
+too, with its steps. Saving goes
 through `save_recipe()`, which also keeps the dish as a food of the family database (source `recipe`, values per
 100 g, a portion = the dish ÷ its portions), so it is found by the search and by name when dictated. **From a
 link**: Cookidoo (the Thermomix/Bimby site) puts a schema.org Recipe in its public pages (name, portions,

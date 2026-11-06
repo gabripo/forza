@@ -1,16 +1,20 @@
-import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, History, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
 import { BarcodeAdd } from '../../components/ProductAdd'
+import { StepsEditor, StepsView, type EditorStep } from '../../components/RecipeSteps'
 import { Button, Card, Empty, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { sumItems } from '../../lib/calc'
-import { deleteRecipe, estimatePlate, estimateText, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
-import { loadFoodDb, plainItem, rememberItems, withUsual, type LoggedItem } from '../../lib/foodDb'
+import { deleteRecipe, estimatePlate, estimateText, getFood, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
+import { loadFoodDb, plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
 import { compressPhoto } from '../../lib/image'
-import type { FoodItem, Recipe } from '../../lib/types'
+import { localDay } from '../../lib/calc'
+import { draftFromLogs, type DraftItem } from '../../lib/recipeFromLogs'
+import { cleanSteps, stepFromText, type RecipeStep } from '../../lib/recipeSteps'
+import type { FoodItem, FoodLog, Meal, Recipe } from '../../lib/types'
 import { parseMeal } from '../../lib/voice'
 
 const round1 = (n: number) => Math.round(n * 10) / 10
@@ -67,7 +71,7 @@ const ingredientText = (items: FoodItem[]) => items.map((i) => `${Math.round(i.g
  * and portions under a new name, to change as it was cooked this time. The original stays as it is.
  */
 function variantDraft(r: Recipe, name: string): Draft {
-  return { name, servings: r.servings, total_g: r.total_g, items: r.items, text: ingredientText(r.items), source: 'manual', source_url: r.source_url ?? undefined, variantOf: r.name }
+  return { name, servings: r.servings, total_g: r.total_g, items: r.items, text: ingredientText(r.items), steps: r.steps ?? [], source: 'manual', source_url: r.source_url ?? undefined, variantOf: r.name }
 }
 
 /** The dish as one food of a meal, for an amount: a portion is the dish divided by its servings. */
@@ -117,7 +121,7 @@ export function Recipes() {
     setImportError(null)
     try {
       const r = await importRecipe(link)
-      navigate('/food/recipes/new', { state: { draft: { name: r.name, servings: r.servings, text: r.ingredients.join('\n'), source: 'link', source_url: link, nutrition: r.nutrition } } })
+      navigate('/food/recipes/new', { state: { draft: { name: r.name, servings: r.servings, text: r.ingredients.join('\n'), steps: (r.steps ?? []).map(stepFromText), source: 'link', source_url: link, nutrition: r.nutrition } } })
     } catch (e) {
       const code = (e as Error).message
       setImportError(t(code === 'no_recipe' ? 'recipes.noRecipe' : code === 'bad_url' ? 'recipes.badUrl' : 'recipes.importFailed'))
@@ -304,6 +308,23 @@ function LogPortionSheet({ recipe, onClose, justSaved }: { recipe: Recipe | null
           <Button size="lg" block disabled={!item} onClick={() => item && navigate('/food/add', { state: { items: [item], meal: mealForNow() } })}>
             {t('recipes.log')}
           </Button>
+          {/* What goes in and how it is made: the dish as written. */}
+          <details className="rounded-2xl bg-card-2 p-3">
+            <summary className="cursor-pointer font-semibold">{t('recipes.method')}</summary>
+            <ul className="mt-2 grid gap-1 text-sm">
+              {recipe.items.map((it, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="min-w-0 flex-1">{it.name}</span>
+                  <span className="text-ink-2 tabular">{it.grams > 0 ? `${num(it.grams)} g` : ''}</span>
+                </li>
+              ))}
+            </ul>
+            {recipe.steps?.length ? (
+              <div className="mt-3">
+                <StepsView steps={recipe.steps} />
+              </div>
+            ) : null}
+          </details>
           {justSaved ? (
             <Button variant="ghost" block onClick={onClose}>
               {t('recipes.notNow')}
@@ -338,9 +359,22 @@ interface Draft {
   items?: FoodItem[]
   total_g?: number | null
   variantOf?: string
+  /** The preparation (a variant's, or read from a recipe page or written by the food AI). */
+  steps?: RecipeStep[]
+  /** Foods with their values as they are (from the food log, or an idea of "Build your own recipe"). */
+  added?: DraftItem[]
+  /** Made from logged meals: one portion is what was eaten. */
+  fromLog?: boolean
 }
 
-/** Writing a recipe: its name, portions and ingredients (typed, pasted, or read from a recipe page). */
+/** Steps to edit, each with its own key. */
+const editable = (steps: RecipeStep[] | undefined): EditorStep[] => (steps ?? []).map((s) => ({ ...s, id: crypto.randomUUID() }))
+
+
+/**
+ * Writing a recipe: its name, portions, ingredients (typed, pasted, read from a recipe page, scanned, photographed or
+ * taken from the food log) and its preparation, step by step.
+ */
 export function RecipeEditor() {
   const { t, num, locale } = useI18n()
   const { profile, session } = useApp()
@@ -351,9 +385,13 @@ export function RecipeEditor() {
   const [servings, setServings] = useState<number | null>(draft?.servings ?? 4)
   const [totalG, setTotalG] = useState<number | null>(draft?.total_g ?? null)
   const [text, setText] = useState(draft?.text ?? '')
-  const [items, setItems] = useState<LoggedItem[] | null>(draft?.items ?? null)
-  // Foods scanned or read from a photo: exact values, kept apart from the lines typed (which can be worked out again).
-  const [added, setAdded] = useState<LoggedItem[]>([])
+  const [items, setItems] = useState<DraftItem[] | null>(draft?.items ?? null)
+  // Foods scanned, read from a photo or taken from the food log: their values as they are, kept apart from the lines
+  // typed (which can be worked out again).
+  const [added, setAdded] = useState<DraftItem[]>(draft?.added ?? [])
+  const [steps, setSteps] = useState<EditorStep[]>(() => editable(draft?.steps))
+  const [fromLog, setFromLog] = useState(false)
+  const db = useFoodDb()
   const [scanning, setScanning] = useState(false)
   const [looking, setLooking] = useState<'scan' | 'photo' | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
@@ -376,6 +414,7 @@ export function RecipeEditor() {
       setTotalG(r.total_g)
       setItems(r.items)
       setText(ingredientText(r.items))
+      setSteps(editable(r.steps))
       setMine(r.created_by === session?.user.id)
     })
   }, [id, session])
@@ -416,7 +455,7 @@ export function RecipeEditor() {
       const r = await estimatePlate({ image: photo.base64, note: PHOTO_NOTE, locale, goal: profile.goal ?? 'maintain', meal: 'a recipe' })
       const found = (r.is_food ? r.items : []).filter((i) => i.name && i.grams > 0).map((i) => withUsual({ ...i, grams: Math.round(i.grams), origin: 'ai' as const }, i.name))
       if (!found.length) setError(t('recipes.photoNone'))
-      else setAdded((xs) => [...xs, ...found])
+      else setAdded((xs) => [...xs, ...found.map((i) => ({ ...i, scanned: true }))])
     } catch (e) {
       const code = (e as Error).message
       setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
@@ -437,11 +476,13 @@ export function RecipeEditor() {
         servings: Math.max(1, Math.min(50, servings ?? 1)),
         total_g: weight,
         items: all.map(plainItem),
+        steps: cleanSteps(steps),
         source: draft?.source ?? 'manual',
         source_url: draft?.source_url ?? null,
       })
       // Products scanned and foods read from a photo join the family's foods (and count as used once).
-      if (added.length) rememberItems(added, 'barcode')
+      const scanned = added.filter((i) => i.scanned)
+      if (scanned.length) rememberItems(scanned, 'barcode')
       else void loadFoodDb(true)
       // A recipe just read from Cookidoo (or another site), or a variant of one, is often cooked to be eaten now:
       // the list asks.
@@ -469,8 +510,11 @@ export function RecipeEditor() {
   const counted = all.reduce((s, i) => s + i.grams, 0)
   const weight = totalG || (stated > counted ? stated : null)
   const d = ready && all.length ? dish(all, servings ?? 1, weight) : null
+  // Foods without a weight (other apps send none) need one, or the weight of the whole dish.
+  const unweighed = all.filter((i) => !(i.grams > 0))
+  const canSave = Boolean(d) && (!unweighed.length || Boolean(totalG))
   /** A change to one food of the list, the typed ones first. */
-  const change = (i: number, f: (xs: LoggedItem[], j: number) => LoggedItem[]) => {
+  const change = (i: number, f: (xs: DraftItem[], j: number) => DraftItem[]) => {
     const n = items?.length ?? 0
     if (i < n) setItems((xs) => f(xs ?? [], i))
     else setAdded((xs) => f(xs, i - n))
@@ -479,7 +523,7 @@ export function RecipeEditor() {
   return (
     <div className="grid gap-4">
       <PageHeader title={t(id ? 'recipes.editTitle' : draft?.variantOf ? 'recipes.newVariant' : 'recipes.new')} back="/food/recipes">
-        {d && name.trim() && mine ? (
+        {canSave && name.trim() && mine ? (
           <Button variant="leaf" block onClick={() => void save()} loading={saving}>
             {t('recipes.save')}
           </Button>
@@ -487,6 +531,7 @@ export function RecipeEditor() {
       </PageHeader>
       {!mine ? <p className="rounded-2xl bg-card-2 p-3 text-sm">{t('recipes.notMine')}</p> : null}
       {!id && draft?.variantOf ? <p className="rounded-2xl bg-leaf-soft p-3 text-sm">{t('recipes.variantOf', { name: draft.variantOf })}</p> : null}
+      {!id && draft?.fromLog ? <p className="rounded-2xl bg-leaf-soft p-3 text-sm">{t('recipes.fromLogDraft')}</p> : null}
 
       <Card>
         <div className="grid gap-4">
@@ -521,6 +566,10 @@ export function RecipeEditor() {
             <Button variant="secondary" onClick={() => photoRef.current?.click()} loading={looking === 'photo'} disabled={Boolean(looking)}>
               <Camera className="size-5 text-brand" aria-hidden /> {t('recipes.photo')}
             </Button>
+            {/* A meal logged before (one from Build With Science too), or several picked together. */}
+            <Button variant="secondary" className="col-span-2" onClick={() => setFromLog(true)} disabled={Boolean(looking)}>
+              <History className="size-5 text-brand" aria-hidden /> {t('recipes.fromLogTitle')}
+            </Button>
             <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
           </div>
           <p className="-mt-2 text-xs text-ink-3">{t('recipes.scanHint')}</p>
@@ -546,9 +595,17 @@ export function RecipeEditor() {
                   <p className="text-sm text-ink-2">
                     {num(it.kcal)} kcal · P {num(it.protein_g)} · C {num(it.carbs_g)} · F {num(it.fat_g)}
                   </p>
+                  {it.estimated ? <p className="text-xs text-sun">{t('recipes.estimated')}</p> : it.grams > 0 ? null : <p className="text-xs text-sun">{t('recipes.noWeight')}</p>}
                 </div>
                 <div className="w-20">
-                  <NumberInput decimals={false} value={it.grams} onChange={(g) => g && change(i, (xs, k) => xs.map((x, j) => (j === k ? { ...x, ...scaled(x, g) } : x)))} aria-label={t('snap.grams', { name: it.name })} />
+                  {/* A weight worked out (or missing) is only told: the food's values were right already. */}
+                  <NumberInput
+                    decimals={false}
+                    value={it.grams > 0 ? it.grams : null}
+                    placeholder="?"
+                    onChange={(g) => g && change(i, (xs, k) => xs.map((x, j) => (j === k ? (x.grams > 0 && !x.estimated ? { ...x, ...scaled(x, g) } : { ...x, grams: g, estimated: false }) : x)))}
+                    aria-label={t('snap.grams', { name: it.name })}
+                  />
                 </div>
                 <span className="text-sm text-ink-2">g</span>
                 <button onClick={() => change(i, (xs, k) => xs.filter((_, j) => j !== k))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
@@ -559,17 +616,106 @@ export function RecipeEditor() {
           </ul>
           {missing.length ? <p className="mt-3 rounded-2xl bg-sun-soft p-3 text-sm">{t('voice.missing', { words: missing.join(', ') })}</p> : null}
           {!ready ? <p className="mt-3 rounded-2xl bg-card-2 p-3 text-sm">{t('recipes.textPending')}</p> : null}
+          {all.some((i) => i.estimated) ? <p className="mt-3 rounded-2xl bg-sun-soft p-3 text-sm">{t('recipes.estimatedNote')}</p> : null}
+          {unweighed.length && !totalG ? <p className="mt-3 rounded-2xl bg-sun-soft p-3 text-sm font-semibold">{t('recipes.unweighed', { n: unweighed.length })}</p> : null}
           {d ? <p className="mt-3 font-semibold">{t('recipes.summary', { g: num(d.weight), kcal: num(d.kcal), pg: num(d.portionG), pkcal: num(d.portionKcal), pp: num(d.portionProtein) })}</p> : null}
         </Card>
       ) : null}
 
+      <Card title={t('steps.title')}>
+        <p className="-mt-1 mb-3 text-sm text-ink-2">{t('steps.hint')}</p>
+        <StepsEditor steps={steps} onChange={setSteps} />
+      </Card>
+
       {error ? <p className="rounded-2xl bg-danger-soft p-3">{error}</p> : null}
-      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={(b) => setLooking(b ? 'scan' : null)} onAdd={(it) => setAdded((xs) => [...xs, it])} addLabel={t('recipes.addToRecipe')} />
+      <FromLogSheet
+        open={fromLog}
+        onClose={() => setFromLog(false)}
+        onAdd={(logs) => {
+          const d = draftFromLogs(logs, db)
+          setAdded((xs) => [...xs, ...d.items])
+          if (!name.trim()) setName(d.name)
+          setFromLog(false)
+        }}
+      />
+      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={(b) => setLooking(b ? 'scan' : null)} onAdd={(it) => setAdded((xs) => [...xs, { ...it, scanned: true }])} addLabel={t('recipes.addToRecipe')} />
       {id && mine ? (
         <Button variant="danger" onClick={() => void remove()}>
           <Trash2 className="size-5" aria-hidden /> {t('recipes.delete')}
         </Button>
       ) : null}
     </div>
+  )
+}
+
+const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
+
+/**
+ * Meals of the last two weeks to make the recipe from: one food, a whole meal, or several picked together, from one
+ * day or more. Meals synced from Build With Science too.
+ */
+function FromLogSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (logs: FoodLog[]) => void }) {
+  const { t, num, date } = useI18n()
+  const [logs, setLogs] = useState<FoodLog[] | null>(null)
+  const [picked, setPicked] = useState<string[]>([])
+  useEffect(() => {
+    if (!open) return
+    void getFood(14).then((f) => setLogs([...f].reverse()), () => setLogs([]))
+  }, [open])
+  // Nothing stays picked for the next time the sheet opens.
+  const close = () => {
+    setPicked([])
+    onClose()
+  }
+  const days = [...new Set((logs ?? []).map((l) => localDay(new Date(l.eaten_at))))]
+  const toggle = (ids: string[], on: boolean) => setPicked((xs) => (on ? [...new Set([...xs, ...ids])] : xs.filter((x) => !ids.includes(x))))
+  return (
+    <Sheet open={open} onClose={close} title={t('recipes.fromLogTitle')}>
+      <div className="grid gap-3">
+        <p className="text-sm text-ink-2">{t('recipes.fromLogHint')}</p>
+        {logs === null ? <p className="text-ink-3">…</p> : !logs.length ? <p className="rounded-2xl bg-card-2 p-3">{t('food.empty')}</p> : null}
+        {days.map((day) => (
+          <div key={day}>
+            <p className="mb-1 font-bold">{date(day, { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+            {MEALS.map((m) => {
+              const entries = (logs ?? []).filter((l) => l.meal === m && localDay(new Date(l.eaten_at)) === day)
+              if (!entries.length) return null
+              const all = entries.every((e) => picked.includes(e.id))
+              return (
+                <div key={m} className="mb-2 rounded-2xl bg-card-2 p-2">
+                  <label className="flex items-center gap-2 px-1 py-1 text-sm font-semibold text-ink-2">
+                    <input type="checkbox" checked={all} onChange={(e) => toggle(entries.map((x) => x.id), e.target.checked)} className="size-5" />
+                    {t(`meal.${m}`)} · {t('recipes.wholeMeal')}
+                  </label>
+                  {entries.map((e) => (
+                    <label key={e.id} className="flex items-center gap-2 rounded-xl px-1 py-1.5">
+                      <input type="checkbox" checked={picked.includes(e.id)} onChange={(x) => toggle([e.id], x.target.checked)} className="size-5" aria-label={e.title} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{e.title}</span>
+                        <span className="text-sm text-ink-2">
+                          {num(Number(e.kcal))} kcal{e.origin && e.source === 'health_connect' ? ` · ${e.origin}` : ''}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        <Button
+          size="lg"
+          block
+          disabled={!picked.length}
+          onClick={() => {
+            onAdd((logs ?? []).filter((l) => picked.includes(l.id)))
+            setPicked([])
+          }}
+          className="sticky bottom-0"
+        >
+          <Plus className="size-5" aria-hidden /> {t('recipes.fromLogAdd', { n: picked.length })}
+        </Button>
+      </div>
+    </Sheet>
   )
 }
