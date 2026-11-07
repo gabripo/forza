@@ -35,6 +35,7 @@ jobs:
         run: |
           supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
           psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -f scripts/screenshots/prepare.sql
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -c "update public.profiles set locale = 'it' where id = 'd0d0d0d0-0000-4000-8000-000000000001'"
           supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|ANON_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
 
       - name: The app, built for the local database
