@@ -6,6 +6,7 @@ import { MealSoFar } from '../../components/PlateAdvice'
 import { ProcessedSwapHint } from '../../components/Processed'
 import { mealForNow, PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
+import { FoodValuesSheet } from '../../components/FoodValues'
 import { BarcodeAdd, ProductSheet } from '../../components/ProductAdd'
 import { useMealCheck } from '../../lib/mealCheck'
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
@@ -355,10 +356,13 @@ export function FoodManual() {
       <ProductSheet product={product} onClose={() => setProduct(null)} onAdd={addProduct} />
       {/* A barcode: the product, or its label read from a photo, or the values typed in. */}
       <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={setLooking} onAdd={(it) => setItems((xs) => [...xs, it])} onCustom={() => setCustom(true)} />
-      <CustomItemSheet
+      {/* A food that is in no list: its values for the amount eaten (it joins the family's foods once logged). */}
+      <FoodValuesSheet
         open={custom}
+        title={t('manual.custom')}
+        saveLabel={t('manual.add')}
         onClose={() => setCustom(false)}
-        onAdd={(it) => {
+        onSave={(it) => {
           setItems((xs) => [...xs, it])
           setCustom(false)
         }}
@@ -392,57 +396,3 @@ function PickRow({ pick, onPick }: { pick: Pick; onPick: (p: Pick) => void }) {
   )
 }
 
-/** A food that is in no list: its values for the amount eaten (it joins the family's foods once logged). */
-function CustomItemSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (i: LoggedItem) => void }) {
-  const { t } = useI18n()
-  const [name, setName] = useState('')
-  const [grams, setGrams] = useState<number | null>(100)
-  const [kcal, setKcal] = useState<number | null>(null)
-  const [p, setP] = useState<number | null>(null)
-  const [c, setC] = useState<number | null>(null)
-  const [f, setF] = useState<number | null>(null)
-  const [salt, setSalt] = useState<number | null>(null)
-  const [satfat, setSatfat] = useState<number | null>(null)
-  return (
-    <Sheet open={open} onClose={onClose} title={t('manual.custom')}>
-      <div className="grid gap-3">
-        <Field label={t('picker.name')}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label={t('manual.customGrams')} hint={t('manual.customHint')}>
-          <NumberInput decimals={false} value={grams} onChange={setGrams} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="kcal">
-            <NumberInput value={kcal} onChange={setKcal} />
-          </Field>
-          <Field label={`${t('macro.protein')} (g)`}>
-            <NumberInput value={p} onChange={setP} />
-          </Field>
-          <Field label={`${t('macro.carbs')} (g)`}>
-            <NumberInput value={c} onChange={setC} />
-          </Field>
-          <Field label={`${t('macro.fat')} (g)`}>
-            <NumberInput value={f} onChange={setF} />
-          </Field>
-          <Field label={`${t('macro.satfat')} (g)`} hint={t('manual.optional')}>
-            <NumberInput value={satfat} onChange={setSatfat} />
-          </Field>
-          <Field label={`${t('macro.salt')} (g)`} hint={t('manual.optional')}>
-            <NumberInput value={salt} onChange={setSalt} />
-          </Field>
-        </div>
-        <Button
-          size="lg"
-          block
-          disabled={!name.trim() || !kcal}
-          onClick={() =>
-            onAdd({ name: name.trim(), grams: grams ?? 0, kcal: kcal ?? 0, protein_g: p ?? 0, carbs_g: c ?? 0, fat_g: f ?? 0, fiber_g: 0, sugar_g: 0, ...(salt != null ? { salt_g: salt } : {}), ...(satfat != null ? { satfat_g: satfat } : {}), origin: 'manual' })
-          }
-        >
-          {t('manual.add')}
-        </Button>
-      </div>
-    </Sheet>
-  )
-}

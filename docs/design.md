@@ -238,7 +238,13 @@ Ways to log a meal:
   decoder elsewhere, served by the app itself) and looks the product up in **Open Food Facts**: free, open,
   no key, and strong on Italian and European products. This is the same source Build With Science falls
   back to for barcodes. Unknown product? A photo of the **nutrition label** is read by the AI (values per
-  100 g). Recently scanned products are one tap away.
+  100 g). Recently scanned products are one tap away. A scan looks first for the **family's product** with that
+  barcode (any logged before), then Open Food Facts. **"Non è questo?"** at the bottom of the product puts a wrong
+  one right: the nutrition label read from a photo, the right product found by name (the family's, the app's, Open
+  Food Facts'), or the values corrected by hand, each filling a form (name, brand, serving, values per 100 g) to
+  check. Kept for the barcode (`fix_product()`: name, brand, values and serving replaced, for everyone's next
+  scans) or used this time only, as a food of its own without the barcode. The same scan is used in "Add a
+  meal", in recipes and in "Build your own recipe".
 - **By hand**: about 230 common foods and Italian dishes with typical portions (searched by everyday names
   too: "hamburger di tacchino", "pasta e fagioli", "nutella"), or custom values.
 - **Copy**: many people eat the same breakfast most days. Home has a button for yesterday's meal of this
@@ -340,7 +346,9 @@ and salt included, unless the weight when ready is given (pasta takes up water, 
 also be scanned (the same flow as "Add a meal": Open Food Facts, or the nutrition label read from a photo when the
 product is unknown, then how much goes in) or photographed: a photo of the foods, or of the recipe written down,
 whose amounts the plate AI reads as written. Those keep their exact values next to the lines typed, which are worked
-out again whenever they change; on saving they join the family's foods. **The method**, step by step
+out again whenever they change; on saving they join the family's foods. A food can also be **typed in with its
+values** (calories, protein, carbs, fat, and fibre, sugar, saturated fat and salt if known, for the amount used),
+and the pencil on any ingredient corrects its values the same way. **The method**, step by step
 (`recipeSteps.ts`, stored in `recipes.steps`): steps are added by kind, moved up and down and removed, each with
 what to do and the settings its kind has: baking brings 180 °C, a conventional oven, 30 minutes and "preheated"
 (all changeable, with fan, grill or both), the hob its heat, frying its temperature, the Thermomix (Bimby) its

@@ -1,8 +1,8 @@
 import { Barcode, BookPlus, Camera, ChefHat, Mic, Plus, Sparkles, Square, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
-import { Scanner } from '../../components/Scanner'
+import { BarcodeAdd } from '../../components/ProductAdd'
 import { Button, Card, Input, Loading, PageHeader, Segmented, cx } from '../../components/ui'
 import { FOODS, type Food } from '../../data/foods'
 import { useApp } from '../../lib/auth'
@@ -12,10 +12,9 @@ import { logsOfDay } from '../../lib/dayCheck'
 import { frequentFoods, searchAll, useFoodDb, type DbFood } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
 import { compressPhoto } from '../../lib/image'
-import { lookupBarcode, productAt, type Product } from '../../lib/products'
+import type { ProductItem } from '../../lib/products'
 import { appRecipe, fromAi, fromBuiltin, mealGoal, missing, type Ingredient, type RecipeIdea } from '../../lib/recipeIdea'
 import { stepFromText } from '../../lib/recipeSteps'
-import { FOOD_FORMATS, validGtin } from '../../lib/scan'
 import type { Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 import { mergeSpeech, parseMeal } from '../../lib/voice'
@@ -49,16 +48,20 @@ const fromDb = (f: DbFood): Ingredient => ({
   origin: f.source,
 })
 
-const fromProduct = (p: Product): Ingredient => ({
-  key: `p:${p.code}`,
-  name: productAt(p, 100).name,
-  per100: p.per100,
-  portion: p.servingG ?? 100,
-  barcode: /^\d{6,14}$/.test(p.code) ? p.code : undefined,
-  brand: p.brand,
-  dbId: p.dbId,
-  origin: p.source === 'openfoodfacts' ? 'barcode' : p.source === 'family' ? undefined : p.source,
-})
+/** A product scanned (or put right), in the amount chosen: its values per 100 g, and that amount as its portion. */
+const fromProduct = (it: ProductItem): Ingredient => {
+  const k = it.grams > 0 ? 100 / it.grams : 0
+  return {
+    key: `p:${it.barcode ?? it.dbId ?? it.name}`,
+    name: it.name,
+    per100: k ? { kcal: it.kcal * k, protein_g: it.protein_g * k, carbs_g: it.carbs_g * k, fat_g: it.fat_g * k, fiber_g: it.fiber_g * k, sugar_g: it.sugar_g * k, ...(it.salt_g != null ? { salt_g: it.salt_g * k } : {}), ...(it.satfat_g != null ? { satfat_g: it.satfat_g * k } : {}) } : null,
+    portion: it.grams || 100,
+    barcode: it.barcode,
+    brand: it.brand,
+    dbId: it.dbId,
+    origin: it.origin,
+  }
+}
 
 /** Foods that make a dish (not ready-made dishes, drinks or treats), for the person's usual ones. */
 const cooking = (f: Food) => !['dishes', 'drinks', 'treats'].includes(f.group)
@@ -81,6 +84,7 @@ export function FoodBuild() {
   const [scanning, setScanning] = useState(false)
   // A barcode or a photo being read.
   const [looking, setLooking] = useState<'scan' | 'photo' | null>(null)
+  const onScanBusy = useCallback((b: boolean) => setLooking((x) => (b ? 'scan' : x === 'scan' ? null : x)), [])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ recipes: RecipeIdea[]; by: 'ai' | 'app'; note: string | null } | null>(null)
@@ -148,23 +152,6 @@ export function FoodBuild() {
     setError(null)
     setListening(true)
     r.start()
-  }
-
-  async function onCode(raw: string) {
-    setScanning(false)
-    const code = raw.replace(/\D/g, '')
-    setError(null)
-    if (!validGtin(code)) return setError(t('build.notFound', { code: code || raw }))
-    setLooking('scan')
-    try {
-      const p = await lookupBarcode(code, locale)
-      if (p) add([fromProduct(p)])
-      else setError(t('build.notFound', { code }))
-    } catch {
-      setError(t('build.notFound', { code }))
-    } finally {
-      setLooking(null)
-    }
   }
 
   /** A photo of the foods at home: the food AI says what it sees, with values for a typical amount. */
@@ -355,7 +342,8 @@ export function FoodBuild() {
         </>
       ) : null}
 
-      {scanning ? <Scanner formats={FOOD_FORMATS} title={t('scan.title')} hint={t('scan.hint')} allowTyping onResult={(v) => void onCode(v)} onClose={() => setScanning(false)} /> : null}
+      {/* The same scan as "Add a meal": the family's product first, a label photo when unknown, "Non è questo?". */}
+      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={onScanBusy} onAdd={(it) => add([fromProduct(it)])} addLabel={t('build.addScanned')} />
     </div>
   )
 }

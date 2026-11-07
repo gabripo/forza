@@ -42,13 +42,14 @@ italiano: la lingua si cambia in qualsiasi momento.*
 - 📷 **Fotografa, detta o scansiona un pasto**, e vedi prima cosa fare ("aggiungi un po' di proteine"),
   valutato insieme al resto di quel pasto e della giornata. Un pasto che sembra registrato per sbaglio ("Taralli"
   salvati come 3 g di grissini) viene chiesto finché non è corretto o confermato, e ogni pasto si può modificare
-  anche dopo: alimenti e quantità.
+  anche dopo: alimenti e quantità. Un prodotto scansionato sbagliato si corregge con «Non è questo?», per le
+  prossime scansioni di tutta la famiglia.
 - 🧑‍🍳 **Nessuna idea su cosa mangiare? Costruisci la tua ricetta.** Scrivi, detta, scansiona o fotografa quello
   che hai in casa: fino a tre ricette per il prossimo pasto, con quantità che stanno in quello che ti resta oggi.
 - 🍦 **Meno cibi processati, con gentilezza.** A chi registra spesso gelato, biscotti o snack viene chiesto se sa
   che saziano di meno e sono meno nutrienti, con tante alternative altrettanto buone, a un tocco.
 - 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta (scrivi gli ingredienti, scansiona i loro
-  codici a barre o fotografali, o fotografa la ricetta scritta; oppure crealo da un pasto registrato, anche da Build
+  codici a barre o fotografali, o fotografa la ricetta scritta, o scrivi i loro valori; oppure crealo da un pasto registrato, anche da Build
   With Science), con la preparazione passo per passo ("Inforna" porta temperatura, modalità del forno e tempo), poi chiunque ne registra una porzione
   con un tocco. Hai un Bimby? Cerca la ricetta nell'app o incolla un link di Cookidoo: gli ingredienti
   vengono letti per te.

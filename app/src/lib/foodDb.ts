@@ -195,6 +195,29 @@ export function withUsual<T extends LoggedItem>(item: T, text: string, amountSai
   return { ...item, ...dbFoodAt(u.food, grams), foodId: undefined, dbId: u.food.id, barcode: u.food.barcode ?? undefined, brand: u.food.brand, origin: u.food.source, usual: true }
 }
 
+/**
+ * The family's product with this barcode (logged before, or put right with "Non è questo?"): asked of the database,
+ * so a correction made on another phone counts at once; the foods kept on this phone when offline.
+ */
+export async function familyProduct(code: string): Promise<DbFood | null> {
+  const { data, error } = await supabase.from('foods').select('*').eq('barcode', code).maybeSingle()
+  if (!error) return (data as DbFood | null) ?? null
+  return state.foods.find((f) => f.barcode === code) ?? null
+}
+
+/**
+ * A scanned product put right for its barcode, for the whole family: its name, brand, values per 100 g and serving
+ * replace what was there. Returns the food's id; the family database is read again.
+ */
+export async function fixProduct(p: Product, code: string, source: 'label' | 'manual'): Promise<string> {
+  const { data, error } = await supabase.rpc('fix_product', {
+    p_food: { barcode: code, name: p.name, name_key: nameKey(p.name), brand: p.brand, ...p.per100, portion_g: p.servingG, source },
+  })
+  if (error) throw new Error('fix_failed')
+  void loadFoodDb(true)
+  return data as string
+}
+
 /** The person's foods, most used first: the list shown before anything is typed. */
 export function frequentFoods(st: FoodDbState = state, limit = 10): Pick[] {
   const out: Pick[] = []

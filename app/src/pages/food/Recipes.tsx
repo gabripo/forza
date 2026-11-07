@@ -1,7 +1,8 @@
-import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, History, Link2, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, History, Link2, Pencil, PenLine, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { mealForNow } from '../../components/PlateResult'
+import { FoodValuesSheet } from '../../components/FoodValues'
 import { BarcodeAdd } from '../../components/ProductAdd'
 import { StepsEditor, StepsView, type EditorStep } from '../../components/RecipeSteps'
 import { Button, Card, Empty, Field, Input, Loading, NumberInput, PageHeader, Segmented, Sheet } from '../../components/ui'
@@ -394,6 +395,9 @@ export function RecipeEditor() {
   const db = useFoodDb()
   const [scanning, setScanning] = useState(false)
   const [looking, setLooking] = useState<'scan' | 'photo' | null>(null)
+  const onScanBusy = useCallback((b: boolean) => setLooking((x) => (b ? 'scan' : x === 'scan' ? null : x)), [])
+  // A food's values typed by hand: a new one (-1), or one of the list to correct (its place).
+  const [typing, setTyping] = useState<number | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const [missing, setMissing] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
@@ -570,6 +574,10 @@ export function RecipeEditor() {
             <Button variant="secondary" className="col-span-2" onClick={() => setFromLog(true)} disabled={Boolean(looking)}>
               <History className="size-5 text-brand" aria-hidden /> {t('recipes.fromLogTitle')}
             </Button>
+            {/* A food in no list (or a home-made one): its calories and macros typed in. */}
+            <Button variant="secondary" className="col-span-2" onClick={() => setTyping(-1)} disabled={Boolean(looking)}>
+              <PenLine className="size-5 text-brand" aria-hidden /> {t('recipes.byHand')}
+            </Button>
             <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
           </div>
           <p className="-mt-2 text-xs text-ink-3">{t('recipes.scanHint')}</p>
@@ -608,6 +616,9 @@ export function RecipeEditor() {
                   />
                 </div>
                 <span className="text-sm text-ink-2">g</span>
+                <button onClick={() => setTyping(i)} className="grid size-10 place-items-center text-ink-3" aria-label={t('recipes.editValues', { name: it.name })}>
+                  <Pencil className="size-5" />
+                </button>
                 <button onClick={() => change(i, (xs, k) => xs.filter((_, j) => j !== k))} className="grid size-10 place-items-center text-ink-3" aria-label={t('common.delete')}>
                   <Trash2 className="size-5" />
                 </button>
@@ -638,7 +649,21 @@ export function RecipeEditor() {
           setFromLog(false)
         }}
       />
-      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={(b) => setLooking(b ? 'scan' : null)} onAdd={(it) => setAdded((xs) => [...xs, { ...it, scanned: true }])} addLabel={t('recipes.addToRecipe')} />
+      <FoodValuesSheet
+        open={typing !== null}
+        initial={typing !== null && typing >= 0 ? all[typing] : null}
+        title={t(typing !== null && typing >= 0 ? 'recipes.editValuesTitle' : 'recipes.byHand')}
+        saveLabel={t(typing !== null && typing >= 0 ? 'recipes.saveValues' : 'recipes.addToRecipe')}
+        onClose={() => setTyping(null)}
+        onSave={(it) => {
+          // Typed in: values of its own, kept as they are (and joining the family's foods when the recipe is saved).
+          const typed: DraftItem = { ...it, scanned: true }
+          if (typing !== null && typing >= 0) change(typing, (xs, k) => xs.map((x, j) => (j === k ? typed : x)))
+          else setAdded((xs) => [...xs, typed])
+          setTyping(null)
+        }}
+      />
+      <BarcodeAdd open={scanning} onOpenChange={setScanning} onBusy={onScanBusy} onAdd={(it) => setAdded((xs) => [...xs, { ...it, scanned: true }])} addLabel={t('recipes.addToRecipe')} />
       {id && mine ? (
         <Button variant="danger" onClick={() => void remove()}>
           <Trash2 className="size-5" aria-hidden /> {t('recipes.delete')}

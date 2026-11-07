@@ -15,8 +15,8 @@ export interface Product {
   servingG: number | null
   /** NOVA group 4 = ultra-processed. */
   ultraProcessed: boolean
-  /** Scanned (Open Food Facts), read from a label photo, from the family's foods, or found by name online. */
-  source: 'openfoodfacts' | 'label' | 'family' | 'web'
+  /** Scanned (Open Food Facts), read from a label photo, from the family's foods, found by name online, or typed in. */
+  source: 'openfoodfacts' | 'label' | 'family' | 'web' | 'manual'
   /** For a family food: its id in the database. */
   dbId?: string
 }

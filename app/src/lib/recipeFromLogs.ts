@@ -8,8 +8,8 @@ import { parseMeal } from './voice'
 
 /**
  * A food of a recipe being written: `estimated` when its weight was worked out from its calories; `scanned` when it
- * was scanned or read from a photo just now (only those join the family's foods: the others are there already, or
- * their values per 100 g would rest on a guessed weight).
+ * was scanned, read from a photo or typed in just now (only those join the family's foods: the others are there
+ * already, or their values per 100 g would rest on a guessed weight).
  */
 export type DraftItem = LoggedItem & { estimated?: boolean; scanned?: boolean }
 
