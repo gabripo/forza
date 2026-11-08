@@ -1,6 +1,7 @@
 import { Barcode, BookPlus, Camera, ChefHat, Mic, Plus, Sparkles, Square, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CameraCapture } from '../../components/CameraCapture'
 import { mealForNow } from '../../components/PlateResult'
 import { BarcodeAdd } from '../../components/ProductAdd'
 import { Button, Card, Input, Loading, PageHeader, Segmented, cx } from '../../components/ui'
@@ -11,7 +12,7 @@ import { estimatePlate, recipesFromAi } from '../../lib/data'
 import { logsOfDay } from '../../lib/dayCheck'
 import { frequentFoods, searchAll, useFoodDb, type DbFood } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import { compressPhoto } from '../../lib/image'
+import { compressPhoto, photoErrorKey } from '../../lib/image'
 import type { ProductItem } from '../../lib/products'
 import { appRecipe, fromAi, fromBuiltin, mealGoal, missing, type Ingredient, type RecipeIdea } from '../../lib/recipeIdea'
 import { stepFromText } from '../../lib/recipeSteps'
@@ -89,7 +90,8 @@ export function FoodBuild() {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ recipes: RecipeIdea[]; by: 'ai' | 'app'; note: string | null } | null>(null)
   const rec = useRef<Recognition | null>(null)
-  const photoRef = useRef<HTMLInputElement>(null)
+  // The camera inside the app (the phone's camera app can make Android close the browser, losing the photo).
+  const [camera, setCamera] = useState(false)
   const goal = useMemo(() => (energy ? mealGoal(food, energy.targets, meal) : null), [food, energy, meal])
   const usual = useMemo(
     () =>
@@ -156,6 +158,7 @@ export function FoodBuild() {
 
   /** A photo of the foods at home: the food AI says what it sees, with values for a typical amount. */
   async function onPhoto(file: File | undefined) {
+    setCamera(false)
     if (!file || !profile) return
     setLooking('photo')
     setError(null)
@@ -178,11 +181,9 @@ export function FoodBuild() {
         }),
       )
     } catch (e) {
-      const code = (e as Error).message
-      setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+      setError(t(photoErrorKey(e)))
     } finally {
       setLooking(null)
-      if (photoRef.current) photoRef.current.value = ''
     }
   }
 
@@ -276,10 +277,10 @@ export function FoodBuild() {
           <Button variant="secondary" size="sm" onClick={() => setScanning(true)} loading={looking === 'scan'} disabled={Boolean(looking)}>
             <Barcode className="size-4 text-brand" aria-hidden /> {t('build.scan')}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => photoRef.current?.click()} loading={looking === 'photo'} disabled={Boolean(looking)}>
+          <Button variant="secondary" size="sm" onClick={() => setCamera(true)} loading={looking === 'photo'} disabled={Boolean(looking)}>
             <Camera className="size-4 text-brand" aria-hidden /> {t('build.photo')}
           </Button>
-          <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
+          {camera ? <CameraCapture title={t('build.photo')} onPhoto={(f) => void onPhoto(f)} onClose={() => setCamera(false)} /> : null}
         </div>
         {looking ? <p className="mt-2 text-sm text-ink-2">{t('build.looking')}</p> : null}
         {error ? <p className="mt-2 rounded-2xl bg-sun-soft p-3 text-sm">{error}</p> : null}

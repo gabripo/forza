@@ -1,6 +1,7 @@
 import { Camera, ChefHat, ImagePlus, Mic, Sparkles, Square, ThumbsUp } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CameraCapture } from '../../components/CameraCapture'
 import { mealForNow } from '../../components/PlateResult'
 import { Button, Card, Field, Loading, PageHeader, Segmented } from '../../components/ui'
 import { useApp } from '../../lib/auth'
@@ -8,7 +9,7 @@ import { localDay } from '../../lib/calc'
 import { pickFromMenu, type MenuDish, type MenuPick as Pick } from '../../lib/data'
 import { logsOfDay, totalsOf } from '../../lib/dayCheck'
 import { useI18n } from '../../lib/i18n'
-import { compressPhoto } from '../../lib/image'
+import { compressPhoto, photoErrorKey } from '../../lib/image'
 import type { Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 import { mergeSpeech } from '../../lib/voice'
@@ -42,18 +43,26 @@ export function MenuPick() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<Pick | null>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
+  // The camera inside the app (the phone's camera app can make Android close the browser, losing the photo).
+  const [camera, setCamera] = useState(false)
   const galleryRef = useRef<HTMLInputElement>(null)
   const rec = useRef<Recognition | null>(null)
 
   async function onFile(file: File | undefined) {
+    setCamera(false)
+    if (galleryRef.current) galleryRef.current.value = ''
     if (!file) return
     setResult(null)
     setError(null)
     setText('')
-    // A menu is small print: a larger photo than for a plate.
-    const c = await compressPhoto(file, 1600)
-    setPhoto({ url: c.url, base64: c.base64 })
+    try {
+      // A menu is small print: a larger photo than for a plate.
+      const c = await compressPhoto(file, 1600)
+      setPhoto({ url: c.url, base64: c.base64 })
+    } catch (e) {
+      setPhoto(null)
+      setError(t(photoErrorKey(e)))
+    }
   }
 
   function listen() {
@@ -121,14 +130,14 @@ export function MenuPick() {
   return (
     <div className="grid gap-4">
       <PageHeader title={t('menu.title')} subtitle={t('menu.subtitle')} back="/food" />
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
+      {camera ? <CameraCapture title={t('menu.takePhoto')} onPhoto={(f) => void onFile(f)} onClose={() => setCamera(false)} /> : null}
       <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
 
       <Segmented<Meal> value={meal} onChange={setMeal} options={(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((m) => ({ value: m, label: t(`meal.${m}`) }))} />
 
       {photo ? <img src={photo.url} alt={t('menu.photo')} className="max-h-64 w-full rounded-3xl object-cover" /> : null}
       <div className="grid grid-cols-2 gap-3">
-        <Button size="lg" variant={photo ? 'secondary' : 'primary'} onClick={() => cameraRef.current?.click()}>
+        <Button size="lg" variant={photo ? 'secondary' : 'primary'} onClick={() => setCamera(true)}>
           <Camera className="size-5" aria-hidden /> {t('menu.takePhoto')}
         </Button>
         <Button size="lg" variant="secondary" onClick={() => galleryRef.current?.click()}>

@@ -618,6 +618,13 @@ export const it: Dict = {
     onlyCoach: 'Solo il coach di famiglia vede qui la famiglia. Il coach di famiglia si sceglie in Forza! Coach.',
     failed: 'Non è stato possibile caricare la famiglia. Riprova tra poco.',
   },
+  camera: {
+    take: 'Scatta la foto',
+    app: 'App fotocamera',
+    denied: "Forza! non può usare la fotocamera: consentila nelle impostazioni del browser, oppure usa l'app della fotocamera o una foto della galleria.",
+    none: "Qui la fotocamera non si apre. Usa l'app della fotocamera, oppure una foto della galleria.",
+    unreadable: "Questa foto non si apre. Scattane un'altra, oppure scegline una diversa.",
+  },
   when: {
     day: 'Giorno',
     yesterday: 'Ieri',

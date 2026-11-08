@@ -1,6 +1,7 @@
 import { Camera, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CameraCapture } from '../../components/CameraCapture'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
 import { LogWhenPicker } from '../../components/LogWhen'
 import { useLogWhen } from '../../lib/logDay'
@@ -15,7 +16,7 @@ import { round1, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, estimatePlate, uploadFoodPhoto, type AiPlate } from '../../lib/data'
 import { plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import { compressPhoto as compress } from '../../lib/image'
+import { compressPhoto as compress, photoErrorKey } from '../../lib/image'
 import { useEnergy } from '../../lib/useEnergy'
 
 export function FoodSnap() {
@@ -24,7 +25,8 @@ export function FoodSnap() {
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const logFor = useLogFor()
-  const cameraRef = useRef<HTMLInputElement>(null)
+  // The camera inside the app: the phone's camera app can make Android close the browser, and the photo is lost.
+  const [camera, setCamera] = useState(false)
   const galleryRef = useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<{ blob: Blob; base64: string; url: string } | null>(null)
   // The day and meal it goes to, at the top: chosen before the photo, and still open once the AI has answered.
@@ -42,10 +44,18 @@ export function FoodSnap() {
   const check = useMealCheck(items)
 
   async function onFile(file: File | undefined) {
+    setCamera(false)
+    if (galleryRef.current) galleryRef.current.value = ''
     if (!file) return
     setError(null)
     setResult(null)
-    setPhoto(await compress(file))
+    try {
+      setPhoto(await compress(file))
+    } catch (e) {
+      // A photo that cannot be opened: said, not a page that stays as it was.
+      setPhoto(null)
+      setError(t(photoErrorKey(e)))
+    }
   }
 
   async function estimate() {
@@ -138,8 +148,8 @@ export function FoodSnap() {
       {result && energy ? <MealCheckWarning check={check} onFix={() => setDetails(true)} /> : null}
       <LogForPicker logFor={logFor} />
       <LogWhenPicker when={when} />
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
-      <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+      {camera ? <CameraCapture title={t('snap.title')} hint={t('snap.tip1')} onPhoto={(f) => void onFile(f)} onClose={() => setCamera(false)} /> : null}
+      <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
 
       {photo ? (
         <img src={photo.url} alt={t('snap.yourPhoto')} className="max-h-72 w-full rounded-3xl object-cover" />
@@ -153,13 +163,18 @@ export function FoodSnap() {
         </Card>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Button size="lg" variant={photo ? 'secondary' : 'primary'} onClick={() => cameraRef.current?.click()}>
+        <Button size="lg" variant={photo ? 'secondary' : 'primary'} onClick={() => setCamera(true)}>
           <Camera className="size-5" aria-hidden /> {photo ? t('snap.retake') : t('snap.take')}
         </Button>
         <Button size="lg" variant="secondary" onClick={() => galleryRef.current?.click()}>
           <ImagePlus className="size-5" aria-hidden /> {t('snap.gallery')}
         </Button>
       </div>
+      {!photo && error ? (
+        <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {photo && !result ? (
         <Card>
@@ -187,7 +202,7 @@ export function FoodSnap() {
             onRetake={() => {
               setResult(null)
               setPhoto(null)
-              cameraRef.current?.click()
+              setCamera(true)
             }}
             onAdjust={() => navigate('/food/add', { state: { items, ...when.pass() } })}
             context={{ food, targets: energy.targets, at: when.at() }}

@@ -1,6 +1,7 @@
 import { Barcode, BookOpen, Camera, Check, ChefHat, Copy, ExternalLink, History, Link2, Pencil, PenLine, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { CameraCapture } from '../../components/CameraCapture'
 import { mealForNow } from '../../components/PlateResult'
 import { FoodValuesSheet } from '../../components/FoodValues'
 import { BarcodeAdd } from '../../components/ProductAdd'
@@ -11,7 +12,7 @@ import { sumItems } from '../../lib/calc'
 import { deleteRecipe, estimatePlate, estimateText, getFood, getRecipes, importRecipe, saveRecipe, searchBimby, useAsync, type FoundRecipe } from '../../lib/data'
 import { loadFoodDb, plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import { compressPhoto } from '../../lib/image'
+import { compressPhoto, photoErrorKey } from '../../lib/image'
 import { localDay } from '../../lib/calc'
 import { draftFromLogs, type DraftItem } from '../../lib/recipeFromLogs'
 import { cleanSteps, stepFromText, type RecipeStep } from '../../lib/recipeSteps'
@@ -398,7 +399,8 @@ export function RecipeEditor() {
   const onScanBusy = useCallback((b: boolean) => setLooking((x) => (b ? 'scan' : x === 'scan' ? null : x)), [])
   // A food's values typed by hand: a new one (-1), or one of the list to correct (its place).
   const [typing, setTyping] = useState<number | null>(null)
-  const photoRef = useRef<HTMLInputElement>(null)
+  // The camera inside the app (the phone's camera app can make Android close the browser, losing the photo).
+  const [camera, setCamera] = useState(false)
   const [missing, setMissing] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -450,6 +452,7 @@ export function RecipeEditor() {
 
   /** A photo of the ingredients, or of the recipe written down: the food AI reads each food and its amount. */
   async function onPhoto(file: File | undefined) {
+    setCamera(false)
     if (!file || !profile) return
     setLooking('photo')
     setError(null)
@@ -461,11 +464,9 @@ export function RecipeEditor() {
       if (!found.length) setError(t('recipes.photoNone'))
       else setAdded((xs) => [...xs, ...found.map((i) => ({ ...i, scanned: true }))])
     } catch (e) {
-      const code = (e as Error).message
-      setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+      setError(t(photoErrorKey(e)))
     } finally {
       setLooking(null)
-      if (photoRef.current) photoRef.current.value = ''
     }
   }
 
@@ -567,7 +568,7 @@ export function RecipeEditor() {
             <Button variant="secondary" onClick={() => setScanning(true)} loading={looking === 'scan'} disabled={Boolean(looking)}>
               <Barcode className="size-5 text-brand" aria-hidden /> {t('recipes.scan')}
             </Button>
-            <Button variant="secondary" onClick={() => photoRef.current?.click()} loading={looking === 'photo'} disabled={Boolean(looking)}>
+            <Button variant="secondary" onClick={() => setCamera(true)} loading={looking === 'photo'} disabled={Boolean(looking)}>
               <Camera className="size-5 text-brand" aria-hidden /> {t('recipes.photo')}
             </Button>
             {/* A meal logged before (one from Build With Science too), or several picked together. */}
@@ -578,7 +579,7 @@ export function RecipeEditor() {
             <Button variant="secondary" className="col-span-2" onClick={() => setTyping(-1)} disabled={Boolean(looking)}>
               <PenLine className="size-5 text-brand" aria-hidden /> {t('recipes.byHand')}
             </Button>
-            <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
+            {camera ? <CameraCapture title={t('recipes.photo')} onPhoto={(f) => void onPhoto(f)} onClose={() => setCamera(false)} /> : null}
           </div>
           <p className="-mt-2 text-xs text-ink-3">{t('recipes.scanHint')}</p>
           {!items && text.trim() ? (

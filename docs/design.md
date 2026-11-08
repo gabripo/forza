@@ -233,7 +233,12 @@ Open Food Facts, label photos and the photo AI; meals synced from another app ha
 Ways to log a meal:
 
 - **Photo**: the Edge Function asks a vision model for every item with grams and nutrients, using a strict
-  JSON schema; portions can be corrected and nutrients scale with the grams.
+  JSON schema; portions can be corrected and nutrients scale with the grams. Photos (of a plate, a menu, a
+  nutrition label, the foods at home or a written recipe) are taken **in the app**, with a viewfinder on the page,
+  not with the phone's camera app: while the camera app is open, Android may close the browser to free memory
+  (some phones do it often), and back from the camera the page starts again without the photo. When the camera
+  cannot be opened in the app (not allowed, or none), the camera app and the gallery are offered instead. A photo
+  the browser cannot open (a format it does not read) is said so, not silently ignored.
 - **Barcode**: the phone reads EAN/UPC codes (built-in `BarcodeDetector` on Android, a WebAssembly
   decoder elsewhere, served by the app itself) and looks the product up in **Open Food Facts**: free, open,
   no key, and strong on Italian and European products. This is the same source Build With Science falls

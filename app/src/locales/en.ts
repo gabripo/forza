@@ -616,6 +616,13 @@ export const en = {
     onlyCoach: 'Only the family coach sees the family here. The family coach is chosen in Forza! Coach.',
     failed: 'The family could not be loaded. Try again in a moment.',
   },
+  camera: {
+    take: 'Take the photo',
+    app: 'Camera app',
+    denied: 'Forza! may not use the camera: allow it in the browser settings, or use the camera app or a photo from the gallery.',
+    none: 'The camera cannot be opened here. Use the camera app, or a photo from the gallery.',
+    unreadable: 'This photo cannot be opened. Take another one, or choose a different photo.',
+  },
   when: {
     day: 'Day',
     yesterday: 'Yesterday',

@@ -1,12 +1,13 @@
 import { Camera, ChevronLeft, Globe, PenLine, Search } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { readLabel } from '../lib/data'
 import { dbProduct, familyProduct, fixProduct, searchAll, searchOnline, useFoodDb, type Pick } from '../lib/foodDb'
 import { valuesOf, type Values } from '../lib/foodValues'
 import { useI18n } from '../lib/i18n'
-import { compressPhoto } from '../lib/image'
+import { compressPhoto, photoErrorKey } from '../lib/image'
 import { lookupBarcode, productAt, productItem, rememberProduct, type Product, type ProductItem } from '../lib/products'
 import { FOOD_FORMATS, validGtin } from '../lib/scan'
+import { CameraCapture } from './CameraCapture'
 import { NutrientFields } from './FoodValues'
 import { Scanner } from './Scanner'
 import { Button, Field, Input, NumberInput, Sheet } from './ui'
@@ -120,7 +121,8 @@ export function BarcodeAdd({
   const [labelError, setLabelError] = useState<string | null>(null)
   // The product being put right ("Non è questo?").
   const [fixing, setFixing] = useState<Product | null>(null)
-  const labelInput = useRef<HTMLInputElement>(null)
+  // The label is photographed inside the app: the phone's camera app can make Android close the browser.
+  const [camera, setCamera] = useState(false)
   useEffect(() => onBusy?.(looking), [looking, onBusy])
 
   async function onCode(raw: string) {
@@ -146,6 +148,7 @@ export function BarcodeAdd({
 
   /** Product unknown: read the nutrition label from a photo instead. */
   async function onLabel(file: File | undefined) {
+    setCamera(false)
     if (!file || !notFound) return
     setLabelError(null)
     setLooking(true)
@@ -159,11 +162,9 @@ export function BarcodeAdd({
       setNotFound(null)
       setProduct(labelProduct(r, notFound, t('scan.unnamed')))
     } catch (e) {
-      const code = (e as Error).message
-      setLabelError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+      setLabelError(t(photoErrorKey(e)))
     } finally {
       setLooking(false)
-      if (labelInput.current) labelInput.current.value = ''
     }
   }
 
@@ -207,8 +208,8 @@ export function BarcodeAdd({
       <Sheet open={notFound !== null} onClose={() => setNotFound(null)} title={t('scan.notFoundTitle')}>
         <div className="grid gap-3">
           <p className="text-ink-2">{t('scan.notFound', { code: notFound ?? '' })}</p>
-          <input ref={labelInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onLabel(e.target.files?.[0])} />
-          <Button size="lg" block onClick={() => labelInput.current?.click()} loading={looking}>
+          {camera ? <CameraCapture title={t('scan.photoLabel')} onPhoto={(f) => void onLabel(f)} onClose={() => setCamera(false)} /> : null}
+          <Button size="lg" block onClick={() => setCamera(true)} loading={looking}>
             <Camera className="size-5" aria-hidden /> {t('scan.photoLabel')}
           </Button>
           {labelError ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{labelError}</p> : null}
@@ -259,10 +260,12 @@ function FixProduct({ product, onFixed }: { product: Product; onFixed: (p: Produ
   const [busy, setBusy] = useState<'label' | 'online' | 'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [remember, setRemember] = useState(true)
-  const labelInput = useRef<HTMLInputElement>(null)
+  // The label is photographed inside the app: the phone's camera app can make Android close the browser.
+  const [camera, setCamera] = useState(false)
   const found = useMemo((): Pick[] => (q.trim() ? searchAll(q, db, 12) : []), [q, db])
 
   async function readIt(file: File | undefined) {
+    setCamera(false)
     if (!file) return
     setBusy('label')
     setError(null)
@@ -274,11 +277,9 @@ function FixProduct({ product, onFixed }: { product: Product; onFixed: (p: Produ
       setDraft({ ...draftOf(labelProduct(r, product.code, product.name), 'label'), name: r.name || product.name, brand: r.brand || product.brand || '' })
       setStep('form')
     } catch (e) {
-      const code = (e as Error).message
-      setError(t(code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'))
+      setError(t(photoErrorKey(e)))
     } finally {
       setBusy(null)
-      if (labelInput.current) labelInput.current.value = ''
     }
   }
 
@@ -433,8 +434,8 @@ function FixProduct({ product, onFixed }: { product: Product; onFixed: (p: Produ
         {t('fix.current', { code: product.code, name: product.brand && !product.name.includes(product.brand) ? `${product.name} (${product.brand})` : product.name, kcal: num(product.per100.kcal) })}
       </p>
       <p className="text-ink-2">{t('fix.how')}</p>
-      <input ref={labelInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void readIt(e.target.files?.[0])} />
-      <Button size="lg" block onClick={() => labelInput.current?.click()} loading={busy === 'label'}>
+      {camera ? <CameraCapture title={t('fix.label')} onPhoto={(f) => void readIt(f)} onClose={() => setCamera(false)} /> : null}
+      <Button size="lg" block onClick={() => setCamera(true)} loading={busy === 'label'}>
         <Camera className="size-5" aria-hidden /> {t('fix.label')}
       </Button>
       <Button variant="secondary" block onClick={() => setStep('search')}>
