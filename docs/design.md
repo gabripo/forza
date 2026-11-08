@@ -432,6 +432,16 @@ went, with **Undo**. One extra rule on `food_logs` lets the coach read, change a
 logged for someone, and only while they are the coach (`is_family_coach()`): the others' own meals stay theirs.
 Because of it, the app asks for the person's own meals by `user_id` instead of relying on the rules alone.
 
+**The family at a glance (family coach only).** On the coach's Home, **Your family today** has one line per person:
+calories eaten against their target, and how many meals. It opens **Your family**: day by day (back four weeks),
+a card per person (the coach first) with the calories and the three macros against the targets, and the meals
+logged, meal by meal, with their calories; **+ Meal** opens "Add a meal" for that person on that day, on the first
+main meal they have not logged. It reads through `family_overview(from, to, day)`, a security-definer function
+that only the family coach can call (`not_family_coach` for anyone else), one day at a time: each person's latest
+targets on or before the day (`target_history`, kept each day their app opens, or by Forza! Coach; an older one
+says from when) and their meals of the day. Read-only: the rules on `food_logs` do not change. The section is in
+the shared Home list (`coach: true`), shown and listed in "Arrange the Home page" for the family coach only.
+
 **What should I order?** ("Cosa prendo dal menu?"): a photo of a restaurant menu, or the dishes written or
 dictated. Two AI steps in `food-estimate` (mode `menu`): a quick, low-cost model (the lite models of the order
 first) reads the menu into dishes with rough values per portion; a stronger model (`FOOD_AI_REASONING_ORDER`,

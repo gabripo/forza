@@ -5,6 +5,7 @@ import { BarChart, MacroBar, Ring } from '../components/charts'
 import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
+import { FamilyTodayCard } from '../components/FamilyCard'
 import { MealAnomalyCards } from '../components/MealAnomalies'
 import { WeekSummaryCard } from '../components/WeekSummary'
 import { CatchUpCard } from '../components/CatchUp'
@@ -22,6 +23,7 @@ import { copySuggestion } from '../lib/copyMeal'
 import { getActivities, getFood, getFoodDays, getLessonProgress, getMoves, getQuizAnswers, getSessions, getSteps, getTemplates, getWeights, useAsync } from '../lib/data'
 import { motivation } from '../lib/dayCheck'
 import { computeEnergy } from '../lib/energy'
+import { useIsFamilyCoach } from '../lib/family'
 import { useI18n } from '../lib/i18n'
 import { activityMinutes, nextTemplate } from '../lib/plan'
 import { POINTS, weekPoints } from '../lib/rewards'
@@ -34,8 +36,10 @@ import { lastWeekSummary } from '../lib/weekSummary'
 
 export function Dashboard() {
   const { t, l, num, kg, date, locale } = useI18n()
-  const { profile } = useApp()
+  const { profile, session } = useApp()
   const navigate = useNavigate()
+  // The family coach also sees the whole family's day, in a section of its own.
+  const familyCoach = useIsFamilyCoach()
   const [logOpen, setLogOpen] = useState(false)
   const knowledge = useKnowledge()
   const { data, loading, reload } = useAsync(
@@ -375,6 +379,7 @@ export function Dashboard() {
         </Card>
       </>
     ),
+    family: familyCoach && session ? <FamilyTodayCard me={session.user.id} /> : null,
     points: (
       <>
         {/* Points and the family challenge */}

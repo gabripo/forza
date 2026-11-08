@@ -1720,7 +1720,8 @@ function homeOrderView(d) {
     .map((id, i) => {
       const s = d.homeSections.find((x) => x.id === id)
       const hidden = s.training && p.hide_training
-      return `<tr><td>${i + 1}</td><td>${esc(s.en)}${hidden ? ' <span class="muted small">(hidden: training section is off)</span>' : ''}</td>
+      const notCoach = s.coach && state.family?.coach_id !== state.selected
+      return `<tr><td>${i + 1}</td><td>${esc(s.en)}${hidden ? ' <span class="muted small">(hidden: training section is off)</span>' : notCoach ? ' <span class="muted small">(hidden: not the family coach)</span>' : ''}</td>
         <td class="row" style="flex-wrap:nowrap"><button class="btn secondary small" data-action="home-up" data-i="${i}" ${i ? '' : 'disabled'}>↑</button><button class="btn secondary small" data-action="home-down" data-i="${i}" ${i < d.homeOrder.length - 1 ? '' : 'disabled'}>↓</button></td></tr>`
     })
     .join('')

@@ -110,7 +110,9 @@ altri nell'app. La persona si sceglie in **People → Family coach** (una alla v
 un pasto (foto, voce o a mano), l'app chiede **Di chi è questo pasto?**: un pasto per un'altra persona va nel suo
 diario alimentare, segnato "Registrato da …", e la sua app calcola il punteggio sul suo obiettivo. Subito dopo il
 salvataggio, **Annulla** lo toglie. Chi fa da coach di famiglia può modificare o eliminare solo i pasti registrati
-per qualcun altro, e non vede i diari alimentari degli altri.
+per qualcun altro. Nella Home ha anche **La tua famiglia oggi**: le calorie di tutti rispetto al loro obiettivo e,
+toccandola, una pagina con gli obiettivi del giorno e i pasti di ognuno, giorno per giorno, con **+ Pasto** per
+registrarne uno per quella persona. Nessun altro la vede.
 
 ## 4. Passi, peso e bilance smart
 

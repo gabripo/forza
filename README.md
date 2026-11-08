@@ -52,7 +52,7 @@ and adjust their plan from your own computer.
   variant of your own (less butter, another vegetable) is one tap away.
 - 👨‍👩‍👧 **Cook once, log for everyone.** Share a meal with whoever ate it, each with their own percentage of it; the family's
   food database grows with every meal anyone logs. A family coach, chosen in Forza! Coach, can log meals for the
-  others too, straight into their food log.
+  others too, straight into their food log, and sees the whole family's day on their phone: targets and meals.
 - 🧭 **The day and the week at a glance.** A kind score for the whole day, a ring of what each meal brings to the
   day's target (calories, protein, carbs or fat), each meal's breakdown, one sentence of encouragement on Home, and
   every week "What happened last week". After days short of protein (or of calories, when not losing fat), a few

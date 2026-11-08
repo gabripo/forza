@@ -10,6 +10,7 @@ import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
 import { FoodBuild } from './pages/food/FoodBuild'
 import { FoodHome } from './pages/food/FoodHome'
+import { Family } from './pages/Family'
 import { FoodManual } from './pages/food/FoodManual'
 import { MenuPick } from './pages/food/MenuPick'
 import { RecipeEditor, Recipes } from './pages/food/Recipes'
@@ -90,6 +91,7 @@ function Gate() {
         <Route path="settings" element={<Settings />} />
         <Route path="settings/health" element={<HealthSync />} />
         <Route path="settings/home" element={<HomeOrder />} />
+        <Route path="family" element={<Family />} />
         <Route path="settings/install" element={<Install />} />
       </Route>
       {/* The active workout is full screen: no tab bar to tap by mistake. */}

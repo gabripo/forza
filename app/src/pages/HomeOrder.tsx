@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-react'
 import { Button, Card, PageHeader } from '../components/ui'
 import { useApp } from '../lib/auth'
+import { useIsFamilyCoach } from '../lib/family'
 import { useI18n } from '../lib/i18n'
 import { HOME_SECTIONS, homeOrder } from '../../../shared/home-sections.mjs'
 
@@ -11,10 +12,15 @@ import { HOME_SECTIONS, homeOrder } from '../../../shared/home-sections.mjs'
 export function HomeOrder() {
   const { t, locale } = useI18n()
   const { profile, saveProfile } = useApp()
+  const familyCoach = useIsFamilyCoach()
   if (!profile) return null
   const order = homeOrder(profile.home_order)
-  // Training sections are not listed for people who hide training: they keep their place, unseen.
-  const shown = order.filter((id) => !(profile.hide_training && HOME_SECTIONS.find((s) => s.id === id)?.training))
+  // Training sections are not listed for people who hide training, nor the family for anyone but the family coach:
+  // they keep their place, unseen.
+  const shown = order.filter((id) => {
+    const s = HOME_SECTIONS.find((x) => x.id === id)
+    return !(profile.hide_training && s?.training) && !(s?.coach && !familyCoach)
+  })
 
   function move(id: string, by: -1 | 1) {
     const i = shown.indexOf(id)

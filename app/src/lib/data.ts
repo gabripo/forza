@@ -18,6 +18,7 @@ import type {
   FoodDay,
   FoodItem,
   FoodLog,
+  Goal,
   Meal,
   Profile,
   Recipe,
@@ -489,6 +490,23 @@ export async function getFamilyCoach(): Promise<string | null> {
 export async function getFamilyPeople(myId: string): Promise<{ id: string; display_name: string }[]> {
   const rows = check(await supabase.rpc('family_people')) as { id: string; display_name: string }[]
   return rows.filter((p) => p.id !== myId)
+}
+
+/** One person of the family on a day, for the family coach: their latest daily targets and the meals logged. */
+export interface FamilyMember {
+  id: string
+  name: string
+  goal: Goal | null
+  target: { day: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null
+  meals: Pick<FoodLog, 'id' | 'meal' | 'title' | 'eaten_at' | 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'logged_by'>[]
+}
+
+/** The whole family on one day (YYYY-MM-DD, in this phone's time zone): for the family coach only. */
+export async function getFamilyOverview(day: string): Promise<FamilyMember[]> {
+  const [y, m, d] = day.split('-').map(Number)
+  const from = new Date(y, m - 1, d)
+  const to = new Date(y, m - 1, d + 1)
+  return check(await supabase.rpc('family_overview', { p_from: from.toISOString(), p_to: to.toISOString(), p_day: day })) as FamilyMember[]
 }
 
 /** Copies these meals into the food logs of the people who ate the same (each portion × factor). */

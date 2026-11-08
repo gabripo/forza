@@ -107,8 +107,9 @@ They stay signed in: no password to remember.
 in the app. Choose them in **People → Family coach** (one person at a time, or **Nobody**). When they add a meal
 (photo, voice or by hand), the app asks **Whose meal is it?**: a meal for someone else goes into that person's food
 log, marked "Logged by …", and their app scores it against their own target. Right after saving, **Undo** takes it
-back out. The family coach can change or delete only the meals they logged for someone, and does not see the
-others' food logs.
+back out. The family coach can change or delete only the meals they logged for someone. On Home they also have
+**Your family today**: everyone's calories against their target, and behind it a page with each person's daily
+targets and meals, day by day, with **+ Meal** to log one for them. Nobody else sees it.
 
 ## 4. Steps, weight and smart scales
 

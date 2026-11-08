@@ -9,6 +9,7 @@ export const HOME_SECTIONS = [
   { id: 'lesson', en: 'Next lesson', it: 'Prossima lezione' },
   { id: 'weight', en: 'Weight', it: 'Peso' },
   { id: 'food', en: 'Food today', it: 'Cibo di oggi' },
+  { id: 'family', en: 'Your family today', it: 'La tua famiglia oggi', coach: true },
   { id: 'points', en: 'Points and family challenge', it: 'Punti e sfida di famiglia' },
   { id: 'strength', en: 'Strength', it: 'Forza', training: true },
   { id: 'week', en: 'This week', it: 'Questa settimana' },
