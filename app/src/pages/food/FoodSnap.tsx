@@ -2,18 +2,19 @@ import { Camera, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
+import { LogWhenPicker } from '../../components/LogWhen'
+import { useLogWhen } from '../../lib/logDay'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { ProcessedSwapHint } from '../../components/Processed'
-import { mealForNow, PlateResult } from '../../components/PlateResult'
+import { PlateResult } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
 import { useMealCheck } from '../../lib/mealCheck'
-import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Segmented } from '../../components/ui'
+import { Button, Card, Field, Input, Loading, NumberInput, PageHeader } from '../../components/ui'
 import { useApp } from '../../lib/auth'
 import { round1, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, estimatePlate, uploadFoodPhoto, type AiPlate } from '../../lib/data'
 import { plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import type { Meal } from '../../lib/types'
 import { compressPhoto as compress } from '../../lib/image'
 import { useEnergy } from '../../lib/useEnergy'
 
@@ -26,7 +27,9 @@ export function FoodSnap() {
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<{ blob: Blob; base64: string; url: string } | null>(null)
-  const [meal, setMeal] = useState<Meal>(mealForNow())
+  // The day and meal it goes to, at the top: chosen before the photo, and still open once the AI has answered.
+  const when = useLogWhen()
+  const meal = when.meal
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,8 +96,8 @@ export function FoodSnap() {
     setSaving(true)
     try {
       const totals = sumItems(items)
-      const now = new Date()
-      const s = scorePlate(totals, meal, energy.targets.kcal, result.ultra_processed, now)
+      const at = when.at()
+      const s = scorePlate(totals, meal, energy.targets.kcal, result.ultra_processed, at)
       let photo_path: string | null = null
       try {
         // A meal logged for someone: the photo goes into their folder, for their app to show.
@@ -104,7 +107,7 @@ export function FoodSnap() {
       }
       const name = title.trim() || result.title
       const loggedId = await addFood({
-        eaten_at: now.toISOString(),
+        eaten_at: at.toISOString(),
         meal,
         title: name,
         items: items.map(plainItem),
@@ -117,7 +120,7 @@ export function FoodSnap() {
         ...logFor.fields(),
       })
       rememberItems(items, 'ai', logFor.person?.id)
-      navigate('/food', { state: logFor.saved(loggedId, name, totals.kcal) })
+      navigate('/food', { state: { ...logFor.saved(loggedId, name, totals.kcal), offset: when.offset() } })
     } finally {
       setSaving(false)
     }
@@ -134,6 +137,7 @@ export function FoodSnap() {
       {/* A plate that looks too big: the amounts to check, right under the button. */}
       {result && energy ? <MealCheckWarning check={check} onFix={() => setDetails(true)} /> : null}
       <LogForPicker logFor={logFor} />
+      <LogWhenPicker when={when} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
 
@@ -160,13 +164,6 @@ export function FoodSnap() {
       {photo && !result ? (
         <Card>
           <div className="grid gap-4">
-            <Field label={t('snap.meal')}>
-              <Segmented<Meal>
-                value={meal}
-                onChange={setMeal}
-                options={(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((m) => ({ value: m, label: t(`meal.${m}`) }))}
-              />
-            </Field>
             <Field label={t('snap.note')} hint={t('snap.noteHint')}>
               <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('snap.notePlaceholder')} />
             </Field>
@@ -192,10 +189,10 @@ export function FoodSnap() {
               setPhoto(null)
               cameraRef.current?.click()
             }}
-            onAdjust={() => navigate('/food/add', { state: { items, meal } })}
-            context={{ food, targets: energy.targets }}
+            onAdjust={() => navigate('/food/add', { state: { items, ...when.pass() } })}
+            context={{ food, targets: energy.targets, at: when.at() }}
           />
-          <MealSoFar totals={sumItems(items)} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
+          <MealSoFar totals={sumItems(items)} meal={meal} context={{ food, targets: energy.targets, at: when.at() }} salt={Boolean(profile.track_salt)} />
           <ProcessedSwapHint items={items} />
           <Card>
             <button onClick={() => setDetails(!details)} className="flex w-full items-center gap-2 text-left" aria-expanded={details}>
@@ -240,7 +237,7 @@ export function FoodSnap() {
                   goal={profile.goal ?? 'maintain'}
                   dailyKcal={energy.targets.kcal}
                   ultraProcessed={result.ultra_processed}
-                  eatenAt={new Date()}
+                  eatenAt={when.at()}
                 />
               </div>
             ) : null}

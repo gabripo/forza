@@ -2,19 +2,19 @@ import { Mic, Sparkles, Square, Trash2, Undo2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogForPicker, useLogFor } from '../../components/LogFor'
+import { LogWhenPicker } from '../../components/LogWhen'
+import { useLogWhen } from '../../lib/logDay'
 import { MealSoFar, PlateAdvice } from '../../components/PlateAdvice'
 import { ProcessedSwapHint } from '../../components/Processed'
-import { mealForNow } from '../../components/PlateResult'
 import { MealCheckWarning, SaveMealButton } from '../../components/SaveMeal'
 import { useMealCheck } from '../../lib/mealCheck'
-import { Button, Card, Field, Loading, NumberInput, PageHeader, Segmented, cx } from '../../components/ui'
+import { Button, Card, Field, Loading, NumberInput, PageHeader, cx } from '../../components/ui'
 import { PROCESSED_FOODS } from '../../data/foods'
 import { useApp } from '../../lib/auth'
 import { round1, scorePlate, sumItems } from '../../lib/calc'
 import { addFood, estimateText, tidyText, transcribeAudio } from '../../lib/data'
 import { plainItem, rememberItems, useFoodDb, withUsual, type LoggedItem } from '../../lib/foodDb'
 import { useI18n } from '../../lib/i18n'
-import type { Meal } from '../../lib/types'
 import { useEnergy } from '../../lib/useEnergy'
 import { mergeSpeech, parseMeal } from '../../lib/voice'
 
@@ -59,7 +59,9 @@ export function FoodVoice() {
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const logFor = useLogFor()
-  const [meal, setMeal] = useState<Meal>(mealForNow())
+  // The day and meal it goes to, at the top: today and the meal of the moment, or the day the Food page showed.
+  const when = useLogWhen()
+  const meal = when.meal
   const [text, setText] = useState('')
   const [listening, setListening] = useState(false)
   const [micError, setMicError] = useState(false)
@@ -243,12 +245,12 @@ export function FoodVoice() {
     setSaving(true)
     try {
       const totals = sumItems(items)
-      const now = new Date()
-      const s = scorePlate(totals, meal, energy.targets.kcal, processed, now)
+      const at = when.at()
+      const s = scorePlate(totals, meal, energy.targets.kcal, processed, at)
       const said = text.trim()
       const title = (aiTitle || said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 120)
       const loggedId = await addFood({
-        eaten_at: now.toISOString(),
+        eaten_at: at.toISOString(),
         meal,
         title,
         items: items.map(plainItem),
@@ -261,7 +263,7 @@ export function FoodVoice() {
         ...logFor.fields(),
       })
       rememberItems(items, 'ai', logFor.person?.id)
-      navigate('/food', { state: logFor.saved(loggedId, title, totals.kcal) })
+      navigate('/food', { state: { ...logFor.saved(loggedId, title, totals.kcal), offset: when.offset() } })
     } finally {
       setSaving(false)
     }
@@ -288,11 +290,7 @@ export function FoodVoice() {
       ) : null}
 
       <LogForPicker logFor={logFor} />
-      <Segmented<Meal>
-        value={meal}
-        onChange={setMeal}
-        options={(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((m) => ({ value: m, label: t(`meal.${m}`) }))}
-      />
+      <LogWhenPicker when={when} />
 
       {SpeechRecognition || CAN_RECORD ? (
         <div className="grid justify-items-center gap-2 py-2">
@@ -382,9 +380,9 @@ export function FoodVoice() {
                 listen()
               }}
               onAdjust={() => setAdjust(true)}
-              context={{ food, targets: energy.targets }}
+              context={{ food, targets: energy.targets, at: when.at() }}
             />
-            <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets }} salt={Boolean(profile.track_salt)} />
+            <MealSoFar totals={totals} meal={meal} context={{ food, targets: energy.targets, at: when.at() }} salt={Boolean(profile.track_salt)} />
             <ProcessedSwapHint items={items} />
             <Card>
               <p className="text-2xl font-extrabold tabular">
@@ -435,7 +433,7 @@ export function FoodVoice() {
               <Button onClick={() => analyse(true)} loading={busy}>
                 <Sparkles className="size-4" aria-hidden /> {t('voice.askAi')}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/food/add', { state: { meal } })}>
+              <Button variant="secondary" onClick={() => navigate('/food/add', { state: when.pass() })}>
                 {t('food.manual')}
               </Button>
             </div>

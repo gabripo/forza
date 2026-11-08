@@ -1,4 +1,4 @@
-import { Barcode, BookOpen, BookPlus, CalendarCheck, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, BookPlus, CalendarCheck, CalendarDays, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, Plus, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
@@ -27,6 +27,7 @@ import { INCOMPLETE_SHARE } from '../../lib/energy'
 import { isSynced } from '../../lib/mealAnomaly'
 import { stillSkipped, totalsOf } from '../../lib/dayCheck'
 import { useFoodDb } from '../../lib/foodDb'
+import { startMeal, type LogStart } from '../../lib/logDay'
 import { recipeDraftFromLogs } from '../../lib/recipeFromLogs'
 import { useI18n } from '../../lib/i18n'
 import type { FoodLog, Meal, SharedCopy } from '../../lib/types'
@@ -104,6 +105,9 @@ export function FoodHome() {
   const balanced = balancedDays(food, tg)
   const last7 = Array.from({ length: 7 }, (_, i) => localDay(daysAgo(6 - i)))
   const suggestion = offset === 0 ? copySuggestion(food) : null
+  const dayName = date(daysAgo(offset), { weekday: 'long', day: 'numeric', month: 'short' })
+  /** The ways to add food open on the day shown: a day before gets what was left out, on the first meal missing. */
+  const addTo = (path: string) => navigate(path, offset > 0 ? { state: { day, meal: startMeal(day, food) } satisfies LogStart } : undefined)
 
   async function copyToToday(entries: typeof food) {
     await copying.copy(entries)
@@ -154,7 +158,7 @@ export function FoodHome() {
       {/* The family coach logged a meal for someone: where it went, and a way back. */}
       {navState?.loggedFor ? <LoggedForCard logged={navState.loggedFor} /> : null}
       {/* Right after logging: what the next meal could be, before anything else. */}
-      {justLogged ? <NextMealCard food={food} targets={tg} justLogged /> : null}
+      {justLogged && offset === 0 ? <NextMealCard food={food} targets={tg} justLogged /> : null}
       {justLogged && navState?.loggedIds?.length ? (
         <Button variant="secondary" onClick={() => setSharing(navState.loggedIds ?? null)}>
           <Share2 className="size-5" aria-hidden /> {t('share.ask')}
@@ -168,17 +172,29 @@ export function FoodHome() {
       {/* Processed foods logged often (ice cream, biscuits, snacks…): alternatives that fill up more. */}
       {offset === 0 ? <ProcessedCard food={food} /> : null}
 
+      {/* A day before is shown: what is added now goes to that day (it can be changed on the next page too). */}
+      {offset > 0 ? (
+        <div className="flex items-center gap-3 rounded-3xl border-2 border-sky bg-card p-3">
+          <CalendarDays className="size-6 shrink-0 text-sky" aria-hidden />
+          <p className="min-w-0 flex-1 text-sm">
+            {t('food.addingTo')} <b className="block text-base first-letter:uppercase">{dayName}</b>
+          </p>
+          <Button size="sm" variant="secondary" onClick={() => setOffset(0)}>
+            {t('food.backToToday')}
+          </Button>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
-        <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/snap')}>
+        <Button size="lg" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => addTo('/food/snap')}>
           <Camera className="size-6" aria-hidden /> {t('food.snap')}
         </Button>
-        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/voice')}>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => addTo('/food/voice')}>
           <Mic className="size-6 text-brand" aria-hidden /> {t('food.dictate')}
         </Button>
-        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add?scan=1')}>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => addTo('/food/add?scan=1')}>
           <Barcode className="size-6 text-brand" aria-hidden /> {t('food.barcode')}
         </Button>
-        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => navigate('/food/add')}>
+        <Button size="lg" variant="secondary" className="h-auto flex-col px-2 py-3 leading-tight" onClick={() => addTo('/food/add')}>
           <PenLine className="size-6 text-brand" aria-hidden /> {t('food.manual')}
         </Button>
         <Button variant="secondary" className="leading-tight" onClick={() => navigate('/food/recipes')}>
@@ -265,7 +281,7 @@ export function FoodHome() {
           <button onClick={() => setOffset(offset + 1)} className="grid size-11 place-items-center rounded-full active:bg-card-2" aria-label={t('food.prevDay')}>
             <ChevronLeft className="size-6" />
           </button>
-          <p className="font-bold">{offset === 0 ? t('food.today') : date(daysAgo(offset), { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+          <p className="font-bold first-letter:uppercase">{offset === 0 ? t('food.today') : dayName}</p>
           <button
             onClick={() => setOffset(Math.max(0, offset - 1))}
             disabled={offset === 0}
@@ -317,6 +333,12 @@ export function FoodHome() {
               )
             })()
           : null}
+        {/* Something left out of a day before: added to that day, from here. */}
+        {offset > 0 ? (
+          <Button variant="secondary" block className="mt-3" onClick={() => addTo('/food/add')}>
+            <Plus className="size-5" aria-hidden /> {t('food.addToDay')}
+          </Button>
+        ) : null}
         <ConsistencyLink className="-ml-3 mt-1" />
         {sum.satfat > tg.satfat_g ? (
           <p className="mt-2 rounded-2xl bg-danger-soft p-3 text-sm" role="alert">
@@ -325,31 +347,9 @@ export function FoodHome() {
         ) : null}
       </Card>
 
-      {/* What each meal brings to the day's target. */}
-      {entries.length ? <MealBreakdown entries={entries} targets={tg} /> : null}
-
-      {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}
-
-      {/* Balanced days: the reward for eating by the guidelines (small, reachable, visible). */}
-      <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-line bg-card p-3">
-        <ul className="flex gap-1" aria-label={t('food.balancedWeek')}>
-          {last7.map((d) => (
-            <li key={d} title={date(d, { weekday: 'short', day: 'numeric' })} className={`grid size-7 place-items-center rounded-full text-xs ${balanced.get(d) ? 'bg-leaf text-white dark:text-black' : 'bg-card-2 text-ink-3'}`}>
-              {balanced.get(d) ? '✓' : date(d, { weekday: 'narrow' })}
-            </li>
-          ))}
-        </ul>
-        <p className="min-w-48 flex-1 text-sm">
-          <b>{t('food.balancedCount', { n: last7.filter((d) => balanced.get(d)).length })}</b>
-          <span className="block text-ink-2">{balanced.get(day) ? t('food.balancedToday') : t('food.balancedHow')}</span>
-        </p>
-      </div>
-
-      {entries.length ? <DayEvaluationCard totals={totalsOf(entries)} targets={tg} day={day} /> : null}
-
       {entries.length === 0 ? (
         <Card>
-          <Empty icon="🍽️" title={t('food.empty')} text={t('food.emptyText')} />
+          {offset > 0 ? <Empty icon="🗓️" title={t('food.emptyDay')} text={t('food.emptyDayText')} /> : <Empty icon="🍽️" title={t('food.empty')} text={t('food.emptyText')} />}
         </Card>
       ) : (
         MEALS.filter((m) => entries.some((e) => e.meal === m)).map((m) => {
@@ -436,6 +436,28 @@ export function FoodHome() {
           )
         })
       )}
+
+      {/* Below the meals: what each meal brings to the day's target, what comes next, and how the day went. */}
+      {entries.length ? <MealBreakdown entries={entries} targets={tg} /> : null}
+
+      {!justLogged && offset === 0 && entries.length ? <NextMealCard food={food} targets={tg} /> : null}
+
+      {/* Balanced days: the reward for eating by the guidelines (small, reachable, visible). */}
+      <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-line bg-card p-3">
+        <ul className="flex gap-1" aria-label={t('food.balancedWeek')}>
+          {last7.map((d) => (
+            <li key={d} title={date(d, { weekday: 'short', day: 'numeric' })} className={`grid size-7 place-items-center rounded-full text-xs ${balanced.get(d) ? 'bg-leaf text-white dark:text-black' : 'bg-card-2 text-ink-3'}`}>
+              {balanced.get(d) ? '✓' : date(d, { weekday: 'narrow' })}
+            </li>
+          ))}
+        </ul>
+        <p className="min-w-48 flex-1 text-sm">
+          <b>{t('food.balancedCount', { n: last7.filter((d) => balanced.get(d)).length })}</b>
+          <span className="block text-ink-2">{balanced.get(day) ? t('food.balancedToday') : t('food.balancedHow')}</span>
+        </p>
+      </div>
+
+      {entries.length ? <DayEvaluationCard totals={totalsOf(entries)} targets={tg} day={day} /> : null}
 
       <Card
         title={t('food.energyTitle')}

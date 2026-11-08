@@ -129,7 +129,7 @@ await shot('calories', async () => {
 await shot('food', async () => {
   const { page, close } = await phone(px(1005))
   await open(page, '/food')
-  // The idea for the next meal, under today's numbers.
+  // The idea for the next meal, under today's meals.
   await page.getByText(/Next meal:/).first().evaluate((el) => el.scrollIntoView({ block: 'center' }))
   await page.waitForTimeout(300)
   await save(page, 'food')
@@ -205,7 +205,7 @@ await shot('week', async () => {
 await shot('day', async () => {
   const { page, close } = await phone(px(1005))
   await open(page, '/food')
-  // The whole day at a glance, then each meal with its own totals.
+  // The whole day at a glance, under the meals and how each one adds up.
   await page.getByText('The day so far').first().evaluate((el) => {
     el.scrollIntoView({ block: 'start' })
     window.scrollBy(0, -120)
@@ -218,7 +218,7 @@ await shot('day', async () => {
 await shot('meals', async () => {
   const { page, close } = await phone(px(1005))
   await open(page, '/food')
-  // What each meal brings to the day's target, under the day's numbers.
+  // What each meal brings to the day's target, under the meals.
   await page.getByRole('heading', { name: 'Meal by meal' }).evaluate((el) => {
     el.scrollIntoView({ block: 'start' })
     window.scrollBy(0, -120)

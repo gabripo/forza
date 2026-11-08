@@ -1,10 +1,12 @@
-import { CalendarCheck, CheckCircle2, CircleDashed } from 'lucide-react'
+import { CalendarCheck, CheckCircle2, CircleDashed, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../lib/auth'
 import { localDay, type Targets } from '../lib/calc'
 import { setFoodDay } from '../lib/data'
 import { dayQuestion, evaluateDay, type Totals } from '../lib/dayCheck'
 import { useI18n } from '../lib/i18n'
+import { loggableDay, startMeal, type LogStart } from '../lib/logDay'
 import type { FoodDay, FoodLog, Meal } from '../lib/types'
 import { Button } from './ui'
 
@@ -72,6 +74,7 @@ function rememberAsked(meal: Meal) {
 export function DayQuestionCard({ food, notes, targets, onAnswered }: { food: FoodLog[]; notes: FoodDay[]; targets: Targets; onAnswered: () => void }) {
   const { t, date } = useI18n()
   const { profile, saveProfile } = useApp()
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [asked, setAsked] = useState(patternAsked)
@@ -104,12 +107,15 @@ export function DayQuestionCard({ food, notes, targets, onAnswered }: { food: Fo
   let no = ''
   let onYes: () => Promise<void> = async () => {}
   let onNo: () => Promise<void> = async () => {}
+  // Eaten but not logged: it can go into that day now, on that meal (or the first one missing).
+  let add: LogStart | null = null
   if (q.kind === 'skipped') {
     title = t('dayQ.skippedTitle', { meal: meal(q.meal), day: when(q.day) })
     yes = t('dayQ.skippedYes')
     no = t('dayQ.skippedNo')
     onYes = () => setFoodDay(q.day, { skipped: [...(note(q.day)?.skipped ?? []), q.meal] })
     onNo = () => setFoodDay(q.day, { status: 'incomplete' })
+    add = { day: q.day, meal: q.meal }
   } else if (q.kind === 'incomplete') {
     title = t('dayQ.incompleteTitle', { day: when(q.day), kcal: q.kcal, target: q.target })
     text = t('dayQ.incompleteText')
@@ -117,6 +123,7 @@ export function DayQuestionCard({ food, notes, targets, onAnswered }: { food: Fo
     no = t('dayQ.incompleteNo')
     onYes = () => setFoodDay(q.day, { status: 'complete' })
     onNo = () => setFoodDay(q.day, { status: 'incomplete' })
+    add = { day: q.day, meal: startMeal(q.day, food) }
   } else {
     title = t('dayQ.patternTitle', { meal: meal(q.meal), n: q.days })
     text = t('dayQ.patternText')
@@ -143,6 +150,11 @@ export function DayQuestionCard({ food, notes, targets, onAnswered }: { food: Fo
         <Button variant="secondary" onClick={() => void answer(onNo)} disabled={busy}>
           {no}
         </Button>
+        {add && loggableDay(add.day) ? (
+          <Button variant="ghost" onClick={() => navigate('/food/add', { state: add })} disabled={busy}>
+            <Plus className="size-5" aria-hidden /> {t('dayQ.addNow')}
+          </Button>
+        ) : null}
       </div>
     </section>
   )

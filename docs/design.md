@@ -253,6 +253,15 @@ Ways to log a meal:
   The copy keeps the foods, nutrients and score, takes the original time of day (or now, if that time has
   not come yet), and can be undone at once. Meals from another app are not offered, so they are not counted
   twice.
+- **Any day of the last four weeks**: every way of adding food (photo, voice, barcode, by hand) starts with the
+  day (**Today**, **Yesterday**, or **Other day** from the phone's calendar) and the meal, at the top, before the
+  food; the meal can still change once the photo or the voice has been read. On a day before, the Food page says
+  where food goes ("What you add now goes to Friday 6 Nov", with **Back to today**) and has **Add food to this
+  day** under its numbers; its buttons open on that day and on the first main meal missing from it. A meal of a
+  day before is saved at that meal's usual time (8:00, 13:00, 16:30, 20:00, as meals from Build With Science
+  are); one of today at the time it is logged, or at its usual time when it is an earlier meal (a breakfast
+  logged in the evening). The plate is judged with that day's food ("That day with this plate"), without the
+  advice for the rest of today. A meal being changed stays on its day; only its meal can change.
 
 Every plate gets a **score for fat loss and for muscle gain** (0–100) from protein share, fibre, calories
 against the meal's share of the day, sugar and ultra-processing, with the reasons spelled out. Meals that
@@ -304,18 +313,19 @@ cooking). Meals synced from another app have none yet.
 **Moving a meal.** Tapping a logged meal moves it to another part of the day (breakfast, lunch, snack,
 dinner); Coach can do the same.
 
-**Each meal and the whole day.** Each logged food shows calories and protein, then the other values on a
+**Each meal and the whole day.** The Food page shows the day's numbers, then the meals right under them, then
+how the day went: Meal by meal, what to eat next, the balanced days and The whole day. Each logged food shows calories and protein, then the other values on a
 smaller second line (values a synced meal did not bring are left out, not shown as 0). Each meal shows its
 totals, and **Details** opens every value of the meal with its share of the day's target, food by food. Under
-the day's numbers, **Meal by meal** draws the target as a ring: one arc per meal in the order of the day
+the meals, **Meal by meal** draws the target as a ring: one arc per meal in the order of the day
 (breakfast, lunch, snack, dinner, clockwise from the top), the rest of the target in grey, and a list with each
 meal's value and share of the target; calories, protein, carbs or fat. Past the target the ring is all that was
 eaten, and a line across it marks the target. Pointing at an arc or a meal (or touching it) fades the others and
 reads it in the middle. The meal colours (yellow, magenta, green, violet) were checked as neighbours on the ring,
 dinner next to breakfast too, for colour-blind readers in light and dark mode; none is the red of warnings, and
 each meal is also named with its value. Coach's overview has the same ring under the daily targets, for any day
-the coach picks (days older than the month it loads come from `GET /api/users/:id/food-day`). Above
-the meals, **The whole day** (snacks included) gives a 0–100 score and what went well or could be added:
+the coach picks (days older than the month it loads come from `GET /api/users/:id/food-day`). Further
+down, **The whole day** (snacks included) gives a 0–100 score and what went well or could be added:
 energy in its range 30, protein 30, fibre 20, saturated fat under the limit 20; today is judged on the hours
 gone by (about 20% of the day by 9, all of it by 21), with gentler words while the day is not over. Home shows
 one sentence from the same evaluation: the best thing of the day, then the one thing to add ("Great protein
@@ -326,7 +336,9 @@ the saturated fat, or in the evening still short of protein or fibre), with "Lun
 **Days not all logged, meals skipped.** A day under 70% of the calorie target counts as logged only in part:
 once it is over, the app asks "Did you log everything?". "No" (or no answer) leaves it out of every sum and
 average: the measured energy, the dashboard's food charts (app and Coach). A main meal missing from a day with
-other meals logged gets "Did you skip it?" (yes: noted; no, I ate but did not log it: the day is left out).
+other meals logged gets "Did you skip it?" (yes: noted; no, I ate but did not log it: the day is left out;
+**Add it now** opens "Add a meal" on that day and meal, and "Did you log everything?" has it too, on the first
+main meal missing).
 The same meal skipped 3 days in a row gets "Is it your way of eating, as with intermittent fasting?": yes
 puts it in `profiles.skip_meals`, so it is never asked about nor suggested, until it is logged on 2 of 5 days
 (Settings has it too). Answers are kept in `food_days` (status, skipped meals); one question at a time, the

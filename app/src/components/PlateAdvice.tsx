@@ -27,7 +27,12 @@ const ADVICE: Record<string, { emoji: string; key: string }> = {
 export interface PlateContext {
   food: FoodLog[]
   targets: Targets
+  /** When the plate is eaten: now, or a meal of a day before being logged (judged with that day's food). */
+  at?: Date
 }
+
+/** The plate is for a day before: the advice for the rest of the day no longer applies. */
+const pastDay = (ctx: PlateContext | undefined, now: Date) => Boolean(ctx?.at && localDay(ctx.at) !== localDay(now))
 
 function withToday(totals: PlateTotals, meal: Meal, ctx: PlateContext | undefined, now: Date) {
   if (!ctx) return null
@@ -82,10 +87,12 @@ export function PlateAdvice({
   const { t, num } = useI18n()
   const [open, setOpen] = useState<string | null>(null)
   const now = new Date()
-  const today = withToday(totals, meal, context, now)
+  const past = pastDay(context, now)
+  const at = context?.at ?? now
+  const today = withToday(totals, meal, context, at)
   // A second dish of the same lunch is judged with the first one: together they are the meal.
-  const s = scorePlate(today?.hadBefore ? { ...today.meal, salt_g: today.meal.salt_g ?? undefined, satfat_g: today.meal.satfat_g ?? undefined } : totals, meal, dailyKcal, ultraProcessed, now)
-  const fromDay = today && context ? dayAdvice(today.day, context.targets, meal, now) : []
+  const s = scorePlate(today?.hadBefore ? { ...today.meal, salt_g: today.meal.salt_g ?? undefined, satfat_g: today.meal.satfat_g ?? undefined } : totals, meal, dailyKcal, ultraProcessed, at)
+  const fromDay = today && context && !past ? dayAdvice(today.day, context.targets, meal, at) : []
   const todo = [
     ...fromDay.map((key) => ({ key, good: false })),
     ...s.reasons.filter((r) => !r.good && ADVICE[r.key] && !(r.key === 'protein_low' && fromDay.includes('day_protein')) && !(r.key === 'kcal_high' && fromDay.includes('day_over'))),
@@ -117,7 +124,7 @@ export function PlateAdvice({
       {today && context ? (
         <p className="mt-3 text-sm text-ink-2">
           {today.hadBefore ? `${t('advice.withBefore', { meal: t(`meal.${meal}`).toLowerCase(), kcal: num(today.before.kcal) })} ` : ''}
-          {t('advice.todayWith', { kcal: num(today.day.kcal), target: num(context.targets.kcal) })}
+          {t(past ? 'advice.dayWith' : 'advice.todayWith', { kcal: num(today.day.kcal), target: num(context.targets.kcal) })}
         </p>
       ) : null}
 
@@ -159,14 +166,15 @@ export function PlateAdvice({
  */
 export function MealSoFar({ totals, meal, context, salt = false }: { totals: PlateTotals; meal: Meal; context: PlateContext; salt?: boolean }) {
   const { t, num } = useI18n()
-  const today = withToday(totals, meal, context, new Date())
+  const now = new Date()
+  const today = withToday(totals, meal, context, context.at ?? now)
   if (!today?.hadBefore) return null
   return (
     <details className="rounded-3xl border border-line bg-card p-4">
       <summary className="cursor-pointer font-bold">
         {t('mealSoFar.title', { meal: t(`meal.${meal}`) })}: {num(today.before.kcal)} → {num(today.meal.kcal)} kcal
       </summary>
-      <p className="mt-2 text-sm text-ink-2">{t('mealSoFar.text')}</p>
+      <p className="mt-2 text-sm text-ink-2">{t(pastDay(context, now) ? 'mealSoFar.textDay' : 'mealSoFar.text')}</p>
       <div className="mt-2">
         <MealNumbers totals={today.meal} targets={context.targets} salt={salt} />
       </div>
