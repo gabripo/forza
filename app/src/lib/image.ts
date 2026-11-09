@@ -56,3 +56,45 @@ export function photoErrorKey(e: unknown): string {
   const code = (e as Error)?.message
   return code === PHOTO_UNREADABLE ? 'camera.unreadable' : code === 'daily_limit_reached' ? 'snap.limit' : code === 'not_configured' ? 'snap.notConfigured' : 'snap.failed'
 }
+
+/** Chrome's ImageCapture (not in every browser, nor in TypeScript's DOM types): a still photo from a camera track. */
+interface StillCamera {
+  getPhotoCapabilities(): Promise<{ imageWidth?: { min?: number; max?: number } }>
+  takePhoto(settings?: { imageWidth?: number }): Promise<Blob>
+}
+type StillCameraClass = new (track: MediaStreamTrack) => StillCamera
+
+const within = <T>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))])
+
+/**
+ * A still photo taken by the camera itself (ImageCapture, in Chrome on Android): the camera's own JPEG, as the
+ * camera app would give, about 2,000 px wide when the camera lets us choose. Drawing the viewfinder's video frame on a
+ * canvas instead swaps red and blue on some phones (seen on a Xiaomi with Android 16), so this comes first; null where
+ * it is not available or fails, for the frame to be used.
+ */
+export async function stillPhoto(track: MediaStreamTrack | null): Promise<Blob | null> {
+  const Still = (globalThis as { ImageCapture?: StillCameraClass }).ImageCapture
+  if (!track || track.readyState !== 'live' || !Still) return null
+  try {
+    const camera = new Still(track)
+    const width = (await within(camera.getPhotoCapabilities(), 3000).catch(() => null))?.imageWidth
+    const wanted = width?.max ? Math.max(width.min ?? 0, Math.min(width.max, 2048)) : undefined
+    const photo = await within(camera.takePhoto(wanted ? { imageWidth: wanted } : undefined), 8000).catch(() => (wanted ? within(camera.takePhoto(), 8000) : null))
+    return photo && photo.size > 0 ? photo : null
+  } catch {
+    return null
+  }
+}
+
+/** The viewfinder's frame as it is now, at the camera's size: where the camera cannot take a still photo itself. */
+export async function videoFrame(video: HTMLVideoElement): Promise<Blob | null> {
+  if (!video.videoWidth) return null
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  // A canvas kept in memory, not on the graphics chip: its colours come from the browser's own conversion.
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) return null
+  ctx.drawImage(video, 0, 0)
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+}

@@ -2,6 +2,7 @@ import { Camera, Flashlight, ImagePlus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../lib/i18n'
+import { stillPhoto, videoFrame } from '../lib/image'
 import { Button } from './ui'
 
 /**
@@ -73,17 +74,22 @@ export function CameraCapture({ title, hint, onPhoto, onClose }: { title: string
     }
   }
 
-  /** The frame as it is now, at the camera's full size: the page makes it smaller for the AI. */
+  /**
+   * The photo: taken by the camera itself where the browser can (true colours, as the camera app's), otherwise the
+   * viewfinder's frame as it is now. The page makes it smaller for the AI.
+   */
   async function take() {
     const v = video.current
     if (!v || !v.videoWidth) return
     setTaking(true)
-    const canvas = document.createElement('canvas')
-    canvas.width = v.videoWidth
-    canvas.height = v.videoHeight
-    canvas.getContext('2d')?.drawImage(v, 0, 0)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
-    setTaking(false)
+    let blob: Blob | null = null
+    try {
+      blob = (await stillPhoto(track.current)) ?? (await videoFrame(v))
+    } catch {
+      blob = null
+    } finally {
+      setTaking(false)
+    }
     if (!blob) return setError(t('camera.unreadable'))
     navigator.vibrate?.(30)
     onPhoto(new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' }))

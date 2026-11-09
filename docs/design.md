@@ -236,7 +236,11 @@ Ways to log a meal:
   JSON schema; portions can be corrected and nutrients scale with the grams. Photos (of a plate, a menu, a
   nutrition label, the foods at home or a written recipe) are taken **in the app**, with a viewfinder on the page,
   not with the phone's camera app: while the camera app is open, Android may close the browser to free memory
-  (some phones do it often), and back from the camera the page starts again without the photo. When the camera
+  (some phones do it often), and back from the camera the page starts again without the photo. The shutter asks
+  the camera itself for a still photo (`ImageCapture.takePhoto()`, Chrome on Android; about 2,000 px wide when the
+  camera lets the app choose): drawing the viewfinder's video frame on a canvas swaps red and blue on some phones
+  (a Xiaomi with Android 16 gave bluish photos), so the frame is used only where the browser has no still photo,
+  on a canvas kept in memory. When the camera
   cannot be opened in the app (not allowed, or none), the camera app and the gallery are offered instead. A photo
   the browser cannot open (a format it does not read) is said so, not silently ignored.
 - **Barcode**: the phone reads EAN/UPC codes (built-in `BarcodeDetector` on Android, a WebAssembly
