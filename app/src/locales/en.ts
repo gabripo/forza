@@ -608,6 +608,9 @@ export const en = {
     meals: 'Meals logged: {n}',
     left: '{kcal} kcal to go',
     over: '{kcal} kcal over',
+    mealOf: '{meal} · {name}',
+    openMeal: 'Open {meal} of {name}',
+    change: 'Change the foods',
     nothingYet: 'Nothing logged yet',
     add: 'Meal',
     addFor: 'Log a meal for {name}',
@@ -1032,6 +1035,7 @@ export const en = {
     editTitle: 'Change the meal',
     editHint: 'Eaten {when}. Change the amounts, take foods out or add more: the totals and the score follow.',
     editMissing: 'This meal is no longer in your food log.',
+    editHintFor: 'The meal {name} ate {when}. Change the amounts, take foods out or add more: the totals follow, and {name}’s app works out the score.',
     amountOf: 'Amount of {name}',
   },
   scan: {

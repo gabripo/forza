@@ -16,7 +16,7 @@ import { FOODS, foodAt, PROCESSED_FOODS, type Food } from '../../data/foods'
 import { dbProduct, familyFavourites, frequentFoods, plainItem, rememberItems, searchAll, searchOnline, useFoodDb, type LoggedItem, type Pick } from '../../lib/foodDb'
 import { useApp } from '../../lib/auth'
 import { localDay, scaleItem, scorePlate, sumItems } from '../../lib/calc'
-import { addFood, changeFood, getFoodLog } from '../../lib/data'
+import { addFood, changeFamilyMeal, changeFood, getFamilyMeal, getFoodLog } from '../../lib/data'
 import { useI18n } from '../../lib/i18n'
 import { productItem, type Product } from '../../lib/products'
 import { daysBefore } from '../../lib/logDay'
@@ -42,31 +42,33 @@ const offsetOf = (log: FoodLog) => daysBefore(localDay(new Date(log.eaten_at)))
  */
 export function FoodManual() {
   const { t, l, locale, num, date } = useI18n()
-  const { profile } = useApp()
+  const { profile, session } = useApp()
   const { energy, food } = useEnergy()
   const navigate = useNavigate()
   const logFor = useLogFor()
   const [params] = useSearchParams()
-  // Coming from a photo ("adjust by hand"): start from what the AI saw.
-  const from = useLocation().state as { items?: FoodItem[] } | null
+  // Coming from a photo ("adjust by hand"): start from what the AI saw. From the family page: back there.
+  const from = useLocation().state as { items?: FoodItem[]; back?: string } | null
+  const backTo = from?.back === '/family' ? '/family' : '/food'
   // The day and meal it goes to: today, or the day the Food page showed; the meal of the moment, or the one passed.
   const when = useLogWhen()
   const { meal, setMeal } = when
   const [items, setItems] = useState<PlateItem[]>(from?.items ?? [])
   // A meal logged before, being changed: found among the last weeks' meals, or read on its own.
   const editId = useParams().id
-  const [editing, setEditing] = useState<FoodLog | null | undefined>(editId ? undefined : null)
+  const [editing, setEditing] = useState<(FoodLog & { person?: string }) | null | undefined>(editId ? undefined : null)
   useEffect(() => {
     if (!editId || editing !== undefined) return
     const found = food.find((f) => f.id === editId)
-    const start = (log: FoodLog | null) => {
+    const start = (log: (FoodLog & { person?: string }) | null) => {
       setEditing(log)
       if (!log) return
       setItems(foodsOf(log))
       setMeal(log.meal)
     }
     if (found) start(found)
-    else if (energy) void getFoodLog(editId).then(start, () => start(null))
+    // Someone else's meal (for the family coach): read through the family's own function.
+    else if (energy) void getFoodLog(editId).then((log) => log ?? getFamilyMeal(editId)).then(start, () => start(null))
   }, [editId, editing, food, energy, setMeal])
   const [scanning, setScanning] = useState(params.get('scan') === '1')
   const [looking, setLooking] = useState(false)
@@ -123,7 +125,7 @@ export function FoodManual() {
   if (editId && !editing) {
     return (
       <div className="grid gap-4">
-        <PageHeader title={t('manual.editTitle')} back="/food" />
+        <PageHeader title={t('manual.editTitle')} back={backTo} />
         <Card>
           <p>{t('manual.editMissing')}</p>
         </Card>
@@ -131,6 +133,8 @@ export function FoodManual() {
     )
   }
   const totals = sumItems(items)
+  // A meal of someone else in the family, changed by the family coach: their app works out its score.
+  const forOther = Boolean(editing?.user_id && session && editing.user_id !== session.user.id)
   const processed = items.some((i) => i.processed || (i.foodId && PROCESSED_FOODS.has(i.foodId)))
 
   /** A product chosen in the search (the family's, or found online), for an amount. */
@@ -154,17 +158,22 @@ export function FoodManual() {
     if (!energy) return
     setBusy(true)
     try {
-      const s = scorePlate(totals, meal, energy.targets.kcal, processed, new Date(log.eaten_at))
       const before = foodsOf(log)
       const named = log.title.trim() && log.title !== before.map((i) => i.name).join(', ').slice(0, 120)
       const title = named ? log.title : items.map((i) => i.name).join(', ').slice(0, 120)
-      await changeFood(log.id, { items: items.map(plainItem), ...totals, meal, title, score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain })
-      // Foods added now count as used; those already in the meal were counted when it was logged.
+      if (forOther) {
+        await changeFamilyMeal(log.id, { items: items.map(plainItem), ...totals, meal, title })
+      } else {
+        const s = scorePlate(totals, meal, energy.targets.kcal, processed, new Date(log.eaten_at))
+        await changeFood(log.id, { items: items.map(plainItem), ...totals, meal, title, score_fat_loss: s.fatLoss, score_muscle_gain: s.muscleGain })
+      }
+      // Foods added now count as used (by whoever ate them); those already in the meal were counted when it was logged.
       rememberItems(
         items.filter((i) => !i.kept),
         'manual',
+        forOther ? log.user_id : undefined,
       )
-      navigate('/food', { state: { offset: offsetOf(log), changed: true } })
+      navigate(backTo, { state: { offset: offsetOf(log), changed: true } })
     } finally {
       setBusy(false)
     }
@@ -200,13 +209,19 @@ export function FoodManual() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader title={t(editing ? 'manual.editTitle' : 'manual.title')} back="/food" backState={editing ? { offset: offsetOf(editing) } : undefined}>
+      <PageHeader title={t(editing ? 'manual.editTitle' : 'manual.title')} back={backTo} backState={editing ? { offset: offsetOf(editing) } : undefined}>
         {/* At the top as soon as the plate has a food (scanned, searched or typed), not below the search. */}
         {items.length ? <SaveMealButton check={check} onSave={save} loading={busy} /> : null}
       </PageHeader>
       {/* A meal that looks like a mistake: the amounts to check, right under the button. */}
       <MealCheckWarning check={check} />
-      {editing ? <p className="text-ink-2">{t('manual.editHint', { when: date(editing.eaten_at, { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</p> : <LogForPicker logFor={logFor} />}
+      {editing ? (
+        <p className="text-ink-2">
+          {t(forOther ? 'manual.editHintFor' : 'manual.editHint', { name: editing.person ?? '', when: date(editing.eaten_at, { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
+        </p>
+      ) : (
+        <LogForPicker logFor={logFor} />
+      )}
       {/* The day and the meal first: where the food goes is chosen before the food. */}
       <LogWhenPicker when={when} dayFixed={Boolean(editing)} />
       {/* The search first: the quickest way to a food. While typing, the results come right under it. */}
@@ -316,12 +331,13 @@ export function FoodManual() {
       </Card>
 
       {/* What the meal already had that day; a meal being changed is not counted twice. */}
-      {items.length ? (
+      {/* Someone else's meal: their day and targets are not this phone's, so no "so far" and no score here. */}
+      {items.length && !forOther ? (
         <MealSoFar totals={totals} meal={meal} context={{ food: editing ? food.filter((f) => f.id !== editing.id) : food, targets: energy.targets, at: editing ? new Date(editing.eaten_at) : when.at() }} salt={Boolean(profile.track_salt)} />
       ) : null}
       {/* A processed food on the plate: what to have instead next time. */}
       <ProcessedSwapHint items={items} />
-      {items.length ? (
+      {items.length && !forOther ? (
         <Card>
           <PlateResult totals={totals} meal={meal} goal={profile.goal ?? 'maintain'} dailyKcal={energy.targets.kcal} ultraProcessed={processed} eatenAt={editing ? new Date(editing.eaten_at) : when.at()} />
         </Card>

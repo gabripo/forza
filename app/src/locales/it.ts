@@ -610,6 +610,9 @@ export const it: Dict = {
     meals: 'Pasti registrati: {n}',
     left: 'mancano {kcal} kcal',
     over: '{kcal} kcal in più',
+    mealOf: '{meal} · {name}',
+    openMeal: 'Apri {meal} di {name}',
+    change: 'Cambia i cibi',
     nothingYet: 'Ancora niente registrato',
     add: 'Pasto',
     addFor: 'Registra un pasto per {name}',
@@ -1034,6 +1037,7 @@ export const it: Dict = {
     editTitle: 'Modifica il pasto',
     editHint: 'Mangiato {when}. Cambia le quantità, togli alimenti o aggiungine altri: totali e punteggio si aggiornano.',
     editMissing: 'Questo pasto non è più nel tuo diario.',
+    editHintFor: 'Il pasto di {name}, mangiato {when}. Cambia le quantità, togli alimenti o aggiungine altri: i totali si aggiornano e l’app di {name} calcola il punteggio.',
     amountOf: 'Quantità di {name}',
   },
   scan: {

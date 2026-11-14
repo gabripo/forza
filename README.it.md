@@ -56,7 +56,7 @@ italiano: la lingua si cambia in qualsiasi momento.*
 - 👨‍👩‍👧 **Cucini una volta, registri per tutti.** Condividi un pasto con chi l'ha mangiato, ognuno con la sua
   porzione; l'archivio degli alimenti di famiglia cresce con ogni pasto registrato. Una persona scelta in Forza!
   Coach come coach di famiglia può anche registrare i pasti per gli altri, direttamente nel loro diario, e vede sul
-  telefono la giornata di tutta la famiglia: obiettivi e pasti.
+  telefono la giornata di tutta la famiglia: obiettivi, pasti e macronutrienti, con gli alimenti di ogni pasto da correggere.
 - 🧭 **La giornata e la settimana a colpo d'occhio.** Un punteggio gentile per tutta la giornata, un anello di
   quanto porta ogni pasto all'obiettivo del giorno (calorie, proteine, carboidrati o grassi), il dettaglio di ogni
   pasto, una frase di incoraggiamento in Home e ogni settimana "Cosa è successo la scorsa settimana". Dopo giorni

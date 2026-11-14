@@ -498,7 +498,7 @@ export interface FamilyMember {
   name: string
   goal: Goal | null
   target: { day: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null
-  meals: Pick<FoodLog, 'id' | 'meal' | 'title' | 'eaten_at' | 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'logged_by'>[]
+  meals: Pick<FoodLog, 'id' | 'meal' | 'title' | 'eaten_at' | 'items' | 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'source' | 'origin' | 'logged_by'>[]
 }
 
 /** The whole family on one day (YYYY-MM-DD, in this phone's time zone): for the family coach only. */
@@ -507,6 +507,17 @@ export async function getFamilyOverview(day: string): Promise<FamilyMember[]> {
   const from = new Date(y, m - 1, d)
   const to = new Date(y, m - 1, d + 1)
   return check(await supabase.rpc('family_overview', { p_from: from.toISOString(), p_to: to.toISOString(), p_day: day })) as FamilyMember[]
+}
+
+/** A meal of anyone in the family, for the family coach to change (with whose it is); null for anyone else. */
+export async function getFamilyMeal(id: string): Promise<(FoodLog & { person: string }) | null> {
+  const { data, error } = await supabase.rpc('family_meal', { p_id: id })
+  return error ? null : ((data as (FoodLog & { person: string }) | null) ?? null)
+}
+
+/** The family coach changes someone's meal: its foods, totals, name and part of the day; their app scores it again. */
+export async function changeFamilyMeal(id: string, meal: Pick<FoodLog, 'items' | 'meal' | 'title' | 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g' | 'sugar_g'> & Partial<Pick<FoodLog, 'salt_g' | 'satfat_g'>>): Promise<void> {
+  check(await supabase.rpc('family_change_meal', { p_id: id, p_meal: meal }))
 }
 
 /** Copies these meals into the food logs of the people who ate the same (each portion × factor). */

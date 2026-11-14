@@ -444,8 +444,13 @@ Because of it, the app asks for the person's own meals by `user_id` instead of r
 **The family at a glance (family coach only).** On the coach's Home, **Your family today** has one line per person:
 calories eaten against their target, and how many meals. It opens **Your family**: day by day (back four weeks),
 a card per person (the coach first) with the calories and the three macros against the targets, and the meals
-logged, meal by meal, with their calories; **+ Meal** opens "Add a meal" for that person on that day, on the first
-main meal they have not logged. It reads through `family_overview(from, to, day)`, a security-definer function
+logged, meal by meal, with their calories and macros; **+ Meal** opens "Add a meal" for that person on that day, on
+the first main meal they have not logged. A meal opens to show each part logged with its foods and amounts, and
+**Change the foods** opens "Change the meal" on it (amounts, foods taken out or added, part of the day): saved through
+`family_change_meal()` (coach only; foods, totals, name and part of the day, nothing else), its score cleared for the
+person's app to work out against their own target, the new foods counted as used by them. Meals synced from another
+app are changed there, as everywhere in the app (`synced_meal`). The editor reads someone else's meal through
+`family_meal()`, and shows neither "so far" nor a score: those depend on that person's day and targets. It reads through `family_overview(from, to, day)`, a security-definer function
 that only the family coach can call (`not_family_coach` for anyone else), one day at a time: each person's latest
 targets on or before the day (`target_history`, kept each day their app opens, or by Forza! Coach; an older one
 says from when) and their meals of the day. Read-only: the rules on `food_logs` do not change. The section is in

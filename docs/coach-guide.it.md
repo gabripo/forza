@@ -112,7 +112,9 @@ diario alimentare, segnato "Registrato da …", e la sua app calcola il punteggi
 salvataggio, **Annulla** lo toglie. Chi fa da coach di famiglia può modificare o eliminare solo i pasti registrati
 per qualcun altro. Nella Home ha anche **La tua famiglia oggi**: le calorie di tutti rispetto al loro obiettivo e,
 toccandola, una pagina con gli obiettivi del giorno e i pasti di ognuno, giorno per giorno, con **+ Pasto** per
-registrarne uno per quella persona. Nessun altro la vede.
+registrarne uno per quella persona, con i macronutrienti di ogni pasto. Toccando un pasto si vedono i suoi alimenti, e
+**Cambia i cibi** permette di correggere quantità o alimenti; poi l'app di quella persona ricalcola il punteggio. I
+pasti che arrivano da un'altra app (Build With Science) si modificano lì. Nessun altro vede la pagina.
 
 ## 4. Passi, peso e bilance smart
 

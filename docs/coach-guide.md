@@ -109,7 +109,9 @@ in the app. Choose them in **People → Family coach** (one person at a time, or
 log, marked "Logged by …", and their app scores it against their own target. Right after saving, **Undo** takes it
 back out. The family coach can change or delete only the meals they logged for someone. On Home they also have
 **Your family today**: everyone's calories against their target, and behind it a page with each person's daily
-targets and meals, day by day, with **+ Meal** to log one for them. Nobody else sees it.
+targets and meals, day by day, with each meal's macros and **+ Meal** to log one for them. Tapping a meal shows
+its foods, and **Change the foods** lets the family coach correct amounts or foods; that person's app then scores it
+again. Meals from another app (Build With Science) are changed there. Nobody else sees the page.
 
 ## 4. Steps, weight and smart scales
 
