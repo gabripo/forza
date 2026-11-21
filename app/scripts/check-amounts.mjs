@@ -1,5 +1,6 @@
 // Checks that amounts typed or dictated come out as believable grams: "2 mandorle" is two almonds (2 g), not two
 // handfuls (50 g). Run by CI (`npm run check-amounts`); add a line here when a food is counted in a new way.
+// Also checks the grocery list's amounts for two people: on their targets, with no processed food.
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -50,14 +51,49 @@ const MEALS = [
   ['frittata di 3 uova', 'it', [['egg', 160, 170]]],
 ]
 
+// Two people's four weeks of meals, for the grocery list: [name, kcal and protein a day, a day's meals by day number,
+// whether they eat meat and fish]. Foods are [id, grams] of the app's table.
+const PEOPLE = [
+  [
+    'eats everything',
+    [2300, 160],
+    (d) => [
+      d % 3 ? [['biscuits', 40], ['milk', 250]] : [['oats', 60], ['milk', 250], ['banana', 120]],
+      d % 2 ? [['pasta_dry', 110], ['tuna_water', 80], ['olive_oil', 15], ['cherry_tomatoes', 100]] : [['pasta_ragu', 350], ['parmesan', 10]],
+      d % 4 ? [['greek_yogurt_0', 170], ['walnuts', 15]] : [['crisps', 40]],
+      [[d % 2 ? 'chicken_breast' : 'salmon', 150], ['zucchini', 200], ['bread', 80], ['olive_oil', 15]],
+    ],
+    true,
+  ],
+  [
+    'vegetarian',
+    [1800, 110],
+    (d) => [
+      [['greek_yogurt', 170], ['muesli', 40], ['apple', 180]],
+      d % 2 ? [['lentils', 200], ['rice_cooked', 150], ['olive_oil', 10]] : [['pasta_chickpeas_dish', 350]],
+      [[d % 3 ? 'mozzarella' : 'egg', 100], ['salad', 100], ['bread_wholegrain', 60], ['olive_oil', 10]],
+    ],
+    false,
+  ],
+]
+
 const app = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dir = await mkdtemp(join(tmpdir(), 'forza-amounts-'))
 try {
   const entry = join(dir, 'entry.ts')
-  await writeFile(entry, `export { parseMeal } from ${JSON.stringify(join(app, 'src/lib/voice.ts'))}\nexport { FOODS } from ${JSON.stringify(join(app, 'src/data/foods.ts'))}\n`)
+  await writeFile(
+    entry,
+    [
+      `export { parseMeal } from ${JSON.stringify(join(app, 'src/lib/voice.ts'))}`,
+      `export { FOODS, foodAt } from ${JSON.stringify(join(app, 'src/data/foods.ts'))}`,
+      `export { groceryList, GROCERY_FOOD_IDS } from ${JSON.stringify(join(app, 'src/lib/grocery.ts'))}`,
+      `export { processedKind } from ${JSON.stringify(join(app, 'src/lib/processed.ts'))}`,
+      '',
+    ].join('\n'),
+  )
   const out = join(dir, 'amounts.mjs')
   execFileSync(join(app, 'node_modules', '.bin', 'rolldown'), [entry, '--format', 'esm', '--file', out], { cwd: app, stdio: 'pipe' })
-  const { parseMeal, FOODS } = await import(pathToFileURL(out).href)
+  const { parseMeal, FOODS, foodAt, groceryList, GROCERY_FOOD_IDS, processedKind } = await import(pathToFileURL(out).href)
   const wrong = []
   for (const [said, locale, id, min, max] of CASES) {
     const items = parseMeal(said, locale).items
@@ -72,11 +108,36 @@ try {
   }
   // A portion that is a handful, a bunch or a pack is not one piece: such a food needs the weight of one.
   for (const f of FOODS) if (/handful|bunch|pack/.test(f.unit?.en ?? '') && !f.piece) wrong.push(`${f.id}: its portion is ${f.unit.en}, so it needs a piece weight (PIECE in foods.ts)`)
+  // The grocery list: foods of the app's table, the targets met, fruit and vegetables every day, nothing processed.
+  const byId = new Map(FOODS.map((f) => [f.id, f]))
+  for (const id of GROCERY_FOOD_IDS) if (!byId.has(id)) wrong.push(`grocery list: ${id} is not a food of the app's table`)
+  const now = new Date('2026-11-21T20:00:00')
+  for (const [who, [kcal, protein], day, meatFish] of PEOPLE) {
+    const logs = []
+    for (let d = 1; d <= 24; d++) {
+      day(d).forEach((foods, m) => {
+        const at = new Date(now)
+        at.setDate(at.getDate() - d)
+        at.setHours(8 + m * 4)
+        const items = foods.map(([id, g]) => ({ name: byId.get(id).name.it, grams: g, ...foodAt(byId.get(id), g) }))
+        logs.push({ id: `${d}-${m}`, meal: 'lunch', eaten_at: at.toISOString(), title: '', items, kcal: items.reduce((s, i) => s + i.kcal, 0) })
+      })
+    }
+    const targets = { kcal, protein_g: protein, carbs_g: Math.round((kcal * 0.45) / 4), fat_g: Math.round((kcal * 0.3) / 9), fiber_g: 28, salt_g: 5, satfat_g: 20 }
+    const list = groceryList(logs, [], targets, 7, 'it', now)
+    const p = list.perDay
+    const say = (what) => wrong.push(`grocery list (${who}): ${what}`)
+    if (Math.abs(p.kcal - kcal) > kcal * 0.08) say(`${p.kcal} kcal a day, target ${kcal}`)
+    if (p.protein_g < protein * 0.95) say(`${p.protein_g} g of protein a day, target ${protein}`)
+    if (p.fruitVeg_g < 480) say(`${p.fruitVeg_g} g of fruit and vegetables a day`)
+    for (const i of list.items) if (processedKind(i.name)) say(`${i.name} is processed`)
+    if (!meatFish) for (const i of list.items) if (i.aisle === 'meat' || i.aisle === 'fish') say(`${i.name}, for someone who eats no meat or fish`)
+  }
   if (wrong.length) {
     console.error(`Amounts that come out wrong:\n- ${wrong.join('\n- ')}`)
     process.exit(1)
   }
-  console.log(`Amounts: ${CASES.length} phrases and ${MEALS.length} sentences read right`)
+  console.log(`Amounts: ${CASES.length} phrases and ${MEALS.length} sentences read right; grocery lists for ${PEOPLE.length} people on target`)
 } finally {
   await rm(dir, { recursive: true, force: true })
 }

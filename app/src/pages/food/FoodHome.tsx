@@ -1,4 +1,4 @@
-import { Barcode, BookOpen, BookPlus, CalendarCheck, CalendarDays, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, Plus, ScrollText, Share2, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Barcode, BookOpen, BookPlus, CalendarCheck, CalendarDays, Camera, ChefHat, ChevronLeft, ChevronRight, Copy, History, Info, ListTree, Mic, Pencil, PenLine, Plus, ScrollText, Share2, ShoppingBasket, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MacroBar, Ring } from '../../components/charts'
@@ -210,6 +210,14 @@ export function FoodHome() {
         <span>
           <span className="block font-bold">{t('food.buildAsk')}</span>
           <span className="block text-brand-ink">{t('food.buildCta')}</span>
+        </span>
+      </button>
+      {/* Going shopping: what is usually eaten, as a list that fits the targets. */}
+      <button onClick={() => navigate('/food/groceries')} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-brand bg-card p-3 text-left active:bg-card-2">
+        <ShoppingBasket className="size-8 shrink-0 text-brand" aria-hidden />
+        <span>
+          <span className="block font-bold">{t('food.groceryAsk')}</span>
+          <span className="block text-brand-ink">{t('food.groceryCta')}</span>
         </span>
       </button>
 

@@ -46,6 +46,9 @@ italiano: la lingua si cambia in qualsiasi momento.*
   prossime scansioni di tutta la famiglia.
 - 🧑‍🍳 **Nessuna idea su cosa mangiare? Costruisci la tua ricetta.** Scrivi, detta, scansiona o fotografa quello
   che hai in casa: fino a tre ricette per il prossimo pasto, con quantità che stanno in quello che ti resta oggi.
+- 🧺 **Devi fare la spesa? La tua lista, su misura.** Dai cibi che registri, una lista per tre giorni o una settimana
+  in quantità adatte ai tuoi obiettivi: cibi integrali al posto di quelli processati, abbastanza proteine, frutta e
+  verdura ogni giorno, di stagione. Quantità da comprare, da spuntare al supermercato, da condividere con un tocco.
 - 🍦 **Meno cibi processati, con gentilezza.** A chi registra spesso gelato, biscotti o snack viene chiesto se sa
   che saziano di meno e sono meno nutrienti, con tante alternative altrettanto buone, a un tocco.
 - 📖 **Ricette di famiglia, Bimby compreso.** Scrivi un piatto una volta (scrivi gli ingredienti, scansiona i loro

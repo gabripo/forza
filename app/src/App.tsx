@@ -9,6 +9,7 @@ import { Challenge } from './pages/Challenge'
 import { Check } from './pages/Check'
 import { Dashboard } from './pages/Dashboard'
 import { FoodBuild } from './pages/food/FoodBuild'
+import { FoodGroceries } from './pages/food/FoodGroceries'
 import { FoodHome } from './pages/food/FoodHome'
 import { Family } from './pages/Family'
 import { FoodManual } from './pages/food/FoodManual'
@@ -83,6 +84,7 @@ function Gate() {
         <Route path="food/recipes/:id" element={<RecipeEditor />} />
         <Route path="food/menu" element={<MenuPick />} />
         <Route path="food/build" element={<FoodBuild />} />
+        <Route path="food/groceries" element={<FoodGroceries />} />
         <Route path="learn" element={<LearnHome />} />
         <Route path="learn/points-quiz" element={<PointsQuiz />} />
         <Route path="learn/:id" element={<Infographic />} />

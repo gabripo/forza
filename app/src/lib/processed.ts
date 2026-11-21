@@ -235,5 +235,14 @@ export function swapsFor(kind: ProcessedKind, locale: Locale): SwapIdea[] {
   })
 }
 
+/**
+ * One alternative to a kind as foods of the app's table, for the grocery list: the one asked for, else the most
+ * similar (the first).
+ */
+export function swapFoods(kind: ProcessedKind, id?: string): { name: L10n; items: [string, number][] } {
+  const w = SWAPS[kind].find((x) => x.id === id) ?? SWAPS[kind][0]
+  return { name: w.name, items: w.items }
+}
+
 /** Every alternative names foods of the app's table (checked by the amounts check). */
 export const SWAP_FOOD_IDS = Object.values(SWAPS).flatMap((list) => list.flatMap((w) => w.items.map(([id]) => id)))

@@ -43,6 +43,9 @@ and adjust their plan from your own computer.
   product that is wrong is put right with "Not this one?", for the whole family's next scans.
 - 🧑‍🍳 **No idea what to eat? Build your own recipe.** Type, say, scan or photograph what you have at home: up to
   three recipes for your next meal, with amounts that fit what is left of your day.
+- 🧺 **Going shopping? Your grocery list, made for you.** From the foods you log, a list for three days or a week in
+  amounts that fit your targets: whole foods instead of processed ones, enough protein, fruit and vegetables every
+  day, in season. Amounts as sold, ticked off in the shop, shared in one tap.
 - 🍦 **Fewer processed foods, kindly.** Whoever often logs ice cream, biscuits or snacks is asked whether they know
   these fill you up less and bring fewer nutrients, with many alternatives just as pleasant, one tap away.
 - 📖 **Family recipes, Thermomix included.** Write a dish once (type the ingredients, scan their barcodes or

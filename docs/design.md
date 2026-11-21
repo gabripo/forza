@@ -481,6 +481,28 @@ and opens pre-filled to log. A list without protein (or vegetables, for lunch an
 filling) gets a few foods to add. Without the AI (not set up, the daily limit, offline) the app puts together one
 simple dish of its own, shaped by its main food (pasta, rice, bread, eggs, legumes, a salad…) with plain steps.
 
+**The grocery list** ("Devi fare la spesa? La tua lista della spesa, su misura", `FoodGroceries.tsx`, `grocery.ts`),
+right under "Build your own recipe" on the Food page: the person's last four weeks of meals, food by food (known
+again by name in the app's table, then in the family's foods; a meal kept with its title only is read like a
+dictated one, in amounts that make its calories), become what to buy for three days or a week. Whole foods: a
+processed food gives way to the first of its alternatives (fizzy drinks to an orange, fish fingers to baked fish),
+as often as it was had; white bread and pasta (and those in ready dishes) to wholegrain ones, as many calories;
+ready dishes to what they are made of; drinks, alcohol and treats eaten out are left off. Fruit and vegetables every
+day (300 g of vegetables and 200 g of fruit, at least): more of the usual ones, then some in season in Italy. The
+amounts fit the targets while keeping to what is usually eaten: every food scaled alike to the calories; short of
+protein, the protein foods scaled up more and the rest down (down to 40% for starches, so a high protein target in
+few calories fits), and the other way round when protein would be over 15% past its target. A usual protein food
+stretched past half as much again, or protein still short, brings one more protein food of the kinds the person
+eats (one of each kind in turn; no meat or fish for whoever never logs any; any kind with few days logged); fat
+short of 80% of its target brings olive oil or nuts, when the calories have room. Amounts as sold: meat and fish
+raw (cooked weight × 1.25–1.33), pasta, rice and grains dry (by their calories), lentils dry, chickpeas and beans
+tinned; eggs by the piece, tins and pots by the pack, the rest rounded as weighed; a pinch a day is left off. The
+page shows what the list brings a day against the targets (calories, protein, fibre, fruit and vegetables), each
+food with why it is there ("Già nei tuoi pasti", "Per avere abbastanza proteine", "Integrale, al posto di: Pasta"),
+ticks kept on the phone for three days, and shares as text. The amounts check (`check-amounts`) builds the list for
+two people (one eating everything, one vegetarian) and fails when calories are 8% off, protein short, fruit and
+vegetables under 480 g a day, a processed food is listed, or meat or fish is listed for the vegetarian.
+
 **Changing a meal after logging it**: the pencil on each meal (or "Change foods and amounts" when it is opened)
 opens it in "Add a meal": each food's grams (or the calories of a food logged without them), foods out, foods
 added from the search, the scanner or by hand, the part of the day. The totals and the score follow; the time it
