@@ -48,6 +48,7 @@ export async function applyConnectCode(c: ConnectCode): Promise<'expired' | null
       localStorage.setItem(SERVER_KEY, JSON.stringify({ url: c.url, key: c.key }))
       // A session from another server is useless here.
       localStorage.removeItem('forza.auth')
+      localStorage.removeItem('forza.deviceKey')
       if (c.token) sessionStorage.setItem(PENDING, c.token)
     } catch {
       // storage blocked: nothing we can do
@@ -65,7 +66,8 @@ export async function applyConnectCode(c: ConnectCode): Promise<'expired' | null
 }
 
 async function signInWithToken(token: string): Promise<'expired' | null> {
-  await supabase.auth.signOut({ scope: 'local' })
+  // The new sign-in takes the place of the one on the phone, if any, only when the code works: an expired code
+  // leaves the person signed in. (If the code is someone else's, the app then makes a device key for them.)
   const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: 'email' })
   return error ? 'expired' : null
 }

@@ -1642,8 +1642,8 @@ function phoneView() {
           <h2 style="font-size:24px">${it ? `Ciao ${esc(sc.name)}! 💪` : `Hi ${esc(sc.name)}! 💪`}</h2>
           <ol style="font-size:17px;line-height:1.5">
             ${it
-              ? `<li>Apri la <b>fotocamera</b> del telefono e inquadra il codice, poi tocca il link: si apre <b>Forza!</b>.</li><li><b>Android</b>: tocca <b>Inizia</b>, poi menu ⋮ → <b>Installa app</b>.</li><li><b>iPhone</b>: prima Condividi → <b>Aggiungi alla schermata Home</b>; apri Forza! dalla nuova icona, tocca <b>Inquadra il mio codice</b>, inquadra di nuovo questo codice e tocca <b>Inizia</b>.</li><li>Rispondi a poche domande: fatto!</li>`
-              : `<li>Open your phone's <b>camera</b>, point it at the code and tap the link: <b>Forza!</b> opens.</li><li><b>Android</b>: tap <b>Start</b>, then menu ⋮ → <b>Install app</b>.</li><li><b>iPhone</b>: first Share → <b>Add to Home Screen</b>; open Forza! from the new icon, tap <b>Scan my code</b>, scan this code again and tap <b>Start</b>.</li><li>Answer a few questions: done!</li>`}
+              ? `<li>Apri la <b>fotocamera</b> del telefono e inquadra il codice, poi tocca il link: si apre <b>Forza!</b>.</li><li><b>Android</b>: tocca <b>Inizia</b>, poi menu ⋮ → <b>Installa app</b>.</li><li><b>iPhone</b>: tocca <b>Copia il codice</b>; la prima volta, Condividi → <b>Aggiungi alla schermata Home</b>. Apri Forza! dall'icona, tocca <b>Incolla il mio codice</b>, poi <b>Inizia</b>.</li><li>Rispondi a poche domande: fatto!</li>`
+              : `<li>Open your phone's <b>camera</b>, point it at the code and tap the link: <b>Forza!</b> opens.</li><li><b>Android</b>: tap <b>Start</b>, then menu ⋮ → <b>Install app</b>.</li><li><b>iPhone</b>: tap <b>Copy the code</b>; the first time, Share → <b>Add to Home Screen</b>. Open Forza! from the icon, tap <b>Paste my code</b>, then <b>Start</b>.</li><li>Answer a few questions: done!</li>`}
           </ol>
           <p class="muted small">${it ? 'Codice valido fino a' : 'Code valid until'} ${fmtDate(sc.expires_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
         </div>

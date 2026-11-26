@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { finishPendingSignIn } from './connect'
 import { getProfile, loadExercises, updateProfile, CATALOGUE } from './data'
+import { forgetDevice, hasDeviceKey, rememberDevice, signInAgain } from './deviceKey'
 import { useI18n } from './i18n'
 import { supabase } from './supabase'
 import type { Exercise, Profile } from './types'
@@ -32,15 +33,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [exercises, setExercises] = useState(() => new Map(CATALOGUE.map((e) => [e.id, e])))
 
   useEffect(() => {
+    // Signed out by the server, not by the person (see lib/deviceKey.ts): the phone signs in again with its own key,
+    // the sign-in screen is shown only if that cannot work. Returns false when there is nothing to try.
+    let retrying = false
+    const signedOutByServer = () => {
+      // While it tries, the client's own "signed out" news changes nothing on screen.
+      if (retrying) return true
+      if (!hasDeviceKey()) return false
+      retrying = true
+      setLoading(true)
+      // Outside the sign-in event: the client must not be called back from inside it.
+      window.setTimeout(() => {
+        void signInAgain()
+          .catch(() => 'offline' as const)
+          .then((result) => {
+            retrying = false
+            if (result === 'done') return
+            setSession(null)
+            setProfile(null)
+            setLoading(false)
+          })
+      }, 0)
+      return true
+    }
+
     // Finish a setup-code sign-in started before the app reloaded on the new server.
     void finishPendingSignIn()
       .then((err) => setConnectError(err))
       .then(() => supabase.auth.getSession())
       .then(({ data }) => {
-        setSession(data.session)
-        if (!data.session) setLoading(false)
+        if (data.session) setSession(data.session)
+        else if (!signedOutByServer()) setLoading(false)
       })
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!s && signedOutByServer()) return
       setSession(s)
       if (!s) {
         setProfile(null)
@@ -65,6 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       loadExercises().then((m) => !cancelled && setExercises(m)).catch(() => {})
       void flushOutbox()
+      void rememberDevice(userId).catch(() => {})
     })()
     return () => {
       cancelled = true
@@ -98,8 +125,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setExercises(await loadExercises())
   }, [])
 
+  // "Sign out from this phone": the other phones stay signed in, this one's key stops working.
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    await forgetDevice()
+    await supabase.auth.signOut({ scope: 'local' })
   }, [])
 
   return (

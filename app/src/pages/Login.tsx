@@ -1,4 +1,4 @@
-import { QrCode } from 'lucide-react'
+import { ClipboardPaste, QrCode } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Logo } from '../components/Logo'
 import { Scanner } from '../components/Scanner'
@@ -19,6 +19,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(connectError ? t('welcome.expired') : null)
   const [scanning, setScanning] = useState(false)
   const [code, setCode] = useState<ConnectCode | null>(null)
+  const [pasteBox, setPasteBox] = useState(false)
   // Without a server the email form cannot work: the setup code is the way in.
   const [showForm, setShowForm] = useState(isConfigured)
 
@@ -29,6 +30,24 @@ export function Login() {
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setBusy(false)
     if (err) setError(err.message.toLowerCase().includes('invalid') ? t('login.wrong') : t('login.offline'))
+  }
+
+  /** A code that came as a link (on iPhone, copied from Safari): read from the clipboard, or pasted in a box. */
+  function takeText(text: string) {
+    const c = parseConnect(text.trim())
+    if (c) {
+      setError(null)
+      setCode(c)
+    } else setError(t('login.pasteWrong'))
+  }
+
+  async function paste() {
+    try {
+      takeText(await navigator.clipboard.readText())
+    } catch {
+      // reading the clipboard not allowed here: the person pastes it themselves
+      setPasteBox(true)
+    }
   }
 
   if (code) return <Welcome code={code} onCancel={() => setCode(null)} />
@@ -53,6 +72,29 @@ export function Login() {
         <Button size="lg" block variant={showForm ? 'secondary' : 'primary'} onClick={() => setScanning(true)}>
           <QrCode className="size-5" aria-hidden /> {t('login.scan')}
         </Button>
+        <Button size="lg" block variant="secondary" onClick={() => void paste()}>
+          <ClipboardPaste className="size-5" aria-hidden /> {t('login.paste')}
+        </Button>
+        {pasteBox ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              takeText(new FormData(e.currentTarget).get('link')?.toString() ?? '')
+            }}
+          >
+            <Input
+              name="link"
+              enterKeyHint="go"
+              aria-label={t('login.pasteBox')}
+              placeholder={t('login.pasteBox')}
+              autoFocus
+              onPaste={(e) => {
+                e.preventDefault()
+                takeText(e.clipboardData.getData('text'))
+              }}
+            />
+          </form>
+        ) : null}
         {error && !showForm ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{error}</p> : null}
       </div>
       {showForm ? (

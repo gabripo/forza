@@ -92,9 +92,10 @@ sign-in settings. When it says **Forza! is ready**, the set-up is over.
    then tap the link that appears. (Or print a **welcome card** with the code and the instructions.)
    - **Android**: Forza! opens in Chrome. Tap **Start**, then add it to the home screen:
      menu ⋮ → **Install app** (or *Add to Home screen*).
-   - **iPhone**: Forza! opens in Safari. Before tapping Start, tap the Share button →
-     **Add to Home Screen**. Open Forza! from the new icon, tap **Scan my code**, scan the same QR code
-     again and tap **Start**. (On iPhone, the home-screen app keeps its own sign-in, separate from Safari.)
+   - **iPhone**: Forza! opens in Safari. Tap **Copy the code** (not Start: on iPhone, the home-screen app
+     keeps its own sign-in, separate from Safari). The first time, tap the Share button → **Add to Home
+     Screen**. Open Forza! from its icon, tap **Paste my code**, then **Start**. The same works with the
+     link sent by message.
 4. They answer a few simple questions (or fill in their **Profile** in Coach beforehand: they then go
    straight to the home screen).
 

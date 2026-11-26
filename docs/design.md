@@ -73,7 +73,17 @@ imports, plan editing) happens in **Forza! Coach**, on the coach's computer.
 - **No email needed.** Without an email, Coach uses a private placeholder address under `.invalid`, a
   domain that by definition never exists; the person signs in with the QR code. A real email and a
   password can be added later.
-- **Sessions persist**: the person signs in once per phone.
+- **Sessions persist**: the person signs in once per phone. The session's refresh token changes every hour,
+  and Supabase ends the whole session when an older one comes back (refresh-token reuse detection). An iPhone
+  home-screen app can lose the last token it saved, when the system closes it at the wrong moment, and was
+  then signed out. So each phone also keeps a **device key** of its own, made when it signs in and never
+  changed (only its SHA-256 hash is stored, in `device_keys`; at most 5 per person). When the server ends the
+  session, the app sends the key to the `device-sign-in` function, which answers with a one-time magic-link
+  token, as for the sign-in codes: the person stays signed in, with no new code. Signing out from a phone
+  deletes its key.
+- **On iPhone, a sign-in link opens in Safari**, whose sign-in the home-screen app does not share. So there
+  the page does not use the code: it copies it, and the app takes it from **Paste my code**. Each code works
+  once, so a code used in Safari by mistake meant a new one from the coach.
 - **iPhone**: a home-screen web app keeps its own storage, separate from Safari, so on iPhone the person
   installs the app first and scans the code from inside it ("Scan my code" uses the camera in the app).
 - The QR scanner is the same component as the food barcode scanner.

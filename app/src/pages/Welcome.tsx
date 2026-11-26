@@ -1,8 +1,8 @@
-import { ShieldCheck } from 'lucide-react'
+import { Check, Copy, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
-import { Button } from '../components/ui'
+import { Button, Input } from '../components/ui'
 import { useApp } from '../lib/auth'
 import { applyConnectCode, parseConnect, sameServer, type ConnectCode } from '../lib/connect'
 import { useI18n } from '../lib/i18n'
@@ -15,10 +15,25 @@ export function Welcome({ code: given, onCancel }: { code?: ConnectCode; onCance
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [here, setHere] = useState(false)
+  const [copyBox, setCopyBox] = useState(false)
   const code = given ?? parseConnect(`#${location.pathname}${location.search}`)
   const cancel = onCancel ?? (() => navigate('/', { replace: true }))
-  // On iPhone the home-screen app does not share Safari's sign-in: install it first, then scan there.
+  // On iPhone the home-screen app does not share Safari's sign-in, and a link always opens in Safari: the code is
+  // copied here and pasted in the app, so it is not used up in Safari (each code works once).
   const iosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(navigator as { standalone?: boolean }).standalone
+  const copyFirst = iosBrowser && !here
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+    } catch {
+      // copying not allowed: the link is shown, to copy by hand
+      setCopyBox(true)
+    }
+  }
 
   async function go() {
     if (!code) return
@@ -45,12 +60,35 @@ export function Welcome({ code: given, onCancel }: { code?: ConnectCode; onCance
               {t('welcome.server')} <b className="break-all text-ink">{new URL(code.url).host}</b>
             </span>
           </p>
-          {iosBrowser ? <p className="rounded-2xl bg-sky-soft p-3 text-sm">{t('welcome.iosFirst')}</p> : null}
-          {session && code.token ? <p className="text-sm text-ink-2">{t('welcome.switch', { email: session.user.email ?? '' })}</p> : null}
-          {error ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{error}</p> : null}
-          <Button size="lg" block loading={busy} onClick={go} disabled={Boolean(error)}>
-            {code.token ? t('welcome.go') : sameServer(code) ? t('common.next') : t('welcome.connect')}
-          </Button>
+          {copyFirst ? (
+            <>
+              <div className="rounded-2xl bg-sky-soft p-3 text-sm">
+                <p>{t('welcome.iosWhy')}</p>
+                <ol className="mt-2 grid list-decimal gap-1 pl-5">
+                  <li>{t('welcome.ios1')}</li>
+                  <li>{t('welcome.ios2')}</li>
+                  <li>{t('welcome.ios3')}</li>
+                </ol>
+              </div>
+              <Button size="lg" block variant={copied ? 'leaf' : 'primary'} onClick={() => void copy()}>
+                {copied ? <Check className="size-5" aria-hidden /> : <Copy className="size-5" aria-hidden />} {copied ? t('welcome.copied') : t('welcome.copy')}
+              </Button>
+              {copyBox ? (
+                <Input readOnly aria-label={t('welcome.copy')} value={window.location.href} onFocus={(e) => e.target.select()} autoFocus />
+              ) : null}
+              <Button variant="ghost" block onClick={() => setHere(true)}>
+                {t('welcome.inSafari')}
+              </Button>
+            </>
+          ) : (
+            <>
+              {session && code.token ? <p className="text-sm text-ink-2">{t('welcome.switch', { email: session.user.email ?? '' })}</p> : null}
+              {error ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{error}</p> : null}
+              <Button size="lg" block loading={busy} onClick={go} disabled={Boolean(error)}>
+                {code.token ? t('welcome.go') : sameServer(code) ? t('common.next') : t('welcome.connect')}
+              </Button>
+            </>
+          )}
           <Button variant="ghost" block onClick={cancel}>
             {t('common.cancel')}
           </Button>

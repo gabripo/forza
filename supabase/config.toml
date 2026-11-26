@@ -426,3 +426,6 @@ verify_jwt = false
 
 [functions.food-search]
 verify_jwt = false
+
+[functions.device-sign-in]
+verify_jwt = false
