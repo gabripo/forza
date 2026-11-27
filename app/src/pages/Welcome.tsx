@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { Button, Input } from '../components/ui'
 import { useApp } from '../lib/auth'
+import { iosBrowser } from '../lib/deviceKey'
 import { applyConnectCode, parseConnect, sameServer, type ConnectCode } from '../lib/connect'
 import { useI18n } from '../lib/i18n'
 
@@ -22,8 +23,7 @@ export function Welcome({ code: given, onCancel }: { code?: ConnectCode; onCance
   const cancel = onCancel ?? (() => navigate('/', { replace: true }))
   // On iPhone the home-screen app does not share Safari's sign-in, and a link always opens in Safari: the code is
   // copied here and pasted in the app, so it is not used up in Safari (each code works once).
-  const iosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(navigator as { standalone?: boolean }).standalone
-  const copyFirst = iosBrowser && !here
+  const copyFirst = iosBrowser() && !here
 
   async function copy() {
     try {
@@ -53,7 +53,7 @@ export function Welcome({ code: given, onCancel }: { code?: ConnectCode; onCance
       </div>
       {code ? (
         <div className="grid gap-4 rounded-3xl border border-line bg-card p-5">
-          <p className="text-lg">{code.token ? t('welcome.text') : t('welcome.textServer')}</p>
+          <p className="text-lg">{code.token || code.device ? t('welcome.text') : t('welcome.textServer')}</p>
           <p className="flex items-start gap-2 rounded-2xl bg-card-2 p-3 text-sm text-ink-2">
             <ShieldCheck className="mt-0.5 size-5 shrink-0 text-leaf" aria-hidden />
             <span>
@@ -82,10 +82,10 @@ export function Welcome({ code: given, onCancel }: { code?: ConnectCode; onCance
             </>
           ) : (
             <>
-              {session && code.token ? <p className="text-sm text-ink-2">{t('welcome.switch', { email: session.user.email ?? '' })}</p> : null}
+              {session && (code.token || code.device) ? <p className="text-sm text-ink-2">{t('welcome.switch', { email: session.user.email ?? '' })}</p> : null}
               {error ? <p className="rounded-2xl bg-danger-soft p-3 font-semibold text-danger">{error}</p> : null}
               <Button size="lg" block loading={busy} onClick={go} disabled={Boolean(error)}>
-                {code.token ? t('welcome.go') : sameServer(code) ? t('common.next') : t('welcome.connect')}
+                {code.token || code.device ? t('welcome.go') : sameServer(code) ? t('common.next') : t('welcome.connect')}
               </Button>
             </>
           )}

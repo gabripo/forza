@@ -83,7 +83,10 @@ imports, plan editing) happens in **Forza! Coach**, on the coach's computer.
   deletes its key.
 - **On iPhone, a sign-in link opens in Safari**, whose sign-in the home-screen app does not share. So there
   the page does not use the code: it copies it, and the app takes it from **Paste my code**. Each code works
-  once, so a code used in Safari by mistake meant a new one from the coach.
+  once, so a code used in Safari by mistake meant a new one from the coach. In Safari on an iPhone the sign-in
+  page has no paste button (it points to the icon, with a small "paste here anyway"), and once signed in there,
+  Home offers **Copy a code for the icon**: a device key made for the icon, in a link the icon pastes as usual.
+  The icon signs in with it, makes a key of its own and forgets that one, so it works once.
 - **iPhone**: a home-screen web app keeps its own storage, separate from Safari, so on iPhone the person
   installs the app first and scans the code from inside it ("Scan my code" uses the camera in the app).
 - The QR scanner is the same component as the food barcode scanner.

@@ -5,6 +5,7 @@ import { Scanner } from '../components/Scanner'
 import { Button, Field, Input, Segmented } from '../components/ui'
 import { useApp } from '../lib/auth'
 import { parseConnect, type ConnectCode } from '../lib/connect'
+import { iosBrowser } from '../lib/deviceKey'
 import { useI18n } from '../lib/i18n'
 import { isConfigured, supabase } from '../lib/supabase'
 import type { Locale } from '../lib/types'
@@ -20,6 +21,10 @@ export function Login() {
   const [scanning, setScanning] = useState(false)
   const [code, setCode] = useState<ConnectCode | null>(null)
   const [pasteBox, setPasteBox] = useState(false)
+  // In Safari on an iPhone a code pasted here signs in Safari only, not the Forza! icon on the Home Screen: the
+  // person is sent to the icon, and can still paste here on purpose.
+  const [pasteInSafari, setPasteInSafari] = useState(false)
+  const safari = iosBrowser() && !pasteInSafari
   // Without a server the email form cannot work: the setup code is the way in.
   const [showForm, setShowForm] = useState(isConfigured)
 
@@ -72,10 +77,19 @@ export function Login() {
         <Button size="lg" block variant={showForm ? 'secondary' : 'primary'} onClick={() => setScanning(true)}>
           <QrCode className="size-5" aria-hidden /> {t('login.scan')}
         </Button>
-        <Button size="lg" block variant="secondary" onClick={() => void paste()}>
-          <ClipboardPaste className="size-5" aria-hidden /> {t('login.paste')}
-        </Button>
-        {pasteBox ? (
+        {safari ? (
+          <div className="grid gap-2 rounded-2xl bg-sky-soft p-3 text-sm">
+            <p>{t('login.iosApp')}</p>
+            <Button variant="ghost" size="sm" onClick={() => setPasteInSafari(true)}>
+              {t('login.pasteInSafari')}
+            </Button>
+          </div>
+        ) : (
+          <Button size="lg" block variant="secondary" onClick={() => void paste()}>
+            <ClipboardPaste className="size-5" aria-hidden /> {t('login.paste')}
+          </Button>
+        )}
+        {pasteBox && !safari ? (
           <form
             onSubmit={(e) => {
               e.preventDefault()

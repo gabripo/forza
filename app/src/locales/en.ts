@@ -27,8 +27,18 @@ export const en = {
     paste: 'Paste my code',
     pasteBox: 'Paste the link here',
     pasteWrong: 'What was copied is not a Forza! code. Copy the whole link and try again.',
+    iosApp: 'On iPhone, paste your code in Forza! opened from its icon on the Home Screen, not here in Safari: the icon keeps its own sign-in. No icon yet? Tap Share → Add to Home Screen, then open it.',
+    pasteInSafari: 'Paste it here in Safari anyway',
     usePassword: 'Sign in with email and password instead',
     noServer: 'Scan your code to connect this phone to your family\'s Forza!',
+  },
+  handoff: {
+    title: 'Forza! on your Home Screen',
+    text: 'You are using Forza! in Safari. The Forza! icon on your Home Screen keeps its own sign-in: if it asks for a code, copy one here.',
+    copy: 'Copy a code for the icon',
+    copied: 'Copied ✓',
+    then: 'Now open Forza! from its icon, tap "Paste my code", then "Start". The code works once.',
+    hide: 'I only use Safari: hide this',
   },
   welcome: {
     title: 'Welcome to Forza!',

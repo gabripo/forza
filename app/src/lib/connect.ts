@@ -3,16 +3,20 @@
 //   - a one-time sign-in token (valid 24 hours, usable once),
 // so the person is signed in without typing an email or a password.
 // Everything sits after "#", which browsers never send to any server.
+import { signInWithDeviceKey } from './deviceKey'
 import { SERVER_KEY, serverKey, serverUrl, supabase } from './supabase'
 
 export interface ConnectCode {
   url: string
   key: string
   token: string | null
+  /** Instead of a token: a device key, from Forza! signed in in Safari on the same iPhone (appCodeLink). */
+  device: string | null
   name: string | null
 }
 
 const PENDING = 'forza.pendingSignIn'
+const PENDING_DEVICE = 'forza.pendingDevice'
 
 /** Reads a setup link ("https://…/forza/#/welcome?u=…&k=…&t=…") or just its "#/welcome?…" part. */
 export function parseConnect(text: string): ConnectCode | null {
@@ -30,7 +34,14 @@ export function parseConnect(text: string): ConnectCode | null {
   }
   if (!/^[\w.-]{20,}$/.test(key)) return null
   const token = q.get('t')
-  return { url: url.replace(/\/$/, ''), key, token: token && /^[\w-]{20,}$/.test(token) ? token : null, name: q.get('n') }
+  const device = q.get('d')
+  return {
+    url: url.replace(/\/$/, ''),
+    key,
+    token: token && /^[\w-]{20,}$/.test(token) ? token : null,
+    device: device && /^fd_[0-9a-f]{64}$/.test(device) ? device : null,
+    name: q.get('n'),
+  }
 }
 
 export function sameServer(c: ConnectCode): boolean {
@@ -50,6 +61,7 @@ export async function applyConnectCode(c: ConnectCode): Promise<'expired' | null
       localStorage.removeItem('forza.auth')
       localStorage.removeItem('forza.deviceKey')
       if (c.token) sessionStorage.setItem(PENDING, c.token)
+      if (c.device) sessionStorage.setItem(PENDING_DEVICE, c.device)
     } catch {
       // storage blocked: nothing we can do
     }
@@ -60,6 +72,8 @@ export async function applyConnectCode(c: ConnectCode): Promise<'expired' | null
   if (c.token) {
     const err = await signInWithToken(c.token)
     if (err) return err
+  } else if (c.device) {
+    if ((await signInWithDeviceKey(c.device)) !== 'done') return 'expired'
   }
   location.replace(home)
   return null
@@ -75,11 +89,16 @@ async function signInWithToken(token: string): Promise<'expired' | null> {
 /** After switching servers the app reloads; the sign-in then finishes here. */
 export async function finishPendingSignIn(): Promise<'expired' | null> {
   let token: string | null = null
+  let device: string | null = null
   try {
     token = sessionStorage.getItem(PENDING)
+    device = sessionStorage.getItem(PENDING_DEVICE)
     sessionStorage.removeItem(PENDING)
+    sessionStorage.removeItem(PENDING_DEVICE)
   } catch {
     return null
   }
-  return token ? signInWithToken(token) : null
+  if (token) return signInWithToken(token)
+  if (device) return (await signInWithDeviceKey(device)) === 'done' ? null : 'expired'
+  return null
 }

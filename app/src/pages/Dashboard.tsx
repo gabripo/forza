@@ -2,6 +2,7 @@ import { ArrowUpDown, Barcode, BookOpen, Camera, Check, ChevronRight, Footprints
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart, MacroBar, Ring } from '../components/charts'
+import { AppHandoffCard } from '../components/AppHandoff'
 import { ConsistencyLink } from '../components/Consistency'
 import { CopyMealButton } from '../components/CopyMeal'
 import { DayQuestionCard } from '../components/DayCards'
@@ -455,6 +456,9 @@ export function Dashboard() {
           <SettingsIcon className="size-6" />
         </Link>
       </header>
+
+      {/* In Safari on an iPhone: a code for the Forza! icon on the Home Screen, which keeps its own sign-in. */}
+      <AppHandoffCard name={profile.display_name} />
 
       {/* The weigh-in of the day: in the morning, and on an iPhone one tap to bring it from Apple Health. */}
       <WeighInCard weighedToday={view.weighedToday} iphoneSync={view.iphoneSync} scaleSynced={view.scaleSynced} onLog={() => setLogOpen(true)} />

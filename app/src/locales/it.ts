@@ -29,8 +29,18 @@ export const it: Dict = {
     paste: 'Incolla il mio codice',
     pasteBox: 'Incolla qui il link',
     pasteWrong: 'Il testo copiato non è un codice Forza!. Copia tutto il link e riprova.',
+    iosApp: 'Su iPhone il codice si incolla in Forza! aperta dalla sua icona nella schermata Home, non qui in Safari: l\'icona ha un accesso tutto suo. L\'icona non c\'è? Tocca Condividi → Aggiungi alla schermata Home, poi aprila.',
+    pasteInSafari: 'Incollalo comunque qui in Safari',
     usePassword: 'Entra invece con email e password',
     noServer: 'Inquadra il tuo codice per collegare questo telefono al Forza! della tua famiglia',
+  },
+  handoff: {
+    title: 'Forza! nella schermata Home',
+    text: 'Stai usando Forza! in Safari. L\'icona di Forza! nella schermata Home ha un accesso tutto suo: se ti chiede un codice, copialo qui.',
+    copy: 'Copia un codice per l\'icona',
+    copied: 'Copiato ✓',
+    then: 'Ora apri Forza! dalla sua icona, tocca «Incolla il mio codice», poi «Inizia». Il codice vale una volta sola.',
+    hide: 'Uso solo Safari: nascondi',
   },
   welcome: {
     title: 'Ti diamo il benvenuto in Forza!',
